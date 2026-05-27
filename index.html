@@ -402,6 +402,37 @@
             </div>
         </div>
 
+        <!-- 🌟 新增：戳戳互动开关 -->
+        <div class="modern-card">
+            <div class="form-row" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                <span class="form-label" style="font-size: 13px;">👉 允许对方戳戳</span>
+                <label class="modern-switch">
+                    <input type="checkbox" id="allow-bot-pat-toggle">
+                    <span class="modern-switch-slider"></span>
+                </label>
+            </div>
+            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">关闭后，点击下方「让对方戳一下我」无效。对方拍我的动作语句仍可在「角色设定」中编辑。</div>
+            <button class="action-btn" style="margin-top: 12px; background: var(--wechat-green);" onclick="triggerBotPat()">👋 让对方戳一下我</button>
+        </div>
+
+        <!-- 🌟 新增：对方主动发消息开关 -->
+        <div class="modern-card">
+            <div class="form-row" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                <span class="form-label" style="font-size: 13px;">💬 允许对方一段时间主动发消息</span>
+                <label class="modern-switch">
+                    <input type="checkbox" id="allow-proactive-toggle">
+                    <span class="modern-switch-slider"></span>
+                </label>
+            </div>
+            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">开启后，若您 5 分钟内没有任何动作，对方会自动发来消息。关闭后只有您主动发消息或点「召唤」时对方才会回复。</div>
+        </div>
+
+        <!-- 🌟 新增：每日视频电话信息（每天 50% 概率） -->
+        <div class="modern-card" style="background: #f0f9ff;">
+            <div style="font-size: 13px; font-weight: 600; color: #0084FF; margin-bottom: 6px;">📞 每日视频电话</div>
+            <div style="font-size: 12px; color: #555; line-height: 1.6;">每天打开页面时自动掷骰，50% 概率对方会在今日剩余时间内的随机时刻给您打来视频电话。已掷骰过则当日不再重新掷骰。</div>
+        </div>
+
         <div class="modern-card" style="border-left: 3px solid #FF6900; background: #fff9f5;">
             <div style="font-size: 13px; font-weight: 700; color: #FF6900; margin-bottom: 10px;">📱 OPPO Reno11 后台消息推送配置</div>
             <div style="font-size: 12px; color: #666; line-height: 2; margin-bottom: 10px;">
@@ -523,6 +554,7 @@
 
         <div id="chat-input" class="chat-input-box" contenteditable="true" data-placeholder="发消息..."></div>
         
+        <button class="summon-btn-style" onclick="triggerBotPat()" title="让对方戳一下我" style="background:#E9F3FF; color:#0084FF;">戳戳</button>
         <button class="summon-btn-style" onclick="forceReply()" title="召唤对方">召唤</button>
         <button class="send-btn-style" onclick="sendMessage()">发送</button>
     </div>
@@ -774,7 +806,8 @@
         myName: '我', myAvatar: '', otherName: '匿名者', otherAvatar: '', bgImage: '', bgClarity: 100, 
         emojis: defaultEmojis, customStickers: [], minReplyDelay: 3000, maxReplyDelay: 5000, videoBg: '',
         myPats: defaultMyPats, botPats: defaultBotPats, momentsBg: '',
-        ignoreReplyEnabled: false, ignoreReplyProb: 15
+        ignoreReplyEnabled: false, ignoreReplyProb: 15,
+        allowBotPat: true, allowProactive: true
     };
     if (!config.minReplyDelay) config.minReplyDelay = 3000;
     if (!config.maxReplyDelay) config.maxReplyDelay = 5000;
@@ -782,6 +815,8 @@
     if (!config.botPats || config.botPats.length===0) config.botPats = defaultBotPats;
     if (typeof config.ignoreReplyEnabled === 'undefined') config.ignoreReplyEnabled = false;
     if (typeof config.ignoreReplyProb === 'undefined') config.ignoreReplyProb = 15;
+    if (typeof config.allowBotPat === 'undefined') config.allowBotPat = true;
+    if (typeof config.allowProactive === 'undefined') config.allowProactive = true;
 
     let wordCards = JSON.parse(localStorage.getItem('wordCardsV2')) || [{text:"我在听。", tag:"日常"}];
     let voiceCards = JSON.parse(localStorage.getItem('voiceCardsV1')) || []; 
@@ -1004,7 +1039,7 @@
     function init() {
         applyBg(config.bgImage, config.bgClarity);
         renderStickerGrids(); renderVoiceUI(); updateChatTitle(); loadChatHistory();
-        startRandomIncomingCallCheck(); resetProactiveTimer(); bindDoubleTap(); checkAndGenerateBotMood(); 
+        checkDailyCall(); resetProactiveTimer(); bindDoubleTap(); checkAndGenerateBotMood(); 
         checkPendingBotMoment(); setInterval(checkPendingBotMoment, 60000); 
     }
 
@@ -1067,16 +1102,21 @@
         
         if (!isSelf) {
             resetProactiveTimer();
-            if (Math.random() < 0.4) {
-                setTimeout(() => {
-                    const botSuffixPool = (config.botPats && config.botPats.length > 0) ? config.botPats : ["的脑袋"];
-                    const botSuffix = botSuffixPool[Math.floor(Math.random() * botSuffixPool.length)];
-                    appendSystemMessage(`${config.otherName || "匿名者"} 拍了拍 我 ${botSuffix}`);
-                    sendSystemNotification(config.otherName || '匿名者', `拍了拍你 ${botSuffix}`); 
-                }, 1000 + Math.random() * 1500);
-            }
+            // 已移除：对方不再随机自动回拍，需用户手动点击「戳戳」按钮触发
             setTimeout(() => { triggerAutoReply(); }, 1000);
         }
+    }
+
+    // 🌟 手动触发对方戳一下我（受 allowBotPat 开关控制）
+    function triggerBotPat() {
+        if (!config.allowBotPat) {
+            showCustomNotification('已关闭对方戳戳功能，请到「偏好设置」开启', 'error');
+            return;
+        }
+        const botSuffixPool = (config.botPats && config.botPats.length > 0) ? config.botPats : ["的脑袋"];
+        const botSuffix = botSuffixPool[Math.floor(Math.random() * botSuffixPool.length)];
+        appendSystemMessage(`${config.otherName || "匿名者"} 拍了拍 我 ${botSuffix}`);
+        sendSystemNotification(config.otherName || '匿名者', `拍了拍你 ${botSuffix}`);
     }
 
     function appendSystemMessage(text, skipSave = false, msgId = null) {
@@ -1088,6 +1128,7 @@
 
     function resetProactiveTimer() {
         clearTimeout(proactiveTimer);
+        if (!config.allowProactive) return; // 🌟 关闭"对方主动发消息"则不再调度
         proactiveTimer = setTimeout(() => {
             if (document.getElementById('video-call-overlay').style.display === 'none' && document.getElementById('moments-page').style.display === 'none') {
                 triggerAutoReply(); 
@@ -1272,8 +1313,66 @@
     function minimizeCall() { document.getElementById('video-call-overlay').style.display = 'none'; document.getElementById('floating-call-pip').style.display = 'flex'; if (config.videoBg) document.getElementById('floating-call-bg').src = config.videoBg; }
     function restoreCall() { document.getElementById('floating-call-pip').style.display = 'none'; document.getElementById('video-call-overlay').style.display = 'flex'; }
 
-    function startRandomIncomingCallCheck() {
-        setInterval(() => { if (document.getElementById('video-call-overlay').style.display === 'none' && document.getElementById('floating-call-pip').style.display === 'none' && Math.random() < 0.03) startIncomingCall(); }, 20000);
+    // 🌟 改为：每天 50% 概率，对方在今日剩余时间内的随机时刻打来视频电话
+    function checkDailyCall() {
+        const todayStr = getLocalDateStr(new Date());
+        const lastCheckDate = localStorage.getItem('lastCallCheckDateV1');
+
+        if (lastCheckDate !== todayStr) {
+            // 今日还没有掷骰子
+            localStorage.setItem('lastCallCheckDateV1', todayStr);
+            if (Math.random() < 0.5) {
+                // 50% 命中：在剩余时间内的随机时刻安排来电
+                const now = new Date();
+                const endOfDay = new Date(now);
+                endOfDay.setHours(23, 59, 59, 999);
+                const remainingMs = endOfDay.getTime() - now.getTime();
+                const minDelay = 30 * 60 * 1000; // 至少 30 分钟后
+                let delayMs;
+                if (remainingMs <= minDelay) {
+                    delayMs = Math.random() * Math.max(0, remainingMs);
+                } else {
+                    delayMs = minDelay + Math.random() * (remainingMs - minDelay);
+                }
+                const callTime = Date.now() + delayMs;
+                localStorage.setItem('scheduledCallTimeV1', callTime.toString());
+            } else {
+                localStorage.removeItem('scheduledCallTimeV1');
+            }
+        }
+
+        // 处理已安排的来电
+        const scheduledTimeStr = localStorage.getItem('scheduledCallTimeV1');
+        if (!scheduledTimeStr) return;
+
+        const callTime = parseInt(scheduledTimeStr);
+        if (isNaN(callTime)) { localStorage.removeItem('scheduledCallTimeV1'); return; }
+
+        const callDateStr = getLocalDateStr(new Date(callTime));
+        if (callDateStr !== todayStr) {
+            // 不是今天的就清理掉
+            localStorage.removeItem('scheduledCallTimeV1');
+            return;
+        }
+
+        const delay = callTime - Date.now();
+        if (delay <= 0) {
+            // 时间已过（同一天内）：立即触发
+            localStorage.removeItem('scheduledCallTimeV1');
+            if (document.getElementById('video-call-overlay').style.display === 'none' &&
+                document.getElementById('floating-call-pip').style.display === 'none') {
+                startIncomingCall();
+            }
+        } else {
+            // 设置定时器，到点触发
+            setTimeout(() => {
+                if (document.getElementById('video-call-overlay').style.display === 'none' &&
+                    document.getElementById('floating-call-pip').style.display === 'none') {
+                    startIncomingCall();
+                }
+                localStorage.removeItem('scheduledCallTimeV1');
+            }, delay);
+        }
     }
 
     function recallMessage(element) {
@@ -1327,6 +1426,12 @@
             document.getElementById('ignore-reply-prob-slider').value = config.ignoreReplyProb;
             document.getElementById('ignore-reply-prob-label').innerText = config.ignoreReplyProb + '%';
             document.getElementById('ignore-reply-prob-container').style.display = config.ignoreReplyEnabled ? 'flex' : 'none';
+
+            // 🌟 新开关：戳戳 & 主动发消息
+            const patToggle = document.getElementById('allow-bot-pat-toggle');
+            if (patToggle) patToggle.checked = config.allowBotPat;
+            const proToggle = document.getElementById('allow-proactive-toggle');
+            if (proToggle) proToggle.checked = config.allowProactive;
         }
         if(id === 'panel-stickers') { document.getElementById('emoji-list-input').value = config.emojis; renderStickerSettingsPreview(); }
     }
@@ -1718,8 +1823,22 @@
         // 🌟 保存已读不回数据
         config.ignoreReplyEnabled = document.getElementById('ignore-reply-toggle').checked;
         config.ignoreReplyProb = parseInt(document.getElementById('ignore-reply-prob-slider').value);
+
+        // 🌟 保存新开关：戳戳 & 主动发消息
+        const patToggle = document.getElementById('allow-bot-pat-toggle');
+        if (patToggle) config.allowBotPat = patToggle.checked;
+        const proToggle = document.getElementById('allow-proactive-toggle');
+        if (proToggle) config.allowProactive = proToggle.checked;
         
         localStorage.setItem('chatConfigV6', JSON.stringify(config));
+
+        // 🌟 立即应用主动发消息开关
+        if (config.allowProactive) {
+            resetProactiveTimer();
+        } else {
+            clearTimeout(proactiveTimer);
+        }
+
         closeAllPanels(); updateChatTitle(); 
         if(document.getElementById('moments-page').style.display === 'flex') renderMoments();
         showCustomNotification("设定已保存", "success");
