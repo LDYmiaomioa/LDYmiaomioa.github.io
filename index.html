@@ -2844,19 +2844,19 @@
                     appendMessage(false, voiceHtml, autoQuote);
                 } else {
                     if(wordCards.length > 0) {
-                        const random = Math.random(); const card = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text);
-                        let mixEmojis = ""; const emojiCount = Math.floor(Math.random() * 3) + 1;
-                        for(let k=0; k<emojiCount; k++){ mixEmojis += getPureEmoji(); }
+                        const random = Math.random();
+                        const sentence = pickWordCardsSentence(2, 3);   // 🌟 一句话用 2~3 张字卡拼成
+                        const oneEmoji = escapeHtml(getPureEmoji());    // 🌟 混合一个单独的 emoji
 
-                        if (random < 0.3) { appendMessage(false, card, autoQuote); } 
-                        else if (random < 0.6) { appendMessage(false, card + " " + escapeHtml(mixEmojis), autoQuote); } 
-                        else if (random < 0.8) { appendMessage(false, escapeHtml(mixEmojis), autoQuote); } 
+                        if (random < 0.3) { appendMessage(false, sentence, autoQuote); }
+                        else if (random < 0.6) { appendMessage(false, sentence + " " + oneEmoji, autoQuote); }
+                        else if (random < 0.8) { appendMessage(false, oneEmoji, autoQuote); }
                         else {
                             if (config.customStickers.length > 0) {
                                 const img = config.customStickers[Math.floor(Math.random() * config.customStickers.length)];
-                                if (Math.random() < 0.5) { appendMessage(false, `${card} ${escapeHtml(mixEmojis)} <br><img src="${img}">`, autoQuote); } 
+                                if (Math.random() < 0.5) { appendMessage(false, `${sentence} ${oneEmoji} <br><img src="${img}">`, autoQuote); }
                                 else { appendMessage(false, `<img src="${img}">`, autoQuote); }
-                            } else { appendMessage(false, card + " " + escapeHtml(mixEmojis), autoQuote); }
+                            } else { appendMessage(false, sentence + " " + oneEmoji, autoQuote); }
                         }
                     }
                 }
@@ -2868,6 +2868,15 @@
 
     function finishReply() { pendingReplies--; if (pendingReplies <= 0) pendingReplies = 0; updateChatTitle(); }
     function getPureEmoji() { const emojis = config.emojis.split(/\s+/).filter(e => e); return emojis.length > 0 ? emojis[Math.floor(Math.random() * emojis.length)] : "✨"; }
+
+    // 🌟 一句话里随机取 2~3 张字卡拼成一句（字卡不足则有多少取多少；用空格自然连接，已做转义）
+    function pickWordCardsSentence(min = 2, max = 3) {
+        if (!wordCards.length) return "";
+        const want = Math.min(wordCards.length, Math.floor(Math.random() * (max - min + 1)) + min);
+        let parts = [];
+        for (let k = 0; k < want; k++) parts.push(wordCards[Math.floor(Math.random() * wordCards.length)].text);
+        return parts.map(t => escapeHtml(t)).join(' ');
+    }
 
     function showCustomPrompt(titleText, callback) {
         document.getElementById('custom-prompt-title').innerText = titleText; document.getElementById('custom-prompt-input').value = '';
@@ -3187,9 +3196,13 @@
 
     function triggerBotMoment() {
         if(wordCards.length === 0 && voiceCards.length === 0) return;
-        const count = Math.floor(Math.random() * 6) + 5; let texts = [];
-        if (wordCards.length > 0) { for(let i=0; i<count; i++) { texts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text)); } }
-        let finalHtml = texts.join('<br>') + "<br>" + getPureEmoji();
+        // 🌟 字卡一张接一张横向连成一句（不再用 <br> 竖排）
+        let texts = [];
+        if (wordCards.length > 0) {
+            const count = Math.min(wordCards.length, Math.floor(Math.random() * 3) + 2); // 取 2~4 张
+            for(let i=0; i<count; i++) { texts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text)); }
+        }
+        let finalHtml = (texts.join(' ') + " " + getPureEmoji()).trim();
         if (config.customStickers.length > 0 && Math.random() < 0.6) {
             const botImg = config.customStickers[Math.floor(Math.random() * config.customStickers.length)]; finalHtml += `<br><img src="${botImg}">`;
         }
@@ -3200,7 +3213,7 @@
                     <audio src="${botVoice}" style="display:none;"></audio>
                     <svg class="voice-icon" style="width:14px; height:14px; margin-right:4px;" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
                     <span class="voice-dur" style="font-size:12px;">语音</span>
-                </div><br>` + getPureEmoji();
+                </div> ` + getPureEmoji();
         }
         const newMoment = { id: Date.now(), isSelf: false, text: finalHtml, img: null, comments: [], timestamp: Date.now() };
         moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
