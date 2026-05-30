@@ -318,6 +318,61 @@
         .publish-tool-icon { color: #333; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: var(--light-gray); border-radius: 50%; transition: transform 0.1s;}
         .publish-tool-icon:active { transform: scale(0.9); }
         .publish-tool-icon svg { width: 18px; height: 18px; }
+
+        /* 🌟 查岗按钮 */
+        .checkin-btn { padding: 12px 8px; border: none; border-radius: 12px; background: #fff; color: #FF6900; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.1s, background 0.2s; }
+        .checkin-btn:active { transform: scale(0.96); background: #fff3e9; }
+
+        /* 🌟 高频词汇页面 */
+        .freq-tabs { display: flex; gap: 8px; background: var(--light-gray); padding: 4px; border-radius: 14px; margin-bottom: 14px; }
+        .freq-tab { flex: 1; text-align: center; font-size: 13px; cursor: pointer; color: #888; font-weight: 600; padding: 8px 6px; border-radius: 11px; transition: all 0.2s; }
+        .freq-tab.active { color: var(--theme-blue-text); background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        #freq-cloud { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: center; padding: 18px 12px; background: var(--light-gray); border-radius: 14px; margin-bottom: 14px; min-height: 80px; }
+        .freq-word { display: inline-flex; align-items: baseline; background: #fff; border-radius: 14px; padding: 4px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-weight: 600; line-height: 1.2; }
+        .freq-word .freq-count { font-size: 10px; color: #bbb; margin-left: 4px; font-weight: 500; }
+        .freq-rank-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #fff; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 7px; font-size: 14px; }
+        .freq-rank-no { width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; background: #c9ced6; }
+        .freq-rank-no.top1 { background: #FF6900; } .freq-rank-no.top2 { background: #FFA64D; } .freq-rank-no.top3 { background: #FFD0A6; color: #b35a00; }
+        .freq-rank-word { flex: 1; min-width: 0; color: #333; font-weight: 600; word-break: break-all; }
+        .freq-bar-wrap { flex: 1.4; height: 8px; background: var(--light-gray); border-radius: 4px; overflow: hidden; }
+        .freq-bar { height: 100%; background: linear-gradient(90deg, #0084FF, #66b5ff); border-radius: 4px; }
+        .freq-rank-count { font-size: 12px; color: #888; white-space: nowrap; font-weight: 600; }
+
+        /* 🌟 涂鸦本页面 */
+        .doodle-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .doodle-swatches { display: flex; flex-wrap: wrap; gap: 7px; }
+        .doodle-swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px #ddd; transition: transform .1s; }
+        .doodle-swatch.active { transform: scale(1.18); box-shadow: 0 0 0 2px #333; }
+        .doodle-tools { display: flex; gap: 8px; align-items: center; }
+        .doodle-tool-btn { font-size: 12px; font-weight: 600; padding: 6px 10px; border: none; border-radius: 9px; background: var(--light-gray); color: #444; cursor: pointer; }
+        .doodle-tool-btn.active { background: #FFE9D6; color: #FF6900; }
+        #doodle-canvas { width: 100%; height: 300px; background: #fff; border: 1px solid var(--border-color); border-radius: 12px; touch-action: none; display: block; }
+        .doodle-letters { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-top: 10px; }
+        .doodle-letter { padding: 8px 0; font-size: 13px; font-weight: 700; border: none; border-radius: 8px; background: #fff; color: #333; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .doodle-letter:active { transform: scale(.92); background: var(--light-gray); }
+
+        /* 🌟 双方轨迹页面 */
+        .track-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .track-input { flex: 1; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px; outline: none; }
+        .track-input:focus { border-color: var(--theme-blue-text); box-shadow: 0 0 0 3px rgba(0,132,255,.1); }
+        .track-cards-wrap { display: flex; flex-wrap: wrap; gap: 7px; padding: 10px; background: var(--light-gray); border-radius: 10px; margin-bottom: 6px; min-height: 20px; }
+        .track-card-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--border-color); border-radius: 14px; padding: 5px 8px 5px 12px; font-size: 13px; color: #333; }
+        .track-card-del { width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 50%; background: #eee; color: #999; font-size: 11px; cursor: pointer; }
+        .track-card-del:active { background: #FF3B30; color: #fff; }
+        .track-rec-row { display: flex; gap: 10px; padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; }
+        .track-rec-row.me { background: #eef6ff; }
+        .track-rec-row.other { background: #fff5ee; }
+        .track-rec-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+        .track-rec-row.me .track-rec-dot { background: #0084FF; }
+        .track-rec-row.other .track-rec-dot { background: #FF6900; }
+        .track-rec-body { flex: 1; min-width: 0; }
+        .track-rec-who { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+        .track-rec-row.me .track-rec-who { color: #0084FF; }
+        .track-rec-row.other .track-rec-who { color: #FF6900; }
+        .track-rec-text { font-size: 14px; color: #333; word-break: break-word; line-height: 1.5; }
+        .track-rec-time { font-size: 11px; color: #aaa; margin-top: 3px; }
+        .track-rec-del { font-size: 11px; color: #ccc; cursor: pointer; align-self: flex-start; padding: 2px 4px; }
+        .track-rec-del:active { color: #FF3B30; }
     </style>
 </head>
 <body>
@@ -331,9 +386,14 @@
             <button class="nav-btn" onclick="togglePanel('panel-mood')">心情日记</button>
             <button class="nav-btn" onclick="togglePanel('panel-roles')">角色设定</button>
             <button class="nav-btn" onclick="togglePanel('panel-prefs')">偏好设置</button>
+            <button class="nav-btn" onclick="togglePanel('panel-checkin')" style="color:#FF6900;">查岗</button>
+            <button class="nav-btn" onclick="togglePanel('panel-calls')">通话记录</button>
             <button class="nav-btn" onclick="togglePanel('panel-data')">数据备份</button>
             <button class="nav-btn" onclick="togglePanel('panel-bg')">背景</button>
             <button class="nav-btn" onclick="togglePanel('panel-words')">字卡</button>
+            <button class="nav-btn" onclick="togglePanel('panel-frequency')" style="color:#0084FF;">高频词</button>
+            <button class="nav-btn" onclick="togglePanel('panel-doodle')" style="color:#7048e8;">涂鸦本</button>
+            <button class="nav-btn" onclick="togglePanel('panel-track')" style="color:#16a085;">双方轨迹</button>
             <button class="nav-btn" onclick="togglePanel('panel-voice')">语音库</button>
             <button class="nav-btn" onclick="togglePanel('panel-stickers')">表情</button>
             <button class="nav-btn" onclick="toggleMoments(true)" style="color: var(--wechat-green);">朋友圈</button>
@@ -420,11 +480,23 @@
             <div class="form-row" style="flex-direction: row; justify-content: space-between; align-items: center;">
                 <span class="form-label" style="font-size: 13px;">💬 允许对方一段时间主动发消息</span>
                 <label class="modern-switch">
-                    <input type="checkbox" id="allow-proactive-toggle">
+                    <input type="checkbox" id="allow-proactive-toggle" onchange="toggleProactiveUi()">
                     <span class="modern-switch-slider"></span>
                 </label>
             </div>
-            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">开启后，若您 5 分钟内没有任何动作，对方会自动发来消息。关闭后只有您主动发消息或点「召唤」时对方才会回复。</div>
+            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">开启后，若您在下方设定的「主动发消息频率」时间内没有任何动作，对方会自动发来消息；持续静默则会按此频率不断发来新消息。关闭后只有您主动发消息或点「召唤」时对方才会回复。</div>
+
+            <!-- 🌟 新增：对方主动发消息频率设置（最少 1 秒，最多 15 分钟） -->
+            <div class="form-row" id="proactive-interval-container" style="display: none; margin-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 12px;">
+                <span class="form-label">⏱️ 主动发消息频率：<span id="proactive-interval-label" class="range-val">5 分钟</span></span>
+                <input type="range" id="proactive-interval-slider" class="modern-range" min="1" max="900" step="1" value="300" oninput="onProactiveIntervalInput(this.value)">
+                <div style="display:flex; justify-content:space-between; width:100%; font-size:10px; color:#bbb; margin-top:-2px;"><span>最快 1 秒</span><span>最慢 15 分钟</span></div>
+                <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:12px;">
+                    <input type="number" id="proactive-interval-number" min="1" max="900" step="1" class="settings-input" style="flex:1;" oninput="onProactiveNumberInput(this.value)" placeholder="精确秒数">
+                    <span style="font-size:12px; color:#888; white-space:nowrap; font-weight:600;">秒 (1 ~ 900)</span>
+                </div>
+                <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">拖动滑块或直接输入秒数均可。数值越小对方发消息越频繁，最小 1 秒、最大 900 秒（15 分钟）。修改后请点击下方「保存偏好」。</div>
+            </div>
         </div>
 
         <!-- 🌟 新增：每日视频电话信息（每天 50% 概率） -->
@@ -457,6 +529,38 @@
             <div class="form-row"><span class="form-label">最慢回复延迟: <span id="max-reply-delay-label" class="range-val">5s</span></span><input type="range" id="max-reply-delay-slider" class="modern-range" min="0" max="20" step="0.5" value="5" oninput="document.getElementById('max-reply-delay-label').innerText = this.value + 's'"></div>
         </div>
         <button class="action-btn" onclick="saveIdentity()">💾 保存偏好</button>
+    </div>
+
+    <div id="panel-checkin" class="panel">
+        <div class="panel-title">查岗 <span style="font-size:11px; color:#888; font-weight:normal; margin-left:5px;">(你和对方都可以互相查岗)</span></div>
+        <div class="modern-card" style="background:#fff9f5; border-left:3px solid #FF6900;">
+            <div style="font-size:12px; color:#666; line-height:1.6; margin-bottom:12px;">点下面的按钮查对方的岗，TA 会在几秒内向你报备。对方也会以大约 <b style="color:#FF6900;">50%</b> 的概率随机来查你的岗（在聊天里向你提问）。<b style="color:#FF6900;">对方查岗时说的话会从「字卡库」里随机掉落</b>，所以想让 TA 说什么，就去字卡库里添加吧～所有查岗都会记录在下方。</div>
+            <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
+                <button class="checkin-btn" onclick="doCheckin('eat')">🍚 吃饭了吗</button>
+                <button class="checkin-btn" onclick="doCheckin('doing')">💬 在干嘛</button>
+                <button class="checkin-btn" onclick="doCheckin('sleep')">🌙 要睡了吗</button>
+                <button class="checkin-btn" onclick="doCheckin('mood')">😊 心情如何</button>
+                <button class="checkin-btn" onclick="doCheckin('where')">📍 在哪儿呀</button>
+                <button class="checkin-btn" onclick="doCheckin('withwho')">👥 和谁一起</button>
+                <button class="checkin-btn" onclick="doCheckin('work')">💼 忙不忙</button>
+                <button class="checkin-btn" onclick="doCheckin('miss')">💗 想我没</button>
+                <button class="checkin-btn" onclick="doCheckin('phone')">📱 在玩手机吗</button>
+                <button class="checkin-btn" onclick="doCheckin('random')">🎲 随机查岗</button>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0 5px 8px;">
+            <span style="font-size:13px; font-weight:600; color:#333;">查岗记录</span>
+            <span style="font-size:11px; color:#999;">共 <span id="checkin-count">0</span> 次</span>
+        </div>
+        <div id="checkin-history-list" style="display:flex; flex-direction:column; gap:10px; padding-bottom:10px;"></div>
+        <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearCheckinHistory()">🗑️ 清空查岗记录</button>
+    </div>
+
+    <div id="panel-calls" class="panel">
+        <div class="panel-title">通话记录 <span style="font-size: 11px; color: #888; font-weight: normal; margin-left: 5px;">(双方的视频通话都会记录在此)</span></div>
+        <div class="modern-card" id="call-stats-card" style="display:flex; justify-content:space-around; text-align:center; padding:16px 8px;"></div>
+        <div id="call-history-list" style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px;"></div>
+        <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearCallHistory()">🗑️ 清空通话记录</button>
     </div>
 
     <div id="panel-data" class="panel">
@@ -526,6 +630,80 @@
         <button class="action-btn" onclick="saveStickerSettings()">💾 保存表情设置</button>
     </div>
 
+    <div id="panel-frequency" class="panel">
+        <div class="panel-title">高频词汇 <span style="font-size:11px; color:#888; font-weight:normal; margin-left:5px;">(根据聊天记录统计，看看你俩都爱说啥)</span></div>
+        <div class="modern-card" style="display:flex; justify-content:space-around; text-align:center; padding:16px 8px;">
+            <div style="flex:1;">
+                <div id="freq-total-me" style="font-size:22px; font-weight:700; color:var(--theme-blue-text);">0</div>
+                <div style="font-size:12px; color:#888; margin-top:4px;">我发的消息</div>
+            </div>
+            <div style="width:1px; background:var(--border-color);"></div>
+            <div style="flex:1;">
+                <div id="freq-total-other" style="font-size:22px; font-weight:700; color:#FF6900;">0</div>
+                <div style="font-size:12px; color:#888; margin-top:4px;"><span id="freq-other-name">对方</span>发的消息</div>
+            </div>
+        </div>
+        <div class="freq-tabs">
+            <span class="freq-tab active" id="freq-tab-me" onclick="switchFreqTab('me')">我说的</span>
+            <span class="freq-tab" id="freq-tab-other" onclick="switchFreqTab('other')">对方说的</span>
+            <span class="freq-tab" id="freq-tab-all" onclick="switchFreqTab('all')">合计</span>
+        </div>
+        <div id="freq-cloud"></div>
+        <div style="font-size:13px; font-weight:600; color:#333; padding:0 5px 8px;">出现次数排行</div>
+        <div id="freq-rank-list" style="padding-bottom:10px;"></div>
+        <button class="action-btn" onclick="renderFrequencyPanel()">🔄 重新统计</button>
+        <div style="font-size:11px; color:#bbb; text-align:center; margin-top:10px; line-height:1.5;">说明：中文按 2 字词 + 单字、英文按单词进行的近似统计，已自动过滤「的、了、我、你」等常见虚词，仅供参考娱乐～</div>
+    </div>
+
+    <div id="panel-doodle" class="panel">
+        <div class="panel-title">涂鸦本 <span style="font-size:11px; color:#888; font-weight:normal; margin-left:5px;">(画完直接发到聊天；点字母会随机落到画板上)</span></div>
+        <div class="doodle-toolbar">
+            <span style="font-size:12px; color:#888; font-weight:600;">颜色</span>
+            <div class="doodle-swatches" id="doodle-swatches"></div>
+        </div>
+        <div class="doodle-toolbar" style="justify-content:space-between;">
+            <div class="doodle-tools">
+                <button class="doodle-tool-btn" id="doodle-eraser-btn" onclick="doodleToggleEraser()">🩹 橡皮</button>
+                <button class="doodle-tool-btn" onclick="doodleUndo()">↩️ 撤销</button>
+                <button class="doodle-tool-btn" onclick="doodleClear()">🗑️ 清空</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#888;">
+                笔粗<input type="range" id="doodle-size" min="1" max="12" value="4" style="width:80px;" oninput="doodleSetSize(this.value)">
+            </div>
+        </div>
+        <canvas id="doodle-canvas"></canvas>
+        <div style="font-size:12px; font-weight:600; color:#333; margin-top:12px;">字母 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，字母会随机落到画板上)</span></div>
+        <div class="doodle-letters" id="doodle-letters"></div>
+        <button class="doodle-tool-btn" style="margin-top:8px; background:#7048e8; color:#fff;" onclick="doodleScatterLetters()">🎲 随机撒一把字母</button>
+        <button class="action-btn" style="background:#07C160; margin-top:12px;" onclick="doodleSendToChat()">📨 发送到聊天</button>
+        <div style="font-size:11px; color:#bbb; text-align:center; margin-top:8px; line-height:1.5;">画完后点「发送到聊天」，涂鸦会作为一张图片发到聊天里。涂鸦本身不保存，发送或关闭后即清空。</div>
+    </div>
+
+    <div id="panel-track" class="panel">
+        <div class="panel-title">双方轨迹 <span style="font-size:11px; color:#888; font-weight:normal; margin-left:5px;">(记录你和对方的日常足迹)</span></div>
+        <div class="modern-card">
+            <div style="font-size:12px; color:#666; line-height:1.6; margin-bottom:10px;">先添加一些「轨迹词卡」（如 <b>到公司了</b>、<b>在健身</b>、<b>到家啦</b>）。<b style="color:#FF6900;">对方会自动从这些词卡里随机掉落轨迹（每天约 70%~80% 概率），无需你手动操作</b>；你自己的轨迹在下方打卡框手动打卡。两个人的足迹都会记录在底部。</div>
+            <div class="track-add-row">
+                <input class="track-input" id="track-card-input" placeholder="输入一条轨迹词卡，如：到公司了" onkeydown="if(event.key==='Enter')addTrackCard()">
+                <button class="action-btn" style="width:auto; padding:9px 16px; background:#16a085;" onclick="addTrackCard()">添加</button>
+            </div>
+            <div class="track-cards-wrap" id="track-cards-wrap"></div>
+        </div>
+        <div class="modern-card">
+            <div style="font-size:13px; font-weight:600; color:#0084FF; margin-bottom:8px;">我的打卡</div>
+            <div class="track-add-row">
+                <input class="track-input" id="track-me-input" placeholder="此刻在做什么？打卡记录一下" onkeydown="if(event.key==='Enter')userTrackPunch()">
+                <button class="action-btn" style="width:auto; padding:9px 16px; background:#0084FF;" onclick="userTrackPunch()">打卡</button>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0 5px 8px;">
+            <span style="font-size:13px; font-weight:600; color:#333;">轨迹记录</span>
+            <span style="font-size:11px; color:#999;">共 <span id="track-rec-count">0</span> 条</span>
+        </div>
+        <div id="track-rec-list" style="padding-bottom:10px;"></div>
+        <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearTrackRecords()">🗑️ 清空轨迹记录</button>
+    </div>
+
     <div class="message-area" id="message-area" onclick="closeAllPanels()"></div>
 
     <div class="quote-preview-bar" id="quote-preview-bar">
@@ -562,7 +740,7 @@
     <div id="mood-selector-overlay" class="overlay-mask">
         <div class="custom-prompt-box" style="width: 90%; max-width: 340px;">
             <div class="custom-prompt-title">记录今日心情</div>
-            <div id="mood-options-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+            <div id="mood-options-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; max-height: 56vh; overflow-y: auto; padding: 2px; -webkit-overflow-scrolling: touch;">
                 </div>
             <button class="action-btn" style="background:#f2f2f2; color:#333;" onclick="closeMoodSelector()">取消</button>
         </div>
@@ -645,6 +823,17 @@
                 </div>
             </div>
             <button class="action-btn" style="margin-top:16px;" onclick="document.getElementById('oppo-guide-overlay').style.display='none'">我知道了，关闭教程</button>
+        </div>
+    </div>
+
+    <div id="chat-capacity-overlay" class="overlay-mask" style="z-index:3500;">
+        <div class="custom-prompt-box" style="width:88%; max-width:340px;">
+            <div class="custom-prompt-title" style="color:#FF6900;">💾 聊天记录提醒</div>
+            <div id="chat-capacity-msg" style="font-size:13px; color:#555; line-height:1.7; text-align:left; margin-bottom:18px;"></div>
+            <div style="display:flex; gap:10px;">
+                <button class="action-btn" style="background:#f2f2f2; color:#333;" onclick="closeChatCapacityOverlay()">知道了</button>
+                <button class="action-btn" style="background:#FF6900;" onclick="gotoExportFromCapacity()">去导出备份</button>
+            </div>
         </div>
     </div>
 
@@ -807,7 +996,7 @@
         emojis: defaultEmojis, customStickers: [], minReplyDelay: 3000, maxReplyDelay: 5000, videoBg: '',
         myPats: defaultMyPats, botPats: defaultBotPats, momentsBg: '',
         ignoreReplyEnabled: false, ignoreReplyProb: 15,
-        allowBotPat: true, allowProactive: true
+        allowBotPat: true, allowProactive: true, proactiveInterval: 300000
     };
     if (!config.minReplyDelay) config.minReplyDelay = 3000;
     if (!config.maxReplyDelay) config.maxReplyDelay = 5000;
@@ -817,27 +1006,75 @@
     if (typeof config.ignoreReplyProb === 'undefined') config.ignoreReplyProb = 15;
     if (typeof config.allowBotPat === 'undefined') config.allowBotPat = true;
     if (typeof config.allowProactive === 'undefined') config.allowProactive = true;
+    // 🌟 主动发消息频率（毫秒）：最少 1 秒，最多 15 分钟。旧数据/越界数据自动修正
+    if (typeof config.proactiveInterval === 'undefined') config.proactiveInterval = 300000;
+    if (config.proactiveInterval < 1000) config.proactiveInterval = 1000;
+    if (config.proactiveInterval > 900000) config.proactiveInterval = 900000;
 
     let wordCards = JSON.parse(localStorage.getItem('wordCardsV2')) || [{text:"我在听。", tag:"日常"}];
     let voiceCards = JSON.parse(localStorage.getItem('voiceCardsV1')) || []; 
     let moments = JSON.parse(localStorage.getItem('chatMomentsV1')) || [];
-    let chatHistory = JSON.parse(localStorage.getItem('chatHistoryV1')) || [];
+    // 🌟 聊天记录改为大容量存储（IndexedDB），此处先置空，由 initChatStorage() 异步载入
+    let chatHistory = [];
+    let callHistory = JSON.parse(localStorage.getItem('callHistoryV1')) || []; // 🌟 通话记录
+    let checkinHistory = JSON.parse(localStorage.getItem('checkinHistoryV1')) || []; // 🌟 查岗记录
+    let trackCards = JSON.parse(localStorage.getItem('trackCardsV1')) || [];        // 🌟 轨迹词卡（用户维护，供对方轨迹掉落）
+    let trackRecords = JSON.parse(localStorage.getItem('trackRecordsV1')) || [];    // 🌟 双方轨迹记录
     
     let moodData = JSON.parse(localStorage.getItem('chatMoodDataV1')) || {};
     let currentCalDate = new Date();
     const defaultMoods = [
-        { icon: '😊', text: '开心', color: '#f39c12', bg: 'rgba(243, 156, 18, 0.1)' },
-        { icon: '🥰', text: '幸福', color: '#e84393', bg: 'rgba(232, 67, 147, 0.1)' },
-        { icon: '😌', text: '平静', color: '#00cec9', bg: 'rgba(0, 206, 201, 0.1)' },
-        { icon: '🤔', text: '思考', color: '#6c5ce7', bg: 'rgba(108, 92, 231, 0.1)' },
-        { icon: '😢', text: '难过', color: '#0984e3', bg: 'rgba(9, 132, 227, 0.1)' },
-        { icon: '😡', text: '生气', color: '#d63031', bg: 'rgba(214, 48, 49, 0.1)' },
-        { icon: '😴', text: '疲惫', color: '#636e72', bg: 'rgba(99, 110, 114, 0.1)' },
-        { icon: '🤩', text: '惊喜', color: '#fdcb6e', bg: 'rgba(253, 203, 110, 0.1)' }
+        // —— 正向 / 高能量 ——
+        { icon: '😊', text: '开心', color: '#f39c12' },
+        { icon: '🤩', text: '惊喜', color: '#fdcb6e' },
+        { icon: '🥳', text: '兴奋', color: '#e17055' },
+        { icon: '😎', text: '自信', color: '#2d98da' },
+        { icon: '🌟', text: '充实', color: '#f9ca24' },
+        { icon: '😋', text: '满足', color: '#e67e22' },
+        // —— 甜蜜 / 爱意 ——
+        { icon: '🥰', text: '幸福', color: '#e84393' },
+        { icon: '😍', text: '心动', color: '#fd79a8' },
+        { icon: '🫶', text: '被爱', color: '#ff6b81' },
+        { icon: '🥹', text: '感动', color: '#ff7675' },
+        { icon: '🤗', text: '温暖', color: '#f0932b' },
+        // —— 平和 / 放松 ——
+        { icon: '😌', text: '平静', color: '#00cec9' },
+        { icon: '🍃', text: '放松', color: '#6ab04c' },
+        { icon: '😇', text: '治愈', color: '#55efc4' },
+        { icon: '☕', text: '慵懒', color: '#b8956a' },
+        { icon: '🤔', text: '思考', color: '#6c5ce7' },
+        // —— 俏皮 / 小情绪 ——
+        { icon: '😏', text: '得意', color: '#a55eea' },
+        { icon: '🤭', text: '害羞', color: '#f78fb3' },
+        { icon: '😶', text: '发呆', color: '#b2bec3' },
+        { icon: '🙄', text: '无语', color: '#95a5a6' },
+        { icon: '😅', text: '尴尬', color: '#f6b93b' },
+        { icon: '🫠', text: '融化', color: '#ff9f43' },
+        // —— 低落 / 负向 ——
+        { icon: '😢', text: '难过', color: '#0984e3' },
+        { icon: '😭', text: '想哭', color: '#3867d6' },
+        { icon: '😔', text: '失落', color: '#576574' },
+        { icon: '😞', text: '委屈', color: '#778ca3' },
+        { icon: '😡', text: '生气', color: '#d63031' },
+        { icon: '😤', text: '烦躁', color: '#eb3b5a' },
+        { icon: '😰', text: '焦虑', color: '#4b7bec' },
+        { icon: '😩', text: '崩溃', color: '#8854d0' },
+        // —— 身体状态 ——
+        { icon: '😴', text: '疲惫', color: '#636e72' },
+        { icon: '🤒', text: '生病', color: '#16a085' }
     ];
+    // 🌟 自动从十六进制色值生成浅色背景（用于日历心情小标签），避免逐个手写 rgba 出错
+    defaultMoods.forEach(m => {
+        if (!m.bg && m.color && /^#[0-9a-fA-F]{6}$/.test(m.color)) {
+            const h = m.color.slice(1);
+            const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+            m.bg = `rgba(${r}, ${g}, ${b}, 0.1)`;
+        }
+    });
 
     let currentQuote = null; let pendingReplies = 0; let callTimer = null; let callSeconds = 0; 
     let autoAcceptTimer = null; let proactiveTimer = null; let lastTapTime = 0;
+    let currentCall = null; // 🌟 当前通话状态 { direction:'incoming'|'outgoing', connected:bool }
     let activeInputTarget = chatInput;
 
     let mediaRecorder = null;
@@ -983,7 +1220,133 @@
         } catch (e) { console.log("原生 Notification API 调用失败:", e); }
     }
 
-    function saveChatHistory() { localStorage.setItem('chatHistoryV1', JSON.stringify(chatHistory)); }
+    // ============ 🗄️ 大容量聊天存储（IndexedDB，localStorage 自动回退/迁移） ============
+    // 说明：localStorage 单源约 5MB，两个人长期聊天 + 图片很容易写满导致存档报错。
+    // 改用 IndexedDB（可达数百 MB ~ GB 级）作为聊天主存储，旧的 localStorage 数据会自动迁移过来。
+    const CHAT_DB_NAME = 'privateSpaceChatDB';
+    const CHAT_STORE = 'chatStore';
+    const CHAT_KEY = 'chatHistoryV1';
+    let chatDB = null;
+    let chatStorageReady = false;
+
+    function openChatDB() {
+        return new Promise((resolve) => {
+            if (!('indexedDB' in window)) { resolve(null); return; }
+            try {
+                const req = indexedDB.open(CHAT_DB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(CHAT_STORE)) db.createObjectStore(CHAT_STORE);
+                };
+                req.onsuccess = (e) => { chatDB = e.target.result; resolve(chatDB); };
+                req.onerror = () => resolve(null);
+                req.onblocked = () => resolve(null);
+            } catch (err) { resolve(null); }
+        });
+    }
+
+    function idbGetChat() {
+        return new Promise((resolve) => {
+            if (!chatDB) { resolve(null); return; }
+            try {
+                const tx = chatDB.transaction(CHAT_STORE, 'readonly');
+                const req = tx.objectStore(CHAT_STORE).get(CHAT_KEY);
+                req.onsuccess = () => resolve(typeof req.result === 'undefined' ? null : req.result);
+                req.onerror = () => resolve(null);
+            } catch (err) { resolve(null); }
+        });
+    }
+
+    function idbSetChat(data) {
+        return new Promise((resolve) => {
+            if (!chatDB) { resolve(false); return; }
+            try {
+                const tx = chatDB.transaction(CHAT_STORE, 'readwrite');
+                tx.objectStore(CHAT_STORE).put(data, CHAT_KEY);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+                tx.onabort = () => resolve(false);
+            } catch (err) { resolve(false); }
+        });
+    }
+
+    // 统一持久化：优先 IndexedDB；写成功则清掉旧的 localStorage 聊天键释放空间；否则回退 localStorage
+    async function persistChat(data) {
+        if (chatDB) {
+            const ok = await idbSetChat(data);
+            if (ok) { try { localStorage.removeItem('chatHistoryV1'); } catch (e) {} return true; }
+        }
+        try { localStorage.setItem('chatHistoryV1', JSON.stringify(data)); return true; }
+        catch (e) { notifyChatTooLarge(true); return false; }
+    }
+
+    // 初始化聊天存储：IndexedDB 优先，没有则迁移/读取旧的 localStorage 数据
+    async function initChatStorage() {
+        await openChatDB();
+        let loaded = null;
+        if (chatDB) loaded = await idbGetChat();
+        if (loaded === null) {
+            try {
+                const ls = localStorage.getItem('chatHistoryV1');
+                if (ls) loaded = JSON.parse(ls);
+            } catch (e) { loaded = null; }
+            if (Array.isArray(loaded) && chatDB) { await idbSetChat(loaded); } // 迁移到 IndexedDB
+        }
+        chatHistory = Array.isArray(loaded) ? loaded : [];
+        chatStorageReady = true;
+    }
+
+    function saveChatHistory() {
+        // 内存中的 chatHistory 始终是最新的（渲染只读它），所以即便持久化偶发失败，本次聊天也不会出 bug
+        persistChat(chatHistory);
+        checkChatCapacity();
+    }
+
+    // ============ 📦 聊天容量监测与提醒 ============
+    const CHAT_WARN_MSG_COUNT = 1500;          // 消息条数超过该值 → 弹窗提醒保存
+    const CHAT_WARN_BYTES = 6 * 1024 * 1024;   // 估算体积超过 6MB → 弹窗提醒保存
+    let chatCapacityWarned = false;            // 本次会话是否已提醒（避免反复打扰）
+    let _saveCounter = 0;
+
+    function estimateChatBytes() {
+        try { return JSON.stringify(chatHistory).length; } catch (e) { return 0; }
+    }
+
+    function checkChatCapacity() {
+        if (chatCapacityWarned) return;
+        _saveCounter++;
+        const count = chatHistory.length;
+        if (count >= CHAT_WARN_MSG_COUNT) { notifyChatTooLarge(false); return; }
+        // 体积估算较重，每累计 20 条消息算一次即可
+        if (_saveCounter % 20 === 0 && estimateChatBytes() >= CHAT_WARN_BYTES) notifyChatTooLarge(false);
+    }
+
+    function notifyChatTooLarge(isQuotaError) {
+        // 普通超量本次会话只提醒一次；真正写满（QuotaError）则始终提醒
+        if (chatCapacityWarned && !isQuotaError) return;
+        chatCapacityWarned = true;
+        const overlay = document.getElementById('chat-capacity-overlay');
+        const msg = document.getElementById('chat-capacity-msg');
+        if (!overlay || !msg) return;
+        const count = chatHistory.length;
+        const mb = (estimateChatBytes() / (1024 * 1024)).toFixed(1);
+        if (isQuotaError) {
+            msg.innerHTML = `⚠️ 本设备的存储空间已经写满，最新的聊天可能无法长期保存。<br><br>目前共有 <b style="color:#FF6900;">${count}</b> 条消息、约 <b style="color:#FF6900;">${mb} MB</b>。<br><br>请尽快点「去导出备份」把聊天保存到本地，并适当清理一部分旧消息，以免丢失。`;
+        } else {
+            msg.innerHTML = `你们已经聊了 <b style="color:#FF6900;">${count}</b> 条消息、约 <b style="color:#FF6900;">${mb} MB</b> 啦～<br><br>聊天记录越来越多，建议你点「去导出备份」及时保存到本地，避免意外丢失。导出后可以放心继续聊，也可以清理旧消息释放空间。`;
+        }
+        overlay.style.display = 'flex';
+    }
+
+    function closeChatCapacityOverlay() {
+        const overlay = document.getElementById('chat-capacity-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    function gotoExportFromCapacity() {
+        closeChatCapacityOverlay();
+        togglePanel('panel-data');
+    }
 
     function generateMsgId() { return Date.now() + '-' + Math.floor(Math.random() * 100000); }
 
@@ -1033,14 +1396,21 @@
     function clearChatHistory() {
         if(confirm('确定要清空所有聊天记录吗？此操作不可逆！')) {
             chatHistory = []; saveChatHistory(); messageArea.innerHTML = ''; closeAllPanels();
+            chatCapacityWarned = false; _saveCounter = 0; // 🌟 清空后重置容量提醒
         }
     }
 
-    function init() {
+    async function init() {
         applyBg(config.bgImage, config.bgClarity);
-        renderStickerGrids(); renderVoiceUI(); updateChatTitle(); loadChatHistory();
+        renderStickerGrids(); renderVoiceUI(); updateChatTitle();
+        await initChatStorage();   // 🌟 先从大容量存储载入聊天记录
+        loadChatHistory();
+        checkChatCapacity();       // 🌟 启动时检查一次容量
         checkDailyCall(); resetProactiveTimer(); bindDoubleTap(); checkAndGenerateBotMood(); 
         checkPendingBotMoment(); setInterval(checkPendingBotMoment, 60000); 
+        checkBotCheckinDrop(); // 🌟 对方约 50% 概率随机来查你的岗
+        checkBotTrackDrop();   // 🌟 对方约 78% 概率随机掉落一条轨迹
+        checkBotDoodleDrop();  // 🌟 对方约 70% 概率随机涂鸦并发到聊天
     }
 
     function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -1129,12 +1499,16 @@
     function resetProactiveTimer() {
         clearTimeout(proactiveTimer);
         if (!config.allowProactive) return; // 🌟 关闭"对方主动发消息"则不再调度
+        // 🌟 使用用户自定义频率：最少 1 秒(1000ms)，最多 15 分钟(900000ms)
+        let interval = parseInt(config.proactiveInterval);
+        if (isNaN(interval) || interval < 1000) interval = 1000;
+        if (interval > 900000) interval = 900000;
         proactiveTimer = setTimeout(() => {
             if (document.getElementById('video-call-overlay').style.display === 'none' && document.getElementById('moments-page').style.display === 'none') {
                 triggerAutoReply(); 
             }
             resetProactiveTimer(); 
-        }, 300000); 
+        }, interval); 
     }
     
     function forceReply() { triggerAutoReply(); resetProactiveTimer(); }
@@ -1231,6 +1605,7 @@
                     clearInterval(callTimer); clearTimeout(autoAcceptTimer); callSeconds = 0;
                     appendSystemMessage(`[视频通话] ${config.otherName || '匿名者'} 已拒绝接听`);
                     showCustomNotification(`${config.otherName || '匿名者'} 挂断了电话`, 'error', 3000);
+                    logCall('outgoing', 'rejected', 0); currentCall = null; // 🌟 记录：我拨出，对方拒接
                 }
             }, hangUpDelay);
         } else {
@@ -1261,6 +1636,7 @@
                 clearInterval(callTimer); callSeconds = 0;
                 appendSystemMessage(`[视频通话] ${config.otherName || '匿名者'} 已取消通话（未接听）`);
                 showCustomNotification(`${config.otherName || '匿名者'} 取消了通话`, 'error', 3000);
+                logCall('incoming', 'missed', 0); currentCall = null; // 🌟 记录：对方来电，未接听
             }
         }, 30000);
     }
@@ -1272,6 +1648,7 @@
         document.getElementById('video-avatar').src = config.otherAvatar || defaultAvatar; document.getElementById('video-avatar').classList.add('pulsing');
         document.getElementById('video-name').innerText = config.otherName || '匿名者'; document.getElementById('video-pip').style.display = 'none';
         callSeconds = 0;
+        currentCall = { direction: (type === 'incoming' ? 'incoming' : 'outgoing'), connected: false }; // 🌟 记录本次通话方向
         if (type === 'incoming') {
             document.getElementById('video-status').innerText = '邀请你进行视频通话...'; document.getElementById('floating-call-time').innerText = '等待接听...';
             document.getElementById('btn-accept').style.display = 'flex'; document.getElementById('btn-reject').style.display = 'flex';
@@ -1283,6 +1660,7 @@
 
     function acceptCall() {
         stopRingtone();
+        if (currentCall) currentCall.connected = true; // 🌟 标记已接通
         if (window._incomingAutoRejectTimer) { clearTimeout(window._incomingAutoRejectTimer); window._incomingAutoRejectTimer = null; }
         clearTimeout(autoAcceptTimer); document.getElementById('video-avatar').classList.remove('pulsing');
         document.getElementById('video-status').innerText = '00:00'; document.getElementById('floating-call-time').innerText = '00:00';
@@ -1302,12 +1680,31 @@
 
     function endCall() {
         stopRingtone();
+        // 🌟 防重复：若已无进行中的通话则直接收起界面，不再重复记录
+        if (!currentCall) {
+            document.getElementById('video-call-overlay').style.display = 'none';
+            document.getElementById('floating-call-pip').style.display = 'none';
+            return;
+        }
         if (window._incomingAutoRejectTimer) { clearTimeout(window._incomingAutoRejectTimer); window._incomingAutoRejectTimer = null; }
         document.getElementById('video-call-overlay').style.display = 'none'; document.getElementById('floating-call-pip').style.display = 'none';
         document.getElementById('video-avatar').classList.remove('pulsing'); document.getElementById('video-ui-layer').classList.remove('connected');
         clearInterval(callTimer); clearTimeout(autoAcceptTimer);
-        let msg = callSeconds > 0 ? `[视频通话] 时长 ${document.getElementById('video-status').innerText}` : '[视频通话] 未接通';
-        appendSystemMessage(msg); callSeconds = 0;
+        // 🌟 记录通话：区分已接通 / 我取消 / 我拒接
+        const dir = currentCall ? currentCall.direction : 'outgoing';
+        const wasConnected = (currentCall && currentCall.connected) || callSeconds > 0;
+        let msg;
+        if (wasConnected) {
+            msg = `[视频通话] 时长 ${document.getElementById('video-status').innerText}`;
+            logCall(dir, 'answered', callSeconds);
+        } else if (dir === 'incoming') {
+            msg = '[视频通话] 已拒接';
+            logCall('incoming', 'declined', 0);
+        } else {
+            msg = '[视频通话] 已取消';
+            logCall('outgoing', 'cancelled', 0);
+        }
+        appendSystemMessage(msg); callSeconds = 0; currentCall = null;
     }
 
     function minimizeCall() { document.getElementById('video-call-overlay').style.display = 'none'; document.getElementById('floating-call-pip').style.display = 'flex'; if (config.videoBg) document.getElementById('floating-call-bg').src = config.videoBg; }
@@ -1375,6 +1772,763 @@
         }
     }
 
+    // ================== 📞 通话记录模块 ==================
+    function saveCallHistory() { localStorage.setItem('callHistoryV1', JSON.stringify(callHistory)); }
+
+    // 记录一通通话：direction='incoming'(对方来电) | 'outgoing'(我拨出)
+    // status='answered'(已接通) | 'missed'(未接听) | 'rejected'(对方拒接) | 'cancelled'(我取消) | 'declined'(我拒接)
+    function logCall(direction, status, duration) {
+        callHistory.push({
+            id: generateMsgId(),
+            ts: Date.now(),
+            direction: direction,
+            status: status,
+            duration: Math.max(0, parseInt(duration) || 0)
+        });
+        saveCallHistory();
+        if (document.getElementById('panel-calls').style.display === 'block') renderCallHistory();
+    }
+
+    function formatCallDuration(sec) {
+        sec = Math.max(0, parseInt(sec) || 0);
+        if (sec < 60) return sec + ' 秒';
+        const m = Math.floor(sec / 60); const s = sec % 60;
+        return s === 0 ? (m + ' 分钟') : (m + ' 分 ' + s + ' 秒');
+    }
+
+    // 状态 → 展示信息（标签文字 / 颜色 / 副标题）
+    function getCallStatusMeta(rec) {
+        const other = config.otherName || '匿名者';
+        const isIncoming = rec.direction === 'incoming';
+        let label, color, sub;
+        if (rec.status === 'answered') {
+            label = '已接通'; color = '#07C160';
+            sub = '通话时长 ' + formatCallDuration(rec.duration);
+        } else if (rec.status === 'missed') {
+            label = '未接听'; color = '#FF3B30';
+            sub = other + ' 拨来，您未接听';
+        } else if (rec.status === 'rejected') {
+            label = '对方已拒接'; color = '#FF3B30';
+            sub = other + ' 拒绝了通话';
+        } else if (rec.status === 'cancelled') {
+            label = '已取消'; color = '#999';
+            sub = '您取消了呼叫';
+        } else if (rec.status === 'declined') {
+            label = '已拒接'; color = '#FF3B30';
+            sub = '您拒接了 ' + other + ' 的来电';
+        } else {
+            label = '未接通'; color = '#999'; sub = '';
+        }
+        return { isIncoming, label, color, sub };
+    }
+
+    function renderCallHistory() {
+        const list = document.getElementById('call-history-list');
+        const statsCard = document.getElementById('call-stats-card');
+        if (!list || !statsCard) return;
+
+        // 统计
+        const total = callHistory.length;
+        const answered = callHistory.filter(r => r.status === 'answered').length;
+        const unconnected = total - answered;
+        const totalSec = callHistory.reduce((sum, r) => sum + (r.status === 'answered' ? (parseInt(r.duration) || 0) : 0), 0);
+        statsCard.innerHTML = `
+            <div><div style="font-size:22px; font-weight:700; color:#111;">${total}</div><div style="font-size:11px; color:#888; margin-top:2px;">总通话</div></div>
+            <div><div style="font-size:22px; font-weight:700; color:#07C160;">${answered}</div><div style="font-size:11px; color:#888; margin-top:2px;">已接通</div></div>
+            <div><div style="font-size:22px; font-weight:700; color:#FF3B30;">${unconnected}</div><div style="font-size:11px; color:#888; margin-top:2px;">未接通</div></div>
+            <div><div style="font-size:16px; font-weight:700; color:var(--theme-blue-text); line-height:1.5;">${formatCallDuration(totalSec)}</div><div style="font-size:11px; color:#888; margin-top:2px;">累计时长</div></div>
+        `;
+
+        if (total === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:36px 20px; color:#999; font-size:14px;">📞 暂无通话记录<br><span style="font-size:12px; color:#bbb;">点击聊天框右侧的摄像头图标即可发起视频通话</span></div>`;
+            return;
+        }
+
+        const myAvatar = config.myAvatar || defaultAvatar;
+        const otherAvatar = config.otherAvatar || defaultAvatar;
+        const myName = config.myName || '我';
+        const otherName = config.otherName || '匿名者';
+
+        list.innerHTML = [...callHistory].reverse().map(rec => {
+            const meta = getCallStatusMeta(rec);
+            const avatar = meta.isIncoming ? otherAvatar : myAvatar;
+            const who = meta.isIncoming ? otherName : myName;
+            const arrowChar = meta.isIncoming ? '↙' : '↗'; // 来电↙ / 拨出↗
+            const dirText = meta.isIncoming ? '对方来电' : '我拨出';
+            return `
+                <div style="display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--border-color); border-radius:12px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="position:relative; flex-shrink:0;">
+                        <img src="${avatar}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; background:#eee;">
+                        <span style="position:absolute; right:-3px; bottom:-3px; background:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:${meta.color}; box-shadow:0 1px 3px rgba(0,0,0,0.15);">${arrowChar}</span>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="${meta.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                            <span style="font-size:14px; font-weight:600; color:${meta.color}; white-space:nowrap;">${meta.label}</span>
+                            <span style="font-size:11px; color:#bbb; white-space:nowrap;">· ${escapeHtml(who)}</span>
+                        </div>
+                        <div style="font-size:12px; color:#888; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${dirText} · ${meta.sub}</div>
+                    </div>
+                    <div style="font-size:11px; color:#aaa; text-align:right; flex-shrink:0; line-height:1.5;">${formatMomentTime(rec.ts)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function clearCallHistory() {
+        if (callHistory.length === 0) { showCustomNotification('当前没有通话记录', 'info'); return; }
+        if (confirm('确定要清空所有通话记录吗？此操作不可逆！')) {
+            callHistory = []; saveCallHistory(); renderCallHistory();
+            showCustomNotification('通话记录已清空', 'success');
+        }
+    }
+
+    // ================== 🛰️ 查岗模块（双方互查 · 日常关心） ==================
+    function saveCheckinHistory() { localStorage.setItem('checkinHistoryV1', JSON.stringify(checkinHistory)); }
+    function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    // 日常查岗主题：吃饭 / 在干嘛 / 睡觉
+    // ask = 用作"对方查我岗"时 TA 问我的话；reply = 用作"我查对方岗"时 TA 给我的回复
+    const checkinThemes = {
+        eat: {
+            label: '吃饭了吗', icon: '🍚',
+            ask: ['吃饭了没？这个点了别饿着自己🍚', '今天吃的什么呀？查岗～', '吃了吗你？没吃我点给你🍱', '记得按时吃饭哦，吃了没？'],
+            reply: ['刚吃完，点了你爱吃的那家🍱，你呢？', '还没顾上吃，正准备去，等下拍给你看🍚', '在吃啦，一个人随便对付一口😋', '吃过咯，今天好好吃饭了，乖吧～']
+        },
+        doing: {
+            label: '在干嘛', icon: '💬',
+            ask: ['在干嘛呢？怎么半天没动静👀', '突击查岗！现在在做什么呀？', '在忙啥呢，有点想你了💭', '这会儿在干嘛？报备一下嘛'],
+            reply: ['在工作呢，刚开完会有点累😮‍💨', '在打游戏摸鱼，被你抓到了😝', '刚洗完澡躺着刷手机，正想你🤍', '在追剧呢，剧不好看，你比较好看😚']
+        },
+        sleep: {
+            label: '要睡了吗', icon: '🌙',
+            ask: ['这么晚还不睡？在干嘛呢🌙', '要睡了吗？睡前跟我说一声嘛😚', '困不困呀，别熬夜了乖🛏️', '准备睡了没？盖好被子哦'],
+            reply: ['正准备睡啦，今天早点休息，你也别熬夜🌙', '还没睡，舍不得放下手机，再陪你会儿😴', '困了，盖好被子咯，晚安宝🛏️', '马上睡，等你跟我说晚安再睡😌']
+        },
+        mood: {
+            label: '心情如何', icon: '😊',
+            ask: ['今天心情怎么样呀？😊', '突然想问问你，现在开不开心？', '心情还好吗，有没有不开心的事跟我说💭', '今天过得顺心吗？'],
+            reply: ['今天心情还不错，因为想到你啦😊', '有点小累，不过跟你说说话就好多了🤍', '心情一般般，被你查岗倒是开心了点😚', '超好的，今天遇到不少好事～']
+        },
+        where: {
+            label: '在哪儿呀', icon: '📍',
+            ask: ['你现在在哪儿呀？📍', '突击查岗～这会儿人在哪？', '在外面还是在家呀？', '报备一下坐标嘛，我好想你🗺️'],
+            reply: ['刚到公司，正准备开始忙了📍', '在家躺着呢，哪也没去🏠', '在外面逛了会儿，马上回去啦', '在路上，挤地铁中😮‍💨']
+        },
+        withwho: {
+            label: '和谁一起', icon: '👥',
+            ask: ['现在在和谁一起呀？👥', '身边有人吗，在跟谁玩？', '查岗：这会儿是一个人还是有人陪？', '跟谁在一块儿呢，不会把我忘了吧😝'],
+            reply: ['就我自己，安安静静的，想你🤍', '和同事在一起，开会中😮‍💨', '跟朋友吃个饭，吃完就回你消息', '一个人待着呢，正等你来查岗😚']
+        },
+        work: {
+            label: '忙不忙', icon: '💼',
+            ask: ['在忙吗？别太拼了注意休息💼', '查岗～这会儿手头忙不忙呀？', '工作搞定了没，要不要歇会儿？', '忙的话先去忙，记得喝水哦💧']
+            , reply: ['在忙工作，不过看到你查岗就想笑😝', '刚忙完一波，正好歇口气🍵', '有点忙，但还是要回你的消息呀🤍', '不忙啦，正闲着想你呢😌']
+        },
+        miss: {
+            label: '想我没', icon: '💗',
+            ask: ['老实交代，今天有没有想我？💗', '查岗：这会儿心里有没有我呀😏', '想我了没？没想的话我可要生气咯', '说，最想我的是今天哪一刻？'],
+            reply: ['想了，一整天都在偷偷想你💗', '当然想啦，不然怎么会等你查岗😚', '有在想，刚还看了我们的聊天记录🤍', '超级想，想到不行，快过来😘']
+        },
+        phone: {
+            label: '在玩手机吗', icon: '📱',
+            ask: ['在玩手机吗？看到消息记得回我📱', '查岗～是不是又在刷手机啦😝', '手机不离手哦，在看什么呢？', '玩手机别太久，眼睛要休息哦👀'],
+            reply: ['在刷手机呢，刚好刷到你🤍', '在玩游戏摸鱼，被你抓包了😝', '在看剧，剧不好看，你比较好看😚', '本来在玩手机，现在只想跟你聊天📱']
+        }
+    };
+    const checkinThemeKeys = Object.keys(checkinThemes);
+    const checkinEvasive = ['正忙，晚点跟你说😶', '怎么又查岗啦🙄', '在忙一点事，等下回你～', '手机快没电了，先这样📵', '哎呀别查啦，乖乖等我😚', '信号不太好，回头再说'];
+
+    // 🌟 查岗内容统一从「字卡库」随机掉落；字卡库为空时回退到内置语句，保证功能不报错
+    function pickCheckinFromCards(fallbackArr) {
+        if (Array.isArray(wordCards) && wordCards.length > 0) {
+            const card = wordCards[Math.floor(Math.random() * wordCards.length)];
+            if (card && card.text) return card.text;
+        }
+        return pickRand(fallbackArr && fallbackArr.length ? fallbackArr : ['在干嘛呢？']);
+    }
+
+    // —— 我查对方的岗：对方报备（报备内容从字卡库随机掉落）——
+    function doCheckin(themeKey) {
+        if (themeKey === 'random' || !checkinThemes[themeKey]) themeKey = pickRand(checkinThemeKeys);
+        const theme = checkinThemes[themeKey];
+        showCustomNotification('已发起查岗，等待对方回应...', 'info');
+        const delay = 1200 + Math.random() * 2300; // 1.2 ~ 3.5 秒
+        setTimeout(() => {
+            // 🌟 对方的报备内容从字卡库随机掉落
+            let html = escapeHtml(pickCheckinFromCards(theme.reply));
+            if (config.customStickers && config.customStickers.length > 0 && Math.random() < 0.25) {
+                html += `<br><img src="${config.customStickers[Math.floor(Math.random() * config.customStickers.length)]}" style="max-width:70px; border-radius:8px; margin-top:6px;">`;
+            }
+            checkinHistory.push({ id: generateMsgId(), ts: Date.now(), by: 'me', theme: themeKey, question: theme.label, reply: html, evasive: false });
+            saveCheckinHistory();
+            if (document.getElementById('panel-checkin').style.display === 'block') renderCheckinHistory();
+            sendSystemNotification(config.otherName || '匿名者', '回应了你的查岗');
+        }, delay);
+    }
+
+    // —— 对方查我的岗：在聊天里向我提问 + 记录（提问内容从字卡库随机掉落）——
+    function triggerBotCheckin() {
+        const themeKey = pickRand(checkinThemeKeys);
+        const theme = checkinThemes[themeKey];
+        // 🌟 对方查岗时提的问题，从字卡库随机掉落
+        const question = pickCheckinFromCards(theme.ask);
+        checkinHistory.push({ id: generateMsgId(), ts: Date.now(), by: 'other', theme: themeKey, question: question, reply: '', evasive: false });
+        saveCheckinHistory();
+        if (document.getElementById('panel-checkin').style.display === 'block') renderCheckinHistory();
+        // 在聊天里发出查岗消息，方便我直接回复 TA
+        const chatHtml = `<span style="display:inline-block; background:#FFE9D6; color:#FF6900; font-size:11px; font-weight:700; padding:1px 7px; border-radius:8px; margin-right:6px; vertical-align:middle;">查岗</span>${escapeHtml(question)}`;
+        appendMessage(false, chatHtml);
+        sendSystemNotification(config.otherName || '匿名者', '查岗：' + question);
+    }
+
+    // —— 对方查岗：约 50% 概率随机掉落（每天判定一次，参考每日来电机制）——
+    function checkBotCheckinDrop() {
+        const todayStr = getLocalDateStr(new Date());
+        const lastDate = localStorage.getItem('lastCheckinDropDateV1');
+        if (lastDate !== todayStr) {
+            localStorage.setItem('lastCheckinDropDateV1', todayStr);
+            if (Math.random() < 0.5) {
+                // 命中：30 秒 ~ 5 分钟后由对方发起查岗
+                const delayMs = 30000 + Math.random() * (5 * 60 * 1000 - 30000);
+                localStorage.setItem('scheduledCheckinTimeV1', (Date.now() + delayMs).toString());
+            } else {
+                localStorage.removeItem('scheduledCheckinTimeV1');
+            }
+        }
+        const t = localStorage.getItem('scheduledCheckinTimeV1');
+        if (!t) return;
+        const when = parseInt(t);
+        if (isNaN(when)) { localStorage.removeItem('scheduledCheckinTimeV1'); return; }
+        if (getLocalDateStr(new Date(when)) !== todayStr) { localStorage.removeItem('scheduledCheckinTimeV1'); return; }
+        const delay = when - Date.now();
+        if (delay <= 0) {
+            localStorage.removeItem('scheduledCheckinTimeV1');
+            triggerBotCheckin();
+        } else {
+            setTimeout(() => {
+                triggerBotCheckin();
+                localStorage.removeItem('scheduledCheckinTimeV1');
+            }, delay);
+        }
+    }
+
+    function renderCheckinHistory() {
+        const list = document.getElementById('checkin-history-list');
+        const countEl = document.getElementById('checkin-count');
+        if (!list) return;
+        if (countEl) countEl.innerText = checkinHistory.length;
+        if (checkinHistory.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:36px 20px; color:#999; font-size:14px;">🛰️ 还没有查岗记录<br><span style="font-size:12px; color:#bbb;">点击上方按钮查对方的岗，对方也会随机来查你哦</span></div>`;
+            return;
+        }
+        const otherAvatar = config.otherAvatar || defaultAvatar;
+        const otherName = config.otherName || '匿名者';
+        list.innerHTML = [...checkinHistory].reverse().map(rec => {
+            const byMe = rec.by !== 'other'; // 兼容旧数据：无 by 字段视为"我查岗"
+            if (byMe) {
+                const statusColor = rec.evasive ? '#FF3B30' : '#07C160';
+                const statusText = rec.evasive ? '敷衍回应' : '已报备';
+                return `
+                    <div style="background:#fff; border:1px solid var(--border-color); border-radius:12px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:13px; font-weight:600; color:#FF6900;">🛰️ 我查岗 · ${escapeHtml(rec.question)}</span>
+                            <span style="font-size:11px; color:#aaa;">${formatMomentTime(rec.ts)}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:flex-start;">
+                            <img src="${otherAvatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; background:#eee; flex-shrink:0;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:12px; color:#999; margin-bottom:3px;">${escapeHtml(otherName)} · <span style="color:${statusColor}; font-weight:600;">${statusText}</span></div>
+                                <div style="background:var(--bubble-sky-blue); border-radius:4px 12px 12px 12px; padding:8px 12px; font-size:14px; color:#333; line-height:1.5; word-break:break-word;">${rec.reply}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div style="background:#fffaf4; border:1px solid #ffe2cc; border-radius:12px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:13px; font-weight:600; color:#e67e22;">📡 对方查岗</span>
+                            <span style="font-size:11px; color:#aaa;">${formatMomentTime(rec.ts)}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:flex-start;">
+                            <img src="${otherAvatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; background:#eee; flex-shrink:0;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:12px; color:#999; margin-bottom:3px;">${escapeHtml(otherName)} 问你：</div>
+                                <div style="background:var(--bubble-sky-blue); border-radius:4px 12px 12px 12px; padding:8px 12px; font-size:14px; color:#333; line-height:1.5; word-break:break-word;">${escapeHtml(rec.question)}</div>
+                                <div style="font-size:11px; color:#bbb; margin-top:5px;">已在聊天里向你发起，去聊天回复 TA 吧～</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+    }
+
+    function clearCheckinHistory() {
+        if (checkinHistory.length === 0) { showCustomNotification('当前没有查岗记录', 'info'); return; }
+        if (confirm('确定要清空所有查岗记录吗？此操作不可逆！')) {
+            checkinHistory = []; saveCheckinHistory(); renderCheckinHistory();
+            showCustomNotification('查岗记录已清空', 'success');
+        }
+    }
+
+    // ================== 🧭 双方轨迹模块（对方轨迹从词卡掉落 · 我方手动打卡） ==================
+    function saveTrackCards() { localStorage.setItem('trackCardsV1', JSON.stringify(trackCards)); }
+    function saveTrackRecords() { localStorage.setItem('trackRecordsV1', JSON.stringify(trackRecords)); }
+
+    function renderTrackPanel() { renderTrackCards(); renderTrackRecords(); }
+
+    function renderTrackCards() {
+        const wrap = document.getElementById('track-cards-wrap');
+        if (!wrap) return;
+        if (trackCards.length === 0) {
+            wrap.innerHTML = `<span style="font-size:12px; color:#bbb;">还没有轨迹词卡，先添加几条吧～</span>`;
+            return;
+        }
+        wrap.innerHTML = trackCards.map((t, i) => `<span class="track-card-chip">${escapeHtml(t)}<span class="track-card-del" onclick="deleteTrackCard(${i})">✕</span></span>`).join('');
+    }
+
+    function addTrackCard() {
+        const input = document.getElementById('track-card-input');
+        const v = (input.value || '').trim();
+        if (!v) { showCustomNotification('请输入轨迹词卡内容', 'info'); return; }
+        trackCards.push(v); saveTrackCards(); input.value = ''; renderTrackCards();
+        showCustomNotification('已添加轨迹词卡', 'success');
+    }
+
+    function deleteTrackCard(index) {
+        trackCards.splice(index, 1); saveTrackCards(); renderTrackCards();
+    }
+
+    // 对方轨迹：从用户维护的「轨迹词卡」里随机掉落一条
+    function botTrackDrop() {
+        if (!trackCards.length) return false;
+        const text = trackCards[Math.floor(Math.random() * trackCards.length)];
+        trackRecords.push({ id: generateMsgId(), by: 'other', text: text, ts: Date.now() });
+        saveTrackRecords();
+        if (document.getElementById('panel-track').style.display === 'block') renderTrackRecords();
+        sendSystemNotification(config.otherName || '匿名者', '更新了轨迹：' + text);
+        return true;
+    }
+
+    // 我的轨迹：在单独的打卡框里手动打卡
+    function userTrackPunch() {
+        const input = document.getElementById('track-me-input');
+        const v = (input.value || '').trim();
+        if (!v) { showCustomNotification('打卡内容不能为空', 'info'); return; }
+        trackRecords.push({ id: generateMsgId(), by: 'me', text: v, ts: Date.now() });
+        saveTrackRecords(); input.value = ''; renderTrackRecords();
+        showCustomNotification('打卡成功', 'success');
+    }
+
+    function renderTrackRecords() {
+        const list = document.getElementById('track-rec-list');
+        const countEl = document.getElementById('track-rec-count');
+        if (!list) return;
+        if (countEl) countEl.innerText = trackRecords.length;
+        if (trackRecords.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:30px 20px; color:#999; font-size:14px;">🧭 还没有轨迹记录<br><span style="font-size:12px; color:#bbb;">对方会自动随机掉落，你也可以自己打卡，足迹就会出现在这里</span></div>`;
+            return;
+        }
+        const sorted = trackRecords.slice().sort((a, b) => b.ts - a.ts);
+        list.innerHTML = sorted.map(r => {
+            const who = r.by === 'me' ? (config.myName || '我') : (config.otherName || '对方');
+            return `<div class="track-rec-row ${r.by === 'me' ? 'me' : 'other'}">
+                <div class="track-rec-dot"></div>
+                <div class="track-rec-body">
+                    <div class="track-rec-who">${escapeHtml(who)}</div>
+                    <div class="track-rec-text">${escapeHtml(r.text)}</div>
+                    <div class="track-rec-time">${formatTime(r.ts)}</div>
+                </div>
+                <span class="track-rec-del" onclick="deleteTrackRecord('${r.id}')">删除</span>
+            </div>`;
+        }).join('');
+    }
+
+    function deleteTrackRecord(id) {
+        const idx = trackRecords.findIndex(r => r.id === id);
+        if (idx !== -1) { trackRecords.splice(idx, 1); saveTrackRecords(); renderTrackRecords(); }
+    }
+
+    function clearTrackRecords() {
+        if (trackRecords.length === 0) { showCustomNotification('当前没有轨迹记录', 'info'); return; }
+        if (confirm('确定要清空所有轨迹记录吗？此操作不可逆！')) {
+            trackRecords = []; saveTrackRecords(); renderTrackRecords();
+            showCustomNotification('轨迹记录已清空', 'success');
+        }
+    }
+
+    // 对方轨迹随机掉落：每天判定一次，约 78% 概率（参考查岗机制；无词卡则跳过）
+    function checkBotTrackDrop() {
+        if (!trackCards.length) return;
+        const todayStr = getLocalDateStr(new Date());
+        const lastDate = localStorage.getItem('lastTrackDropDateV1');
+        if (lastDate !== todayStr) {
+            localStorage.setItem('lastTrackDropDateV1', todayStr);
+            if (Math.random() < 0.78) {
+                const delayMs = 60000 + Math.random() * (8 * 60 * 1000 - 60000);
+                localStorage.setItem('scheduledTrackTimeV1', (Date.now() + delayMs).toString());
+            } else {
+                localStorage.removeItem('scheduledTrackTimeV1');
+            }
+        }
+        const t = localStorage.getItem('scheduledTrackTimeV1');
+        if (!t) return;
+        const when = parseInt(t);
+        if (isNaN(when)) { localStorage.removeItem('scheduledTrackTimeV1'); return; }
+        if (getLocalDateStr(new Date(when)) !== todayStr) { localStorage.removeItem('scheduledTrackTimeV1'); return; }
+        const delay = when - Date.now();
+        if (delay <= 0) { localStorage.removeItem('scheduledTrackTimeV1'); botTrackDrop(); }
+        else { setTimeout(() => { botTrackDrop(); localStorage.removeItem('scheduledTrackTimeV1'); }, delay); }
+    }
+
+    // ================== 📊 高频词汇统计模块 ==================
+    // 单字虚词（停用词）：单独出现时不计入
+    const FREQ_CHAR_STOP = new Set('的了是我你他她它在啊吗呢吧嘛呀哦也都就不和有着过要会把被给让向跟对为才再还又很太最更这那嗯呵哟喂咯啦喔噢唉哎呜嘿么个下们没'.split(''));
+    // 英文停用词
+    const FREQ_EN_STOP = new Set(['the','a','an','and','or','to','of','in','on','is','are','am','you','my','your','this','that','for','at','be','as','so','no','yes','ok','okay','do','did','don','re','ll','ve','im']);
+
+    // 把一条消息的 HTML 转成纯文本（去掉图片/语音/SVG/引用块）
+    function freqStripHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        tmp.querySelectorAll('img, audio, svg, .wechat-voice-bubble, .quote-block').forEach(el => el.remove());
+        return (tmp.textContent || tmp.innerText || '').replace(/查岗/g, ' '); // 去掉查岗角标文字本身
+    }
+
+    // 把文本切成词：英文单词 + 中文(2 字词 + 单字)，并过滤虚词，减少噪音
+    function freqTokenize(text) {
+        const tokens = [];
+        if (!text) return tokens;
+        // 英文/数字词
+        const enMatches = text.toLowerCase().match(/[a-z][a-z']+|\d{2,}/g);
+        if (enMatches) enMatches.forEach(w => { w = w.replace(/'+$/, ''); if (w.length >= 2 && !FREQ_EN_STOP.has(w)) tokens.push(w); });
+        // 中文连续串：长度 1 直接作词；长度 >1 取 2 字滑窗
+        const cnRuns = text.match(/[\u4e00-\u9fa5]+/g);
+        if (cnRuns) {
+            cnRuns.forEach(run => {
+                if (run.length === 1) {
+                    if (!FREQ_CHAR_STOP.has(run)) tokens.push(run);
+                } else {
+                    for (let i = 0; i < run.length - 1; i++) {
+                        const bg = run.substr(i, 2);
+                        // 两个字都是虚词的组合丢弃（如「我你」「了的」）
+                        if (FREQ_CHAR_STOP.has(bg[0]) && FREQ_CHAR_STOP.has(bg[1])) continue;
+                        tokens.push(bg);
+                    }
+                }
+            });
+        }
+        return tokens;
+    }
+
+    function computeWordFrequency() {
+        const freqMe = {}, freqOther = {};
+        let cntMe = 0, cntOther = 0;
+        chatHistory.forEach(msg => {
+            if (!msg || msg.type !== 'message') return;
+            if (msg.isSelf) cntMe++; else cntOther++;
+            const toks = freqTokenize(freqStripHtml(msg.htmlContent));
+            const target = msg.isSelf ? freqMe : freqOther;
+            toks.forEach(t => { target[t] = (target[t] || 0) + 1; });
+        });
+        return { freqMe, freqOther, cntMe, cntOther };
+    }
+
+    let freqCache = null;
+    let currentFreqTab = 'me';
+
+    function renderFrequencyPanel() {
+        freqCache = computeWordFrequency();
+        const elMe = document.getElementById('freq-total-me');
+        const elOther = document.getElementById('freq-total-other');
+        const elName = document.getElementById('freq-other-name');
+        if (elMe) elMe.innerText = freqCache.cntMe;
+        if (elOther) elOther.innerText = freqCache.cntOther;
+        if (elName) elName.innerText = config.otherName || '对方';
+        renderFreqTab(currentFreqTab);
+    }
+
+    function switchFreqTab(tab) {
+        currentFreqTab = tab;
+        ['me', 'other', 'all'].forEach(t => {
+            const el = document.getElementById('freq-tab-' + t);
+            if (el) el.classList.toggle('active', t === tab);
+        });
+        renderFreqTab(tab);
+    }
+
+    function renderFreqTab(tab) {
+        if (!freqCache) freqCache = computeWordFrequency();
+        let map;
+        if (tab === 'me') map = freqCache.freqMe;
+        else if (tab === 'other') map = freqCache.freqOther;
+        else {
+            map = {};
+            Object.keys(freqCache.freqMe).forEach(k => map[k] = (map[k] || 0) + freqCache.freqMe[k]);
+            Object.keys(freqCache.freqOther).forEach(k => map[k] = (map[k] || 0) + freqCache.freqOther[k]);
+        }
+        const cloud = document.getElementById('freq-cloud');
+        const list = document.getElementById('freq-rank-list');
+        if (!cloud || !list) return;
+
+        const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+        if (entries.length === 0) {
+            cloud.innerHTML = `<div style="color:#aaa; font-size:13px; padding:20px; text-align:center;">还没有足够的聊天内容<br><span style="font-size:12px; color:#ccc;">多聊几句，这里就会出现高频词啦</span></div>`;
+            list.innerHTML = '';
+            return;
+        }
+        const cloudTop = entries.slice(0, 50);
+        const maxC = cloudTop[0][1];
+        const minC = cloudTop[cloudTop.length - 1][1];
+        const span = Math.max(1, maxC - minC);
+        const color = tab === 'other' ? '#FF6900' : (tab === 'all' ? '#7048e8' : '#0084FF');
+        cloud.innerHTML = cloudTop.map(([w, c]) => {
+            const ratio = (c - minC) / span;
+            const size = (13 + ratio * 13).toFixed(1); // 13 ~ 26px
+            const opacity = (0.6 + ratio * 0.4).toFixed(2);
+            return `<span class="freq-word" style="font-size:${size}px; color:${color}; opacity:${opacity};" title="出现 ${c} 次">${escapeHtml(w)}<span class="freq-count">${c}</span></span>`;
+        }).join('');
+
+        const rankTop = entries.slice(0, 20);
+        const rankMax = rankTop[0][1];
+        list.innerHTML = rankTop.map(([w, c], i) => {
+            const noClass = i === 0 ? 'top1' : (i === 1 ? 'top2' : (i === 2 ? 'top3' : ''));
+            const pct = Math.max(6, Math.round(c / rankMax * 100));
+            return `<div class="freq-rank-row">
+                <div class="freq-rank-no ${noClass}">${i + 1}</div>
+                <div class="freq-rank-word">${escapeHtml(w)}</div>
+                <div class="freq-bar-wrap"><div class="freq-bar" style="width:${pct}%;"></div></div>
+                <div class="freq-rank-count">${c} 次</div>
+            </div>`;
+        }).join('');
+    }
+
+    // ================== 🎨 涂鸦本模块（手写/形状 + 26 字母拼字） ==================
+    const DOODLE_COLORS = ['#0084FF', '#FF6900', '#111111', '#FF3B30', '#07C160', '#F5C518', '#7048e8', '#16a085'];
+    let doodleCanvas = null, doodleCtx = null, doodleInited = false;
+    let doodleDrawing = false, doodleColor = '#0084FF', doodleSize = 4, doodleEraser = false;
+    let doodleLastX = 0, doodleLastY = 0, doodleW = 0, doodleH = 0;
+    let doodleUndoStack = [], doodleDirty = false;
+
+    function initDoodle() {
+        if (doodleInited) return;
+        doodleCanvas = document.getElementById('doodle-canvas');
+        if (!doodleCanvas) return;
+        const rect = doodleCanvas.getBoundingClientRect();
+        if (rect.width === 0) return; // 面板尚未显示，等下次打开再初始化
+        const dpr = window.devicePixelRatio || 1;
+        doodleW = rect.width; doodleH = rect.height;
+        doodleCanvas.width = Math.round(rect.width * dpr);
+        doodleCanvas.height = Math.round(rect.height * dpr);
+        doodleCtx = doodleCanvas.getContext('2d');
+        doodleCtx.scale(dpr, dpr);
+        doodleCtx.lineCap = 'round';
+        doodleCtx.lineJoin = 'round';
+        // 白底：生成的 PNG 不会出现黑底
+        doodleCtx.fillStyle = '#ffffff';
+        doodleCtx.fillRect(0, 0, doodleW, doodleH);
+        // 渲染颜色板
+        const sw = document.getElementById('doodle-swatches');
+        if (sw) sw.innerHTML = DOODLE_COLORS.map(c => `<span class="doodle-swatch${c === doodleColor ? ' active' : ''}" style="background:${c};" onclick="doodleSetColor('${c}')"></span>`).join('');
+        // 渲染 A-Z 字母（点击后随机落到画板上）
+        const lt = document.getElementById('doodle-letters');
+        if (lt) { let h = ''; for (let i = 0; i < 26; i++) { const ch = String.fromCharCode(65 + i); h += `<button class="doodle-letter" onclick="doodleDropLetter('${ch}')">${ch}</button>`; } lt.innerHTML = h; }
+        // 指针事件（canvas 已设 touch-action:none，触摸时不会滚动页面）
+        doodleCanvas.addEventListener('pointerdown', doodleDown);
+        doodleCanvas.addEventListener('pointermove', doodleMove);
+        doodleCanvas.addEventListener('pointerup', doodleUp);
+        doodleCanvas.addEventListener('pointerleave', doodleUp);
+        doodleCanvas.addEventListener('pointercancel', doodleUp);
+        doodleInited = true;
+    }
+
+    function doodlePos(e) {
+        const rect = doodleCanvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    function doodlePushUndo() {
+        try { doodleUndoStack.push(doodleCanvas.toDataURL('image/png')); if (doodleUndoStack.length > 12) doodleUndoStack.shift(); } catch (e) {}
+    }
+    function doodleDown(e) {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        doodleDrawing = true;
+        doodleDirty = true;
+        const p = doodlePos(e); doodleLastX = p.x; doodleLastY = p.y;
+        doodleCtx.strokeStyle = doodleEraser ? '#ffffff' : doodleColor;
+        doodleCtx.lineWidth = doodleEraser ? doodleSize * 3 : doodleSize;
+        // 画一个小点，单击也能留痕
+        doodleCtx.beginPath(); doodleCtx.moveTo(p.x, p.y); doodleCtx.lineTo(p.x + 0.1, p.y + 0.1); doodleCtx.stroke();
+        if (doodleCanvas.setPointerCapture) { try { doodleCanvas.setPointerCapture(e.pointerId); } catch (err) {} }
+    }
+    function doodleMove(e) {
+        if (!doodleDrawing || !doodleCtx) return;
+        const p = doodlePos(e);
+        doodleCtx.strokeStyle = doodleEraser ? '#ffffff' : doodleColor;
+        doodleCtx.lineWidth = doodleEraser ? doodleSize * 3 : doodleSize;
+        doodleCtx.beginPath(); doodleCtx.moveTo(doodleLastX, doodleLastY); doodleCtx.lineTo(p.x, p.y); doodleCtx.stroke();
+        doodleLastX = p.x; doodleLastY = p.y;
+    }
+    function doodleUp() {
+        if (!doodleDrawing) return;
+        doodleDrawing = false;
+    }
+    function doodleSetColor(c) {
+        doodleColor = c; doodleEraser = false;
+        const eb = document.getElementById('doodle-eraser-btn'); if (eb) eb.classList.remove('active');
+        const els = document.querySelectorAll('#doodle-swatches .doodle-swatch');
+        els.forEach(s => s.classList.remove('active'));
+        DOODLE_COLORS.forEach((cc, i) => { if (cc === c && els[i]) els[i].classList.add('active'); });
+    }
+    function doodleSetSize(v) { doodleSize = parseInt(v) || 4; }
+    function doodleToggleEraser() {
+        doodleEraser = !doodleEraser;
+        const eb = document.getElementById('doodle-eraser-btn'); if (eb) eb.classList.toggle('active', doodleEraser);
+    }
+    function doodleUndo() {
+        if (!doodleUndoStack.length || !doodleCtx) { showCustomNotification('没有可撤销的步骤', 'info'); return; }
+        const data = doodleUndoStack.pop();
+        const img = new Image();
+        img.onload = () => {
+            doodleCtx.clearRect(0, 0, doodleW, doodleH);
+            doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
+            doodleCtx.drawImage(img, 0, 0, doodleW, doodleH);
+        };
+        img.src = data;
+    }
+    function doodleClear() {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        doodleCtx.clearRect(0, 0, doodleW, doodleH);
+        doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
+        doodleDirty = false;
+    }
+    // 在画板上随机位置盖一个字母（点字母触发）
+    function doodleDropLetter(ch) {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        const fs = 26 + Math.random() * 30;                  // 26~56px
+        const x = 12 + Math.random() * Math.max(1, doodleW - 44);
+        const y = fs + Math.random() * Math.max(1, doodleH - fs - 10);
+        const rot = (Math.random() - 0.5) * 0.7;             // 约 ±20°
+        doodleCtx.save();
+        doodleCtx.translate(x, y); doodleCtx.rotate(rot);
+        doodleCtx.fillStyle = doodleColor;
+        doodleCtx.textBaseline = 'alphabetic';
+        doodleCtx.font = `700 ${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+        doodleCtx.fillText(ch, 0, 0);
+        doodleCtx.restore();
+        doodleDirty = true;
+    }
+    // 一次随机撒一把字母（颜色也随机）
+    function doodleScatterLetters() {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        const n = 6 + Math.floor(Math.random() * 7);         // 6~12 个
+        for (let i = 0; i < n; i++) {
+            const ch = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            const fs = 24 + Math.random() * 30;
+            const x = 12 + Math.random() * Math.max(1, doodleW - 44);
+            const y = fs + Math.random() * Math.max(1, doodleH - fs - 10);
+            const rot = (Math.random() - 0.5) * 0.7;
+            doodleCtx.save();
+            doodleCtx.translate(x, y); doodleCtx.rotate(rot);
+            doodleCtx.fillStyle = DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)];
+            doodleCtx.textBaseline = 'alphabetic';
+            doodleCtx.font = `700 ${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+            doodleCtx.fillText(ch, 0, 0);
+            doodleCtx.restore();
+        }
+        doodleDirty = true;
+    }
+    // 把当前涂鸦作为一张图片直接发送到聊天界面（不保存涂鸦本身）
+    function doodleSendToChat() {
+        if (!doodleCtx) { showCustomNotification('画板还没准备好', 'info'); return; }
+        if (!doodleDirty) { showCustomNotification('画板还是空的，先画点什么再发送吧', 'info'); return; }
+        let dataURL;
+        try { dataURL = doodleCanvas.toDataURL('image/png'); } catch (e) { showCustomNotification('生成图片失败，请重试', 'error'); return; }
+        const html = `<img src="${dataURL}">`;
+        appendMessage(true, html);           // 作为我发送的一条消息进入聊天
+        triggerAutoReply(html);              // 像发图片一样，可能触发对方回复
+        resetProactiveTimer();
+        // 发送后清空画板，准备下一幅
+        doodleCtx.clearRect(0, 0, doodleW, doodleH);
+        doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
+        doodleUndoStack = []; doodleDirty = false;
+        closeAllPanels();                    // 回到聊天界面查看
+        showCustomNotification('涂鸦已发送到聊天', 'success');
+    }
+
+    // —— 对方的涂鸦：随机生成（随机字母 + 几笔随机线），直接展示在聊天界面 ——
+    function generateBotDoodleDataURL() {
+        const c = document.createElement('canvas');
+        const W = 320, H = 280;
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        if (!ctx) return null;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        // 几笔随机涂鸦曲线
+        const strokes = 2 + Math.floor(Math.random() * 3);
+        for (let s = 0; s < strokes; s++) {
+            ctx.strokeStyle = DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)];
+            ctx.lineWidth = 2 + Math.random() * 4;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * W, Math.random() * H);
+            const segs = 3 + Math.floor(Math.random() * 4);
+            for (let k = 0; k < segs; k++) ctx.quadraticCurveTo(Math.random() * W, Math.random() * H, Math.random() * W, Math.random() * H);
+            ctx.stroke();
+        }
+        // 随机落字母
+        const n = 5 + Math.floor(Math.random() * 8);
+        for (let i = 0; i < n; i++) {
+            const ch = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            const fs = 26 + Math.random() * 30;
+            const x = 12 + Math.random() * (W - 44);
+            const y = fs + Math.random() * (H - fs - 10);
+            const rot = (Math.random() - 0.5) * 0.7;
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(rot);
+            ctx.fillStyle = DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)];
+            ctx.textBaseline = 'alphabetic';
+            ctx.font = `700 ${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+            ctx.fillText(ch, 0, 0);
+            ctx.restore();
+        }
+        try { return c.toDataURL('image/png'); } catch (e) { return null; }
+    }
+    function botDoodleDrop() {
+        const url = generateBotDoodleDataURL();
+        if (!url) return false;
+        appendMessage(false, `<img src="${url}">`);   // 作为对方发来的一条消息
+        sendSystemNotification(config.otherName || '匿名者', '发来一张涂鸦');
+        return true;
+    }
+    // 对方涂鸦随机掉落：每天判定一次，约 70% 概率
+    function checkBotDoodleDrop() {
+        const todayStr = getLocalDateStr(new Date());
+        const lastDate = localStorage.getItem('lastDoodleDropDateV1');
+        if (lastDate !== todayStr) {
+            localStorage.setItem('lastDoodleDropDateV1', todayStr);
+            if (Math.random() < 0.7) {
+                const delayMs = 60000 + Math.random() * (10 * 60 * 1000 - 60000);
+                localStorage.setItem('scheduledDoodleTimeV1', (Date.now() + delayMs).toString());
+            } else {
+                localStorage.removeItem('scheduledDoodleTimeV1');
+            }
+        }
+        const t = localStorage.getItem('scheduledDoodleTimeV1');
+        if (!t) return;
+        const when = parseInt(t);
+        if (isNaN(when)) { localStorage.removeItem('scheduledDoodleTimeV1'); return; }
+        if (getLocalDateStr(new Date(when)) !== todayStr) { localStorage.removeItem('scheduledDoodleTimeV1'); return; }
+        const delay = when - Date.now();
+        if (delay <= 0) { localStorage.removeItem('scheduledDoodleTimeV1'); botDoodleDrop(); }
+        else { setTimeout(() => { botDoodleDrop(); localStorage.removeItem('scheduledDoodleTimeV1'); }, delay); }
+    }
+
     function recallMessage(element) {
         const wrapper = element.closest('.message-wrapper'); if (!wrapper) return;
         const msgId = wrapper.getAttribute('data-id'); const msgDiv = wrapper.querySelector('.message');
@@ -1406,12 +2560,47 @@
         document.getElementById('ignore-reply-prob-container').style.display = document.getElementById('ignore-reply-toggle').checked ? 'flex' : 'none';
     }
 
+    // 🌟 新增：主动发消息频率相关工具函数
+    function formatProactiveInterval(sec) {
+        sec = Math.round(Number(sec) || 0);
+        if (sec < 1) sec = 1;
+        if (sec < 60) return sec + ' 秒';
+        const m = Math.floor(sec / 60); const s = sec % 60;
+        return s === 0 ? (m + ' 分钟') : (m + ' 分 ' + s + ' 秒');
+    }
+    // 开关切换时显隐频率设置区
+    function toggleProactiveUi() {
+        const on = document.getElementById('allow-proactive-toggle').checked;
+        const c = document.getElementById('proactive-interval-container');
+        if (c) c.style.display = on ? 'flex' : 'none';
+    }
+    // 拖动滑块时：更新标签并同步数字输入框
+    function onProactiveIntervalInput(val) {
+        let sec = parseInt(val); if (isNaN(sec)) sec = 1;
+        if (sec < 1) sec = 1; if (sec > 900) sec = 900;
+        document.getElementById('proactive-interval-label').innerText = formatProactiveInterval(sec);
+        const n = document.getElementById('proactive-interval-number'); if (n) n.value = sec;
+    }
+    // 输入数字时：钳制范围并同步滑块与标签
+    function onProactiveNumberInput(val) {
+        if (val === '' || val === null) return; // 允许编辑过程中暂时为空
+        let sec = parseInt(val); if (isNaN(sec)) return;
+        if (sec < 1) sec = 1; if (sec > 900) sec = 900;
+        const s = document.getElementById('proactive-interval-slider'); if (s) s.value = sec;
+        document.getElementById('proactive-interval-label').innerText = formatProactiveInterval(sec);
+    }
+
     function togglePanel(id) {
         document.getElementById('sticker-panel').style.display = 'none';
         document.querySelectorAll('.panel').forEach(p => p.style.display = (p.id === id && p.style.display !== 'block') ? 'block' : 'none');
         
         if(id === 'panel-words') exitMultiSelectMode(); 
         if(id === 'panel-voice') renderVoiceUI();
+        if(id === 'panel-calls') renderCallHistory();
+        if(id === 'panel-checkin') renderCheckinHistory();
+        if(id === 'panel-frequency') renderFrequencyPanel();
+        if(id === 'panel-doodle') initDoodle();
+        if(id === 'panel-track') renderTrackPanel();
         if(id === 'panel-mood') { currentCalDate = new Date(); renderMoodPanel(); }
 
         if(id === 'panel-roles' || id === 'panel-prefs') {
@@ -1432,6 +2621,18 @@
             if (patToggle) patToggle.checked = config.allowBotPat;
             const proToggle = document.getElementById('allow-proactive-toggle');
             if (proToggle) proToggle.checked = config.allowProactive;
+
+            // 🌟 回填主动发消息频率（毫秒 → 秒），并按开关显隐
+            let pSec = Math.round((parseInt(config.proactiveInterval) || 300000) / 1000);
+            if (pSec < 1) pSec = 1; if (pSec > 900) pSec = 900;
+            const pSlider = document.getElementById('proactive-interval-slider');
+            const pNumber = document.getElementById('proactive-interval-number');
+            const pLabel = document.getElementById('proactive-interval-label');
+            if (pSlider) pSlider.value = pSec;
+            if (pNumber) pNumber.value = pSec;
+            if (pLabel) pLabel.innerText = formatProactiveInterval(pSec);
+            const pContainer = document.getElementById('proactive-interval-container');
+            if (pContainer) pContainer.style.display = config.allowProactive ? 'flex' : 'none';
         }
         if(id === 'panel-stickers') { document.getElementById('emoji-list-input').value = config.emojis; renderStickerSettingsPreview(); }
     }
@@ -1478,9 +2679,9 @@
     function openMoodSelector() {
         const grid = document.getElementById('mood-options-grid');
         grid.innerHTML = defaultMoods.map(m => `
-            <div style="display:flex; flex-direction:column; align-items:center; padding:12px 5px; border-radius:12px; background:var(--light-gray); cursor:pointer; transition: transform 0.2s;" onclick="selectMyMood('${m.text}')" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="font-size:26px; margin-bottom:6px;">${m.icon}</div>
-                <div style="font-size:12px; font-weight:500; color:#555;">${m.text}</div>
+            <div style="display:flex; flex-direction:column; align-items:center; padding:10px 4px; border-radius:12px; background:${m.bg || 'var(--light-gray)'}; cursor:pointer; transition: transform 0.15s;" onclick="selectMyMood('${m.text}')" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                <div style="font-size:24px; margin-bottom:5px;">${m.icon}</div>
+                <div style="font-size:12px; font-weight:600; color:${m.color || '#555'};">${m.text}</div>
             </div>
         `).join('');
         document.getElementById('mood-selector-overlay').style.display = 'flex';
@@ -1519,7 +2720,7 @@
     }
 
     function exportData() {
-        const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, timestamp: new Date().toISOString() };
+        const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, callHistory: callHistory, checkinHistory: checkinHistory, trackCards: trackCards, trackRecords: trackRecords, timestamp: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(fullData)], { type: "application/json" }); const url = URL.createObjectURL(blob);
         const a = document.createElement("a"); a.href = url; a.download = `private_space_backup_${new Date().getTime()}.json`; a.click(); URL.revokeObjectURL(url);
         showCustomNotification("数据已成功导出", "success");
@@ -1527,16 +2728,22 @@
 
     function importData(input) {
         const file = input.files[0]; if (!file) return; const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
                 if (data.config && data.wordCards) {
                     localStorage.setItem('chatConfigV6', JSON.stringify(data.config));
-                    localStorage.setItem('chatHistoryV1', JSON.stringify(data.chatHistory || []));
                     localStorage.setItem('wordCardsV2', JSON.stringify(data.wordCards));
                     localStorage.setItem('voiceCardsV1', JSON.stringify(data.voiceCards || []));
                     localStorage.setItem('chatMomentsV1', JSON.stringify(data.moments || []));
                     localStorage.setItem('chatMoodDataV1', JSON.stringify(data.moodData || {}));
+                    localStorage.setItem('callHistoryV1', JSON.stringify(data.callHistory || []));
+                    localStorage.setItem('checkinHistoryV1', JSON.stringify(data.checkinHistory || []));
+                    localStorage.setItem('trackCardsV1', JSON.stringify(data.trackCards || []));
+                    localStorage.setItem('trackRecordsV1', JSON.stringify(data.trackRecords || []));
+                    // 🌟 聊天记录写入大容量存储（IndexedDB），确保刷新后能读到导入的数据
+                    if (!chatDB) await openChatDB();
+                    await persistChat(data.chatHistory || []);
                     showCustomNotification("导入成功！页面即将刷新...", "success"); setTimeout(() => location.reload(), 1500);
                 } else { showCustomNotification("文件格式不正确，导入失败。", "error"); }
             } catch (err) { showCustomNotification("读取文件失败：" + err, "error"); }
@@ -1829,6 +3036,14 @@
         if (patToggle) config.allowBotPat = patToggle.checked;
         const proToggle = document.getElementById('allow-proactive-toggle');
         if (proToggle) config.allowProactive = proToggle.checked;
+
+        // 🌟 保存主动发消息频率（秒 → 毫秒，钳制 1 ~ 900 秒）
+        const pNumberEl = document.getElementById('proactive-interval-number');
+        const pSliderEl = document.getElementById('proactive-interval-slider');
+        let pSecSave = parseInt((pNumberEl && pNumberEl.value !== '') ? pNumberEl.value : (pSliderEl ? pSliderEl.value : 300));
+        if (isNaN(pSecSave)) pSecSave = 300;
+        if (pSecSave < 1) pSecSave = 1; if (pSecSave > 900) pSecSave = 900;
+        config.proactiveInterval = pSecSave * 1000;
         
         localStorage.setItem('chatConfigV6', JSON.stringify(config));
 
