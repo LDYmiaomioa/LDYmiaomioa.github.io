@@ -143,7 +143,7 @@
         .chat-input-box { 
             flex: 1 1 auto; min-width: 0; padding: 8px 12px; border: none; border-radius: 18px; 
             outline: none; background: #FFF; font-size: 15px; color: #333; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03); min-height: 36px; max-height: 100px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03); min-height: 36px; max-height: 160px; 
             overflow-y: auto; word-break: break-word; line-height: 1.4; transition: box-shadow 0.2s;
             -webkit-user-select: text; user-select: text;
         }
@@ -527,6 +527,10 @@
         <div class="modern-card">
             <div class="form-row" style="margin-top: 10px;"><span class="form-label">最快回复延迟: <span id="min-reply-delay-label" class="range-val">3s</span></span><input type="range" id="min-reply-delay-slider" class="modern-range" min="0" max="20" step="0.5" value="3" oninput="document.getElementById('min-reply-delay-label').innerText = this.value + 's'"></div>
             <div class="form-row"><span class="form-label">最慢回复延迟: <span id="max-reply-delay-label" class="range-val">5s</span></span><input type="range" id="max-reply-delay-slider" class="modern-range" min="0" max="20" step="0.5" value="5" oninput="document.getElementById('max-reply-delay-label').innerText = this.value + 's'"></div>
+            <div class="form-row" style="margin-top: 10px;"><span class="form-label">最多连发条数: <span id="max-replies-label" class="range-val">3 条</span></span><input type="range" id="max-replies-slider" class="modern-range" min="1" max="10" step="1" value="3" oninput="document.getElementById('max-replies-label').innerText = this.value + ' 条'"></div>
+            <div style="font-size: 11px; color: #888; margin-top: 4px; line-height: 1.4;">对方一次回复的最多条数。实际多为 1 条（88%），偶尔 2 条、极少 3 条，依此衰减。</div>
+            <div class="form-row" style="margin-top: 12px;"><span class="form-label">戳一戳概率: <span id="poke-chance-label" class="range-val">3%</span></span><input type="range" id="poke-chance-slider" class="modern-range" min="0" max="100" step="1" value="3" oninput="document.getElementById('poke-chance-label').innerText = this.value + '%'"></div>
+            <div style="font-size: 11px; color: #888; margin-top: 4px; line-height: 1.4;">你每发一条消息，对方有此概率顺手戳你一下（需开启上方「允许对方戳戳」）。</div>
         </div>
         <button class="action-btn" onclick="saveIdentity()">💾 保存偏好</button>
     </div>
@@ -732,7 +736,6 @@
 
         <div id="chat-input" class="chat-input-box" contenteditable="true" data-placeholder="发消息..."></div>
         
-        <button class="summon-btn-style" onclick="triggerBotPat()" title="让对方戳一下我" style="background:#E9F3FF; color:#0084FF;">戳戳</button>
         <button class="summon-btn-style" onclick="forceReply()" title="召唤对方">召唤</button>
         <button class="send-btn-style" onclick="sendMessage()">发送</button>
     </div>
@@ -996,7 +999,8 @@
         emojis: defaultEmojis, customStickers: [], minReplyDelay: 3000, maxReplyDelay: 5000, videoBg: '',
         myPats: defaultMyPats, botPats: defaultBotPats, momentsBg: '',
         ignoreReplyEnabled: false, ignoreReplyProb: 15,
-        allowBotPat: true, allowProactive: true, proactiveInterval: 300000
+        allowBotPat: true, allowProactive: true, proactiveInterval: 300000,
+        maxReplies: 3, pokeChance: 3
     };
     if (!config.minReplyDelay) config.minReplyDelay = 3000;
     if (!config.maxReplyDelay) config.maxReplyDelay = 5000;
@@ -1010,6 +1014,11 @@
     if (typeof config.proactiveInterval === 'undefined') config.proactiveInterval = 300000;
     if (config.proactiveInterval < 1000) config.proactiveInterval = 1000;
     if (config.proactiveInterval > 900000) config.proactiveInterval = 900000;
+    // 🌟 连发条数上限（1~10，默认 3）；戳一戳概率（0~100，默认 3）
+    if (typeof config.maxReplies === 'undefined') config.maxReplies = 3;
+    config.maxReplies = Math.min(10, Math.max(1, parseInt(config.maxReplies) || 3));
+    if (typeof config.pokeChance === 'undefined') config.pokeChance = 3;
+    config.pokeChance = Math.min(100, Math.max(0, parseInt(config.pokeChance) || 0));
 
     let wordCards = JSON.parse(localStorage.getItem('wordCardsV2')) || [{text:"我在听。", tag:"日常"}];
     let voiceCards = JSON.parse(localStorage.getItem('voiceCardsV1')) || []; 
@@ -1408,6 +1417,8 @@
         checkChatCapacity();       // 🌟 启动时检查一次容量
         checkDailyCall(); resetProactiveTimer(); bindDoubleTap(); checkAndGenerateBotMood(); 
         checkPendingBotMoment(); setInterval(checkPendingBotMoment, 60000); 
+        checkBotDailyMoments();  // 🌟 对方每天 0~5 篇朋友圈
+        scheduleRandomPoke();    // 🌟 对方周期性主动互动（约 5%）
         checkBotCheckinDrop(); // 🌟 对方约 50% 概率随机来查你的岗
         checkBotTrackDrop();   // 🌟 对方约 78% 概率随机掉落一条轨迹
         checkBotDoodleDrop();  // 🌟 对方约 70% 概率随机涂鸦并发到聊天
@@ -1489,6 +1500,15 @@
         sendSystemNotification(config.otherName || '匿名者', `拍了拍你 ${botSuffix}`);
     }
 
+    // 🌟 周期性主动互动：每 20~480 分钟判定一次，约 5% 概率对方主动戳你一下
+    function scheduleRandomPoke() {
+        const ms = (20 + Math.random() * 460) * 60 * 1000;
+        setTimeout(() => {
+            if (config.allowBotPat && Math.random() < 0.05) { triggerBotPat(); }
+            scheduleRandomPoke();
+        }, ms);
+    }
+
     function appendSystemMessage(text, skipSave = false, msgId = null) {
         const id = msgId || generateMsgId();
         const html = `<div class="system-message-container" data-id="${id}"><div class="system-message-text">${text}</div></div>`;
@@ -1505,7 +1525,7 @@
         if (interval > 900000) interval = 900000;
         proactiveTimer = setTimeout(() => {
             if (document.getElementById('video-call-overlay').style.display === 'none' && document.getElementById('moments-page').style.display === 'none') {
-                triggerAutoReply(); 
+                triggerBotProactive(); 
             }
             resetProactiveTimer(); 
         }, interval); 
@@ -1955,11 +1975,11 @@
         showCustomNotification('已发起查岗，等待对方回应...', 'info');
         const delay = 1200 + Math.random() * 2300; // 1.2 ~ 3.5 秒
         setTimeout(() => {
-            // 🌟 对方的报备内容从字卡库随机掉落
-            let html = escapeHtml(pickCheckinFromCards(theme.reply));
-            if (config.customStickers && config.customStickers.length > 0 && Math.random() < 0.25) {
-                html += `<br><img src="${config.customStickers[Math.floor(Math.random() * config.customStickers.length)]}" style="max-width:70px; border-radius:8px; margin-top:6px;">`;
-            }
+            // 🌟 对方报备：随机取 1 张字卡；字卡池为空时用固定文案
+            const replyText = wordCards.length > 0
+                ? wordCards[Math.floor(Math.random() * wordCards.length)].text
+                : '我在的，宝贝放心（目前字卡池为0，记得添加字卡！但我爱你是真的！）';
+            let html = escapeHtml(replyText);
             checkinHistory.push({ id: generateMsgId(), ts: Date.now(), by: 'me', theme: themeKey, question: theme.label, reply: html, evasive: false });
             saveCheckinHistory();
             if (document.getElementById('panel-checkin').style.display === 'block') renderCheckinHistory();
@@ -2609,6 +2629,11 @@
             const minSec = config.minReplyDelay / 1000; const maxSec = config.maxReplyDelay / 1000;
             document.getElementById('min-reply-delay-slider').value = minSec; document.getElementById('min-reply-delay-label').innerText = minSec + 's';
             document.getElementById('max-reply-delay-slider').value = maxSec; document.getElementById('max-reply-delay-label').innerText = maxSec + 's';
+            // 🌟 连发上限 & 戳一戳概率
+            const mrS = document.getElementById('max-replies-slider');
+            if (mrS) { mrS.value = config.maxReplies; document.getElementById('max-replies-label').innerText = config.maxReplies + ' 条'; }
+            const pcS = document.getElementById('poke-chance-slider');
+            if (pcS) { pcS.value = config.pokeChance; document.getElementById('poke-chance-label').innerText = config.pokeChance + '%'; }
             
             // 已读不回数据绑定
             document.getElementById('ignore-reply-toggle').checked = config.ignoreReplyEnabled;
@@ -2798,6 +2823,10 @@
         appendMessage(true, t, currentQuote); currentQuote = null; chatInput.innerHTML = '';
         if (chatInput.textContent.trim() === '' && !chatInput.querySelector('img')) { chatInput.innerHTML = ''; }
         closeAllPanels(); cancelQuote(); triggerAutoReply(t); resetProactiveTimer(); 
+        // 🌟 你发消息后，对方有 pokeChance% 概率顺手戳你一下（需开启「允许对方戳戳」）
+        if (config.allowBotPat && Math.random() * 100 < (config.pokeChance || 0)) {
+            setTimeout(() => triggerBotPat(), 600 + Math.random() * 1200);
+        }
     }
 
     document.getElementById('chat-image-upload').onchange = e => {
@@ -2807,13 +2836,9 @@
     };
 
     function triggerAutoReply(userMsgHtml = null) {
-        if(wordCards.length === 0 && voiceCards.length === 0) return;
-        
-        // 🌟 新增：触发“已读不回”逻辑
+        // 🌟 已读不回：仅在「回应用户消息」时按概率触发
         if (userMsgHtml && config.ignoreReplyEnabled) {
-            const rand = Math.random() * 100;
-            if (rand < config.ignoreReplyProb) {
-                // 已触发已读不回，延迟后在聊天界面显示已读提示
+            if (Math.random() * 100 < config.ignoreReplyProb) {
                 setTimeout(() => {
                     appendSystemMessage(`${config.otherName || '匿名者'} 已读，但没有回复 👀`);
                 }, 1500 + Math.random() * 2000);
@@ -2821,61 +2846,83 @@
             }
         }
 
-        const replyCount = Math.floor(Math.random() * 3) + 1; 
-        pendingReplies += replyCount; updateChatTitle();
+        // 🌟 连发条数：1 条 88%，之后每多一条概率约为前一档的 0.12（封顶 config.maxReplies，默认 3）
+        let maxR = Math.min(10, Math.max(1, parseInt(config.maxReplies) || 3));
+        if (wordCards.length === 0) maxR = 1; // 无字卡时不连发，避免重复「已读不回」
+        let target = 1;
+        for (let i = 2; i <= maxR; i++) { if (Math.random() < 0.12) target = i; else break; }
 
-        for (let i = 0; i < replyCount; i++) {
+        pendingReplies += target; updateChatTitle();
+        for (let i = 0; i < target; i++) {
             let baseDelay = Math.floor(Math.random() * (config.maxReplyDelay - config.minReplyDelay + 1)) + config.minReplyDelay;
-            let finalDelay = baseDelay + (i * 1500); 
-
+            let finalDelay = baseDelay + (i * 1500);
             setTimeout(() => {
                 let autoQuote = null;
                 if (i === 0 && userMsgHtml && Math.random() < 0.3) { autoQuote = { name: config.myName, htmlContent: userMsgHtml }; }
-                let isVoiceReply = voiceCards.length > 0 && Math.random() < 0.3;
-                
-                if (isVoiceReply) {
-                    const voiceBase64 = voiceCards[Math.floor(Math.random() * voiceCards.length)];
-                    const voiceHtml = `
-                        <div class="wechat-voice-bubble" onclick="playWeChatVoice(this, '${voiceBase64}')">
-                            <audio src="${voiceBase64}" style="display:none;" onloadedmetadata="let d=Math.max(1, Math.round(this.duration)); this.nextElementSibling.nextElementSibling.innerText = d + '&quot;'; this.parentElement.style.width = (65 + Math.min(d, 60) * 2) + 'px';"></audio>
-                            <svg class="voice-icon" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                            <span class="voice-dur">...</span>
-                        </div>`;
-                    appendMessage(false, voiceHtml, autoQuote);
-                } else {
-                    if(wordCards.length > 0) {
-                        const random = Math.random();
-                        const sentence = pickWordCardsSentence(2, 3);   // 🌟 一句话用 2~3 张字卡拼成
-                        const oneEmoji = escapeHtml(getPureEmoji());    // 🌟 混合一个单独的 emoji
-
-                        if (random < 0.3) { appendMessage(false, sentence, autoQuote); }
-                        else if (random < 0.6) { appendMessage(false, sentence + " " + oneEmoji, autoQuote); }
-                        else if (random < 0.8) { appendMessage(false, oneEmoji, autoQuote); }
-                        else {
-                            if (config.customStickers.length > 0) {
-                                const img = config.customStickers[Math.floor(Math.random() * config.customStickers.length)];
-                                if (Math.random() < 0.5) { appendMessage(false, `${sentence} ${oneEmoji} <br><img src="${img}">`, autoQuote); }
-                                else { appendMessage(false, `<img src="${img}">`, autoQuote); }
-                            } else { appendMessage(false, sentence + " " + oneEmoji, autoQuote); }
-                        }
-                    }
-                }
-                sendSystemNotification(config.otherName || '匿名者', '给你发了一条新消息'); 
+                sendOneBotReply(autoQuote);
+                sendSystemNotification(config.otherName || '匿名者', '给你发了一条新消息');
                 finishReply();
             }, finalDelay);
         }
     }
 
+    // 🌟 生成并发送「对方的一条回复」：15% 表情包 / 5% 涂鸦 / 80% 文本（文本字卡池为空则已读不回）
+    function sendOneBotReply(autoQuote) {
+        const r = Math.random();
+        const stickers = config.customStickers || [];
+        // 15% 表情包（表情包库为空则此段落空，自动落到文本分支）
+        if (r < 0.15 && stickers.length > 0) {
+            const img = stickers[Math.floor(Math.random() * stickers.length)];
+            appendMessage(false, `<img src="${img}">`, autoQuote);
+            return;
+        }
+        // 5% 涂鸦（生成失败则回退文本）
+        if (r >= 0.15 && r < 0.20) {
+            const url = generateBotDoodleDataURL();
+            if (url) { appendMessage(false, `<img src="${url}">`, autoQuote); return; }
+        }
+        // 80% 文本
+        const txt = buildBotTextMessage();
+        if (txt === null) { appendSystemMessage(`${config.otherName || '匿名者'} 已读，但没有回复 👀`); return; }
+        appendMessage(false, txt, autoQuote);
+    }
+
+    // 🌟 对方主动发消息（静默时触发）：10% 查岗 / 5% 涂鸦 / 85% 文本（仅 1 张字卡，不加 emoji）
+    function triggerBotProactive() {
+        const r = Math.random();
+        if (r < 0.10) { triggerBotCheckin(); return; }            // 10% 发起查岗
+        if (r < 0.15) {                                            // 5% 涂鸦
+            const url = generateBotDoodleDataURL();
+            if (url) { appendMessage(false, `<img src="${url}">`); sendSystemNotification(config.otherName || '匿名者', '发来一张涂鸦'); return; }
+        }
+        // 85% 文本：直接取 1 张字卡，不拼接、不加 emoji
+        if (!wordCards.length) return;
+        const text = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text);
+        pendingReplies++; updateChatTitle();
+        const delay = Math.floor(Math.random() * (config.maxReplyDelay - config.minReplyDelay + 1)) + config.minReplyDelay;
+        setTimeout(() => {
+            appendMessage(false, text);
+            sendSystemNotification(config.otherName || '匿名者', '给你发了一条新消息');
+            finishReply();
+        }, delay);
+    }
+
     function finishReply() { pendingReplies--; if (pendingReplies <= 0) pendingReplies = 0; updateChatTitle(); }
     function getPureEmoji() { const emojis = config.emojis.split(/\s+/).filter(e => e); return emojis.length > 0 ? emojis[Math.floor(Math.random() * emojis.length)] : "✨"; }
 
-    // 🌟 一句话里随机取 2~3 张字卡拼成一句（字卡不足则有多少取多少；用空格自然连接，已做转义）
-    function pickWordCardsSentence(min = 2, max = 3) {
-        if (!wordCards.length) return "";
-        const want = Math.min(wordCards.length, Math.floor(Math.random() * (max - min + 1)) + min);
+    // 🌟 对方消息里随机追加的 emoji 库（固定，与输入框表情选择器相互独立）
+    const BOT_EMOJIS = ['💕','🥺','😊','✨','💫','🌙','❤️','😘','🤍','💭','🫧','🫶'];
+    function pickBotEmoji() { return BOT_EMOJIS[Math.floor(Math.random() * BOT_EMOJIS.length)]; }
+
+    // 🌟 生成一条「对方文本消息」：随机取 1~3 张字卡拼接（空格连接），20% 概率末尾加一个 emoji
+    function buildBotTextMessage() {
+        if (!wordCards.length) return null;             // 字卡池为空 → 交由上层处理（已读不回）
+        const n = Math.floor(Math.random() * 3) + 1;    // 1/2/3 等概率
         let parts = [];
-        for (let k = 0; k < want; k++) parts.push(wordCards[Math.floor(Math.random() * wordCards.length)].text);
-        return parts.map(t => escapeHtml(t)).join(' ');
+        for (let k = 0; k < n; k++) parts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text));
+        let html = parts.join(' ');
+        if (Math.random() < 0.2) html += ' ' + escapeHtml(pickBotEmoji());
+        return html;
     }
 
     function showCustomPrompt(titleText, callback) {
@@ -3035,6 +3082,11 @@
         let minDelay = parseFloat(document.getElementById('min-reply-delay-slider').value) * 1000; let maxDelay = parseFloat(document.getElementById('max-reply-delay-slider').value) * 1000;
         if (minDelay > maxDelay) { let temp = minDelay; minDelay = maxDelay; maxDelay = temp; }
         config.minReplyDelay = minDelay; config.maxReplyDelay = maxDelay;
+        // 🌟 保存连发上限 & 戳一戳概率
+        const mrS = document.getElementById('max-replies-slider');
+        if (mrS) config.maxReplies = Math.min(10, Math.max(1, parseInt(mrS.value) || 3));
+        const pcS = document.getElementById('poke-chance-slider');
+        if (pcS) config.pokeChance = Math.min(100, Math.max(0, parseInt(pcS.value) || 0));
         
         // 🌟 保存已读不回数据
         config.ignoreReplyEnabled = document.getElementById('ignore-reply-toggle').checked;
@@ -3111,6 +3163,34 @@
             let pendingTime = parseInt(pendingTimeStr);
             if (Date.now() >= pendingTime) { triggerBotMoment(); localStorage.removeItem('pendingBotMomentV1'); }
         }
+    }
+
+    // 🌟 对方每天自动发 0~5 篇朋友圈：每天决定一次数量，并在当天随机时间点链式发布
+    function checkBotDailyMoments() {
+        const todayStr = getLocalDateStr(new Date());
+        const lastDate = localStorage.getItem('lastMomentsBatchDateV1');
+        if (lastDate !== todayStr) {
+            localStorage.setItem('lastMomentsBatchDateV1', todayStr);
+            const count = Math.floor(Math.random() * 6); // 0~5 篇
+            const now = Date.now();
+            const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
+            const remaining = Math.max(60000, endOfDay.getTime() - now);
+            let times = [];
+            for (let i = 0; i < count; i++) times.push(now + Math.random() * remaining);
+            times.sort((a, b) => a - b);
+            localStorage.setItem('scheduledMomentsV1', JSON.stringify(times));
+        }
+        let times = [];
+        try { times = JSON.parse(localStorage.getItem('scheduledMomentsV1')) || []; } catch (e) { times = []; }
+        times = times.filter(t => getLocalDateStr(new Date(t)) === todayStr);
+        const future = [];
+        let missed = 0;
+        times.forEach(t => {
+            const delay = t - Date.now();
+            if (delay <= 0) { const m = missed++; setTimeout(() => triggerBotMoment(), m * 1500); } // 错过的稍微错开补发
+            else { future.push(t); setTimeout(() => triggerBotMoment(), delay); }
+        });
+        localStorage.setItem('scheduledMomentsV1', JSON.stringify(future));
     }
 
     function toggleMoments(show) {
@@ -3195,25 +3275,15 @@
     }
 
     function triggerBotMoment() {
-        if(wordCards.length === 0 && voiceCards.length === 0) return;
-        // 🌟 字卡一张接一张横向连成一句（不再用 <br> 竖排）
+        if(wordCards.length === 0) return;
+        // 🌟 取 1~5 张字卡，横向连成一句
+        const count = Math.min(wordCards.length, Math.floor(Math.random() * 5) + 1);
         let texts = [];
-        if (wordCards.length > 0) {
-            const count = Math.min(wordCards.length, Math.floor(Math.random() * 3) + 2); // 取 2~4 张
-            for(let i=0; i<count; i++) { texts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text)); }
-        }
-        let finalHtml = (texts.join(' ') + " " + getPureEmoji()).trim();
-        if (config.customStickers.length > 0 && Math.random() < 0.6) {
+        for(let i=0; i<count; i++) { texts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text)); }
+        let finalHtml = texts.join(' ');
+        if (Math.random() < 0.35) { finalHtml += ' ' + escapeHtml(pickBotEmoji()); }              // 🌟 35% 末尾加一个 emoji
+        if (config.customStickers.length > 0 && Math.random() < 0.25) {                            // 🌟 25% 配一张表情包
             const botImg = config.customStickers[Math.floor(Math.random() * config.customStickers.length)]; finalHtml += `<br><img src="${botImg}">`;
-        }
-        if (voiceCards.length > 0 && Math.random() < 0.2) {
-            const botVoice = voiceCards[Math.floor(Math.random() * voiceCards.length)];
-            finalHtml = `
-                <div class="wechat-voice-bubble" onclick="playWeChatVoice(this, '${botVoice}')" style="display:inline-flex; background:#E9F3FF; padding:4px 8px; border-radius:12px; border:1px solid #d0e5ff;">
-                    <audio src="${botVoice}" style="display:none;"></audio>
-                    <svg class="voice-icon" style="width:14px; height:14px; margin-right:4px;" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                    <span class="voice-dur" style="font-size:12px;">语音</span>
-                </div> ` + getPureEmoji();
         }
         const newMoment = { id: Date.now(), isSelf: false, text: finalHtml, img: null, comments: [], timestamp: Date.now() };
         moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
