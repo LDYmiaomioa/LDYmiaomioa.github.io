@@ -872,7 +872,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg> 返回
             </span>
             <div style="display: flex; gap: 10px;">
-                <span class="moments-header-icon" title="对方发动态" onclick="triggerBotMoment()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg></span>
                 <span class="moments-header-icon" title="发布动态" onclick="openMomentsPublish()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
             </div>
         </div>
@@ -1434,7 +1433,7 @@
         checkChatCapacity();       // 🌟 启动时检查一次容量
         checkDailyCall(); startProactiveEngine(); bindDoubleTap(); checkAndGenerateBotMood(); 
         checkPendingBotMoment(); setInterval(checkPendingBotMoment, 60000); 
-        checkBotDailyMoments();  // 🌟 对方每天 0~5 篇朋友圈
+        checkBotDailyMoments();  // 🌟 对方每天 70% 概率发一篇朋友圈
         scheduleRandomPoke();    // 🌟 对方周期性主动互动（约 5%）
         checkBotCheckinDrop(); // 🌟 对方约 50% 概率随机来查你的岗
         checkBotTrackDrop();   // 🌟 对方约 78% 概率随机掉落一条轨迹
@@ -3232,19 +3231,19 @@
         }
     }
 
-    // 🌟 对方每天自动发 0~5 篇朋友圈：每天决定一次数量，并在当天随机时间点链式发布
+    // 🌟 对方每天 70% 概率发一篇朋友圈：每天掷一次骰，命中则在当天剩余时间内随机时刻发布
     function checkBotDailyMoments() {
         const todayStr = getLocalDateStr(new Date());
         const lastDate = localStorage.getItem('lastMomentsBatchDateV1');
         if (lastDate !== todayStr) {
             localStorage.setItem('lastMomentsBatchDateV1', todayStr);
-            const count = Math.floor(Math.random() * 6); // 0~5 篇
             const now = Date.now();
-            const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
-            const remaining = Math.max(60000, endOfDay.getTime() - now);
             let times = [];
-            for (let i = 0; i < count; i++) times.push(now + Math.random() * remaining);
-            times.sort((a, b) => a - b);
+            if (Math.random() < 0.7) {  // 🌟 70% 概率今天发一篇
+                const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
+                const remaining = Math.max(60000, endOfDay.getTime() - now);
+                times.push(now + Math.random() * remaining);
+            }
             localStorage.setItem('scheduledMomentsV1', JSON.stringify(times));
         }
         let times = [];
@@ -3343,14 +3342,21 @@
 
     function triggerBotMoment() {
         if(wordCards.length === 0) return;
-        // 🌟 取 1~5 张字卡，横向连成一句
-        const count = Math.min(wordCards.length, Math.floor(Math.random() * 5) + 1);
-        let texts = [];
-        for(let i=0; i<count; i++) { texts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text)); }
-        let finalHtml = texts.join(' ');
-        if (Math.random() < 0.35) { finalHtml += ' ' + escapeHtml(pickBotEmoji()); }              // 🌟 35% 末尾加一个 emoji
-        if (config.customStickers.length > 0 && Math.random() < 0.25) {                            // 🌟 25% 配一张表情包
-            const botImg = config.customStickers[Math.floor(Math.random() * config.customStickers.length)]; finalHtml += `<br><img src="${botImg}">`;
+        // 🌟 写信式长文：取 10~20 张字卡连成一段（字卡不够会重复选取），中间随机穿插 emoji，结尾随机配一张图片表情包
+        const count = Math.floor(Math.random() * 11) + 10;   // 10 ~ 20
+        let parts = [];
+        for(let i = 0; i < count; i++) {
+            parts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text));
+            // 中间穿插 emoji：约 30% 概率在这张字卡后加一个 emoji（最后一张不加，留给结尾收束）
+            if (i < count - 1 && Math.random() < 0.3) {
+                parts.push(escapeHtml(pickBotEmoji()));
+            }
+        }
+        let finalHtml = parts.join(' ');
+        // 🌟 结尾图片表情包：设置了表情包时，约 60% 概率在末尾另起一行放一张
+        if (config.customStickers && config.customStickers.length > 0 && Math.random() < 0.6) {
+            const botImg = config.customStickers[Math.floor(Math.random() * config.customStickers.length)];
+            finalHtml += `<br><img src="${botImg}">`;
         }
         const newMoment = { id: Date.now(), isSelf: false, text: finalHtml, img: null, comments: [], timestamp: Date.now() };
         moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
