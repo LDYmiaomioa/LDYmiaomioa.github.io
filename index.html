@@ -497,6 +497,8 @@
                 </div>
                 <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">拖动滑块或直接输入秒数均可。数值越小对方发消息越频繁，最小 1 秒、最大 900 秒（15 分钟）。修改后请点击下方「保存偏好」。</div>
             </div>
+            <button class="action-btn" style="margin-top: 12px; background: var(--theme-blue-text);" onclick="testProactiveNow()">🔔 立即测试：让对方现在发一条</button>
+            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">点一下立刻让对方发来一条消息，用来确认功能是否正常。测试通过后，把频率设短一点（如 10 秒）、保存偏好，然后停留在聊天界面别操作，到点对方就会自动发来消息。</div>
         </div>
 
         <!-- 🌟 新增：每日视频电话信息（每天 50% 概率） -->
@@ -1010,6 +1012,15 @@
     if (typeof config.ignoreReplyProb === 'undefined') config.ignoreReplyProb = 15;
     if (typeof config.allowBotPat === 'undefined') config.allowBotPat = true;
     if (typeof config.allowProactive === 'undefined') config.allowProactive = true;
+    // 🌟 一次性迁移：把"对方主动发消息"强制打开一次（修复历史上被存成关闭、导致一直不触发的情况）。
+    //    只执行一次；之后你若在设置里手动关闭并保存，仍会保持关闭。
+    if (!localStorage.getItem('proactiveForceOnV2')) {
+        config.allowProactive = true;
+        try {
+            localStorage.setItem('proactiveForceOnV2', '1');
+            localStorage.setItem('chatConfigV6', JSON.stringify(config));
+        } catch (e) {}
+    }
     // 🌟 主动发消息频率（毫秒）：最少 1 秒，最多 15 分钟。旧数据/越界数据自动修正
     if (typeof config.proactiveInterval === 'undefined') config.proactiveInterval = 300000;
     if (config.proactiveInterval < 1000) config.proactiveInterval = 1000;
@@ -1415,7 +1426,10 @@
     async function init() {
         applyBg(config.bgImage, config.bgClarity);
         renderStickerGrids(); renderVoiceUI(); updateChatTitle();
-        await initChatStorage();   // 🌟 先从大容量存储载入聊天记录
+        // 🌟 防止 IndexedDB 在个别手机/隐私模式下卡死，导致后续初始化（包括主动发消息引擎）永远不执行：
+        //    最多等 3 秒，超时或报错也继续往下走，保证引擎一定会启动
+        try { await Promise.race([initChatStorage(), new Promise(res => setTimeout(res, 3000))]); }
+        catch (e) { /* 忽略存储初始化错误，保证 App 其余功能正常 */ }
         loadChatHistory();
         checkChatCapacity();       // 🌟 启动时检查一次容量
         checkDailyCall(); startProactiveEngine(); bindDoubleTap(); checkAndGenerateBotMood(); 
@@ -1563,6 +1577,14 @@
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkProactiveTick(); });
         window.addEventListener('focus', checkProactiveTick);
         checkProactiveTick(); // 启动时先查一次：若你已离开超过设定间隔，回来会很快收到消息
+    }
+
+    // 🌟 手动测试：立刻让对方发来一条消息（不受静默计时限制），用于确认功能是否正常
+    function testProactiveNow() {
+        closeAllPanels();
+        if (typeof showCustomNotification === 'function') showCustomNotification('测试已触发，稍候对方会发来一条消息', 'success');
+        triggerBotProactive();
+        markUserActivity(); // 重置静默起点，避免自动逻辑紧接着又叠加一条
     }
 
     
@@ -3337,6 +3359,9 @@
     }
 
     init();
+    // 🌟 兜底：万一 init() 因任何异常没执行到引擎启动，4 秒后再确保启动一次。
+    //    startProactiveEngine 是幂等的（已启动则直接返回），且此时聊天记录已加载完，不会与渲染冲突。
+    setTimeout(startProactiveEngine, 4000);
 </script>
 </body>
 </html>
