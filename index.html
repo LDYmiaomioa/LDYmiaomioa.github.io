@@ -475,29 +475,7 @@
             <button class="action-btn" style="margin-top: 12px; background: var(--wechat-green);" onclick="triggerBotPat()">👋 让对方戳一下我</button>
         </div>
 
-        <!-- 🌟 新增：对方主动发消息开关 -->
-        <div class="modern-card">
-            <div class="form-row" style="flex-direction: row; justify-content: space-between; align-items: center;">
-                <span class="form-label" style="font-size: 13px;">💬 允许对方一段时间主动发消息</span>
-                <label class="modern-switch">
-                    <input type="checkbox" id="allow-proactive-toggle" onchange="toggleProactiveUi()">
-                    <span class="modern-switch-slider"></span>
-                </label>
-            </div>
-            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">开启后，若您在下方设定的「主动发消息频率」时间内没有任何动作，对方会自动发来消息；持续静默则会按此频率不断发来新消息。关闭后只有您主动发消息或点「召唤」时对方才会回复。</div>
-
-            <!-- 🌟 新增：对方主动发消息频率设置（最少 1 秒，最多 15 分钟） -->
-            <div class="form-row" id="proactive-interval-container" style="display: none; margin-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 12px;">
-                <span class="form-label">⏱️ 主动发消息频率：<span id="proactive-interval-label" class="range-val">5 分钟</span></span>
-                <input type="range" id="proactive-interval-slider" class="modern-range" min="1" max="900" step="1" value="300" oninput="onProactiveIntervalInput(this.value)">
-                <div style="display:flex; justify-content:space-between; width:100%; font-size:10px; color:#bbb; margin-top:-2px;"><span>最快 1 秒</span><span>最慢 15 分钟</span></div>
-                <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:12px;">
-                    <input type="number" id="proactive-interval-number" min="1" max="900" step="1" class="settings-input" style="flex:1;" oninput="onProactiveNumberInput(this.value)" placeholder="精确秒数">
-                    <span style="font-size:12px; color:#888; white-space:nowrap; font-weight:600;">秒 (1 ~ 900)</span>
-                </div>
-                <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">拖动滑块或直接输入秒数均可。数值越小对方发消息越频繁，最小 1 秒、最大 900 秒（15 分钟）。修改后请点击下方「保存偏好」。</div>
-            </div>
-        </div>
+        <!-- 🌟 已移除：对方主动发消息功能（对方不会再主动发来消息，仅在你发消息或点「召唤」时回复） -->
 
         <!-- 🌟 新增：每日视频电话信息（每天 50% 概率） -->
         <div class="modern-card" style="background: #f0f9ff;">
@@ -999,7 +977,7 @@
         emojis: defaultEmojis, customStickers: [], minReplyDelay: 3000, maxReplyDelay: 5000, videoBg: '',
         myPats: defaultMyPats, botPats: defaultBotPats, momentsBg: '',
         ignoreReplyEnabled: false, ignoreReplyProb: 15,
-        allowBotPat: true, allowProactive: true, proactiveInterval: 300000,
+        allowBotPat: true, allowProactive: false, proactiveInterval: 300000,
         maxReplies: 3, pokeChance: 3
     };
     if (!config.minReplyDelay) config.minReplyDelay = 3000;
@@ -1009,7 +987,8 @@
     if (typeof config.ignoreReplyEnabled === 'undefined') config.ignoreReplyEnabled = false;
     if (typeof config.ignoreReplyProb === 'undefined') config.ignoreReplyProb = 15;
     if (typeof config.allowBotPat === 'undefined') config.allowBotPat = true;
-    if (typeof config.allowProactive === 'undefined') config.allowProactive = true;
+    // 🌟 对方主动发消息功能已永久关闭：无论本地是否存有旧设置，一律强制为 false
+    config.allowProactive = false;
     // 🌟 主动发消息频率（毫秒）：最少 1 秒，最多 15 分钟。旧数据/越界数据自动修正
     if (typeof config.proactiveInterval === 'undefined') config.proactiveInterval = 300000;
     if (config.proactiveInterval < 1000) config.proactiveInterval = 1000;
@@ -1517,26 +1496,10 @@
     }
 
     function resetProactiveTimer() {
+        // 🌟 已禁用：对方不会再主动发消息。此函数仅负责清除可能残留的旧定时器，不再调度任何主动消息。
+        // 仍保留函数及各处调用，以便「召唤(forceReply)」、正常回复等逻辑无需改动即可工作。
         clearTimeout(proactiveTimer);
-        if (!config.allowProactive) return; // 🌟 关闭"对方主动发消息"则不再调度
-        // 🌟 使用用户自定义频率：最少 1 秒(1000ms)，最多 15 分钟(900000ms)
-        let interval = parseInt(config.proactiveInterval);
-        if (isNaN(interval) || interval < 1000) interval = 1000;
-        if (interval > 900000) interval = 900000;
-        proactiveTimer = setTimeout(() => {
-            // 🌟 用 getComputedStyle 判断遮罩是否真的在显示。
-            // 注意：video-call-overlay / moments-page 的 display:none 来自 CSS，而非内联样式，
-            // 因此初始时 element.style.display 是空字符串 ''，绝不会等于 'none'，
-            // 旧写法 (=== 'none') 会导致主动发消息永远不触发。这里改用 getComputedStyle 修复。
-            const callEl = document.getElementById('video-call-overlay');
-            const momentsEl = document.getElementById('moments-page');
-            const callHidden = !callEl || getComputedStyle(callEl).display === 'none';
-            const momentsHidden = !momentsEl || getComputedStyle(momentsEl).display === 'none';
-            if (callHidden && momentsHidden) {
-                triggerBotProactive(); 
-            }
-            resetProactiveTimer(); 
-        }, interval); 
+        return;
     }
     
     function forceReply() { triggerAutoReply(); resetProactiveTimer(); }
