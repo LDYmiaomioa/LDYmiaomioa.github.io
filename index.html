@@ -350,6 +350,9 @@
         .doodle-letters { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-top: 10px; }
         .doodle-letter { padding: 8px 0; font-size: 13px; font-weight: 700; border: none; border-radius: 8px; background: #fff; color: #333; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
         .doodle-letter:active { transform: scale(.92); background: var(--light-gray); }
+        .doodle-emojis { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 10px; }
+        .doodle-emoji { padding: 6px 0; font-size: 20px; text-align: center; border: none; border-radius: 8px; background: #fff; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: transform .1s; }
+        .doodle-emoji:active { transform: scale(1.2); background: var(--light-gray); }
 
         /* 🌟 双方轨迹页面 */
         .track-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -681,6 +684,9 @@
         <div style="font-size:12px; font-weight:600; color:#333; margin-top:12px;">字母 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，字母会随机落到画板上)</span></div>
         <div class="doodle-letters" id="doodle-letters"></div>
         <button class="doodle-tool-btn" style="margin-top:8px; background:#7048e8; color:#fff;" onclick="doodleScatterLetters()">🎲 随机撒一把字母</button>
+        <div style="font-size:12px; font-weight:600; color:#333; margin-top:14px;">Emoji 表情 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，表情会随机落到画板上)</span></div>
+        <div class="doodle-emojis" id="doodle-emojis"></div>
+        <button class="doodle-tool-btn" style="margin-top:8px; background:#e84393; color:#fff;" onclick="doodleScatterEmojis()">🎉 随机撒一把 Emoji</button>
         <button class="action-btn" style="background:#07C160; margin-top:12px;" onclick="doodleSendToChat()">📨 发送到聊天</button>
         <div style="font-size:11px; color:#bbb; text-align:center; margin-top:8px; line-height:1.5;">画完后点「发送到聊天」，涂鸦会作为一张图片发到聊天里。涂鸦本身不保存，发送或关闭后即清空。</div>
     </div>
@@ -2383,6 +2389,8 @@
 
     // ================== 🎨 涂鸦本模块（手写/形状 + 26 字母拼字） ==================
     const DOODLE_COLORS = ['#0084FF', '#FF6900', '#111111', '#FF3B30', '#07C160', '#F5C518', '#7048e8', '#16a085'];
+    const DOODLE_EMOJIS = ['😊','😂','🥰','🤣','✨','🎈','🌊','🍬','🌙','☁️','💖','🌟','🌸','🎂','🥳','🥺','😭','😡','😱','🤔','🙄','😴','😈','👻','💥','💫','🐶','🐱','🦊','🐼','🐸','🦋','🌹','🌻','🍕','🍩','🍰','☕','🎁','🎉','⚽','🎮','🎸','🧸','💌','🔥','🌈','🍀','🎀','👑'];
+
     let doodleCanvas = null, doodleCtx = null, doodleInited = false;
     let doodleDrawing = false, doodleColor = '#0084FF', doodleSize = 4, doodleEraser = false;
     let doodleLastX = 0, doodleLastY = 0, doodleW = 0, doodleH = 0;
@@ -2411,6 +2419,9 @@
         // 渲染 A-Z 字母（点击后随机落到画板上）
         const lt = document.getElementById('doodle-letters');
         if (lt) { let h = ''; for (let i = 0; i < 26; i++) { const ch = String.fromCharCode(65 + i); h += `<button class="doodle-letter" onclick="doodleDropLetter('${ch}')">${ch}</button>`; } lt.innerHTML = h; }
+        // 渲染 Emoji 表情板（点击后随机落到画板上）
+        const eg = document.getElementById('doodle-emojis');
+        if (eg) { eg.innerHTML = DOODLE_EMOJIS.map(e => `<button class="doodle-emoji" onclick="doodleDropEmoji('${e}')">${e}</button>`).join(''); }
         // 指针事件（canvas 已设 touch-action:none，触摸时不会滚动页面）
         doodleCanvas.addEventListener('pointerdown', doodleDown);
         doodleCanvas.addEventListener('pointermove', doodleMove);
@@ -2519,6 +2530,42 @@
         }
         doodleDirty = true;
     }
+    // 在画板上随机位置盖一个 Emoji 表情（点 Emoji 触发）
+    function doodleDropEmoji(emoji) {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        const fs = 28 + Math.random() * 28;                  // 28~56px
+        const x = 12 + Math.random() * Math.max(1, doodleW - 50);
+        const y = fs + Math.random() * Math.max(1, doodleH - fs - 10);
+        const rot = (Math.random() - 0.5) * 0.5;             // 约 ±14°
+        doodleCtx.save();
+        doodleCtx.translate(x, y); doodleCtx.rotate(rot);
+        doodleCtx.textBaseline = 'alphabetic';
+        doodleCtx.font = `${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+        doodleCtx.fillText(emoji, 0, 0);
+        doodleCtx.restore();
+        doodleDirty = true;
+    }
+    // 一次随机撒一把 Emoji 表情
+    function doodleScatterEmojis() {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        const n = 5 + Math.floor(Math.random() * 8);         // 5~12 个
+        for (let i = 0; i < n; i++) {
+            const emoji = DOODLE_EMOJIS[Math.floor(Math.random() * DOODLE_EMOJIS.length)];
+            const fs = 24 + Math.random() * 30;
+            const x = 12 + Math.random() * Math.max(1, doodleW - 50);
+            const y = fs + Math.random() * Math.max(1, doodleH - fs - 10);
+            const rot = (Math.random() - 0.5) * 0.5;
+            doodleCtx.save();
+            doodleCtx.translate(x, y); doodleCtx.rotate(rot);
+            doodleCtx.textBaseline = 'alphabetic';
+            doodleCtx.font = `${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+            doodleCtx.fillText(emoji, 0, 0);
+            doodleCtx.restore();
+        }
+        doodleDirty = true;
+    }
     // 把当前涂鸦作为一张图片直接发送到聊天界面（不保存涂鸦本身）
     function doodleSendToChat() {
         if (!doodleCtx) { showCustomNotification('画板还没准备好', 'info'); return; }
@@ -2571,6 +2618,21 @@
             ctx.textBaseline = 'alphabetic';
             ctx.font = `700 ${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
             ctx.fillText(ch, 0, 0);
+            ctx.restore();
+        }
+        // 随机落 Emoji 表情（3~6 个）
+        const emojiCount = 3 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < emojiCount; i++) {
+            const emoji = DOODLE_EMOJIS[Math.floor(Math.random() * DOODLE_EMOJIS.length)];
+            const fs = 24 + Math.random() * 28;
+            const x = 12 + Math.random() * (W - 50);
+            const y = fs + Math.random() * (H - fs - 10);
+            const rot = (Math.random() - 0.5) * 0.5;
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(rot);
+            ctx.textBaseline = 'alphabetic';
+            ctx.font = `${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+            ctx.fillText(emoji, 0, 0);
             ctx.restore();
         }
         try { return c.toDataURL('image/png'); } catch (e) { return null; }
