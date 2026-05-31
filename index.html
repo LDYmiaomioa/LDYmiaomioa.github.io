@@ -475,7 +475,29 @@
             <button class="action-btn" style="margin-top: 12px; background: var(--wechat-green);" onclick="triggerBotPat()">👋 让对方戳一下我</button>
         </div>
 
-        <!-- 🌟 已移除：对方主动发消息功能（对方不会再主动发来消息，仅在你发消息或点「召唤」时回复） -->
+        <!-- 🌟 新增：对方主动发消息开关 -->
+        <div class="modern-card">
+            <div class="form-row" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                <span class="form-label" style="font-size: 13px;">💬 允许对方一段时间主动发消息</span>
+                <label class="modern-switch">
+                    <input type="checkbox" id="allow-proactive-toggle" onchange="toggleProactiveUi()" checked>
+                    <span class="modern-switch-slider"></span>
+                </label>
+            </div>
+            <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">开启后，若您在下方设定的「主动发消息频率」时间内没有任何动作，对方会自动发来消息；持续静默则会按此频率不断发来新消息。关闭后只有您主动发消息或点「召唤」时对方才会回复。</div>
+
+            <!-- 🌟 新增：对方主动发消息频率设置（最少 1 秒，最多 15 分钟） -->
+            <div class="form-row" id="proactive-interval-container" style="display: none; margin-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 12px;">
+                <span class="form-label">⏱️ 主动发消息频率：<span id="proactive-interval-label" class="range-val">5 分钟</span></span>
+                <input type="range" id="proactive-interval-slider" class="modern-range" min="1" max="900" step="1" value="300" oninput="onProactiveIntervalInput(this.value)">
+                <div style="display:flex; justify-content:space-between; width:100%; font-size:10px; color:#bbb; margin-top:-2px;"><span>最快 1 秒</span><span>最慢 15 分钟</span></div>
+                <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:12px;">
+                    <input type="number" id="proactive-interval-number" min="1" max="900" step="1" class="settings-input" style="flex:1;" oninput="onProactiveNumberInput(this.value)" placeholder="精确秒数">
+                    <span style="font-size:12px; color:#888; white-space:nowrap; font-weight:600;">秒 (1 ~ 900)</span>
+                </div>
+                <div style="font-size: 11px; color: #888; margin-top: 8px; line-height: 1.4;">拖动滑块或直接输入秒数均可。数值越小对方发消息越频繁，最小 1 秒、最大 900 秒（15 分钟）。修改后请点击下方「保存偏好」。</div>
+            </div>
+        </div>
 
         <!-- 🌟 新增：每日视频电话信息（每天 50% 概率） -->
         <div class="modern-card" style="background: #f0f9ff;">
@@ -977,7 +999,7 @@
         emojis: defaultEmojis, customStickers: [], minReplyDelay: 3000, maxReplyDelay: 5000, videoBg: '',
         myPats: defaultMyPats, botPats: defaultBotPats, momentsBg: '',
         ignoreReplyEnabled: false, ignoreReplyProb: 15,
-        allowBotPat: true, allowProactive: false, proactiveInterval: 300000,
+        allowBotPat: true, allowProactive: true, proactiveInterval: 300000,
         maxReplies: 3, pokeChance: 3
     };
     if (!config.minReplyDelay) config.minReplyDelay = 3000;
@@ -987,8 +1009,7 @@
     if (typeof config.ignoreReplyEnabled === 'undefined') config.ignoreReplyEnabled = false;
     if (typeof config.ignoreReplyProb === 'undefined') config.ignoreReplyProb = 15;
     if (typeof config.allowBotPat === 'undefined') config.allowBotPat = true;
-    // 🌟 对方主动发消息功能已永久关闭：无论本地是否存有旧设置，一律强制为 false
-    config.allowProactive = false;
+    if (typeof config.allowProactive === 'undefined') config.allowProactive = true;
     // 🌟 主动发消息频率（毫秒）：最少 1 秒，最多 15 分钟。旧数据/越界数据自动修正
     if (typeof config.proactiveInterval === 'undefined') config.proactiveInterval = 300000;
     if (config.proactiveInterval < 1000) config.proactiveInterval = 1000;
@@ -1062,6 +1083,9 @@
 
     let currentQuote = null; let pendingReplies = 0; let callTimer = null; let callSeconds = 0; 
     let autoAcceptTimer = null; let proactiveTimer = null; let lastTapTime = 0;
+    // 🌟 主动发消息引擎：记录"你最后一次主动操作"的时间戳（持久化，重开/切后台都不丢）
+    let lastUserActivityTs = parseInt(localStorage.getItem('lastUserActivityTsV1')) || Date.now();
+    let proactiveEngineStarted = false;
     let currentCall = null; // 🌟 当前通话状态 { direction:'incoming'|'outgoing', connected:bool }
     let activeInputTarget = chatInput;
 
@@ -1394,7 +1418,7 @@
         await initChatStorage();   // 🌟 先从大容量存储载入聊天记录
         loadChatHistory();
         checkChatCapacity();       // 🌟 启动时检查一次容量
-        checkDailyCall(); resetProactiveTimer(); bindDoubleTap(); checkAndGenerateBotMood(); 
+        checkDailyCall(); startProactiveEngine(); bindDoubleTap(); checkAndGenerateBotMood(); 
         checkPendingBotMoment(); setInterval(checkPendingBotMoment, 60000); 
         checkBotDailyMoments();  // 🌟 对方每天 0~5 篇朋友圈
         scheduleRandomPoke();    // 🌟 对方周期性主动互动（约 5%）
@@ -1495,12 +1519,52 @@
         if (!skipSave) { chatHistory.push({ id: id, type: 'system', text: text }); saveChatHistory(); }
     }
 
-    function resetProactiveTimer() {
-        // 🌟 已禁用：对方不会再主动发消息。此函数仅负责清除可能残留的旧定时器，不再调度任何主动消息。
-        // 仍保留函数及各处调用，以便「召唤(forceReply)」、正常回复等逻辑无需改动即可工作。
-        clearTimeout(proactiveTimer);
-        return;
+    // 🌟 记录一次"你的主动操作"，并重置静默计时起点（你一动，对方就重新开始计时）
+    function markUserActivity() {
+        lastUserActivityTs = Date.now();
+        try { localStorage.setItem('lastUserActivityTsV1', String(lastUserActivityTs)); } catch (e) {}
     }
+
+    // 兼容旧调用名：原代码各处都在用户操作后调用 resetProactiveTimer()，统一在这里记录活动时间
+    function resetProactiveTimer() {
+        clearTimeout(proactiveTimer); // 旧版遗留定时器，清掉以防万一
+        markUserActivity();
+    }
+
+    // 当前是否允许发起主动消息：开关开启 且 不在通话/朋友圈界面
+    function canFireProactive() {
+        if (!config.allowProactive) return false;
+        const callEl = document.getElementById('video-call-overlay');
+        const momentsEl = document.getElementById('moments-page');
+        const callHidden = !callEl || getComputedStyle(callEl).display === 'none';
+        const momentsHidden = !momentsEl || getComputedStyle(momentsEl).display === 'none';
+        return callHidden && momentsHidden;
+    }
+
+    // 🌟 核心轮询：静默时长达到设定间隔就发一条主动消息，并把静默起点前移（持续静默会按频率不断发）
+    function checkProactiveTick() {
+        if (!canFireProactive()) return;
+        if (pendingReplies > 0) return; // 对方正在"输入/发送"中，先不叠加新的主动消息
+        let interval = parseInt(config.proactiveInterval);
+        if (isNaN(interval) || interval < 1000) interval = 1000;     // 最快 1 秒
+        if (interval > 900000) interval = 900000;                    // 最慢 15 分钟
+        if (Date.now() - lastUserActivityTs >= interval) {
+            triggerBotProactive();   // 发一条主动消息
+            markUserActivity();      // 重置静默起点：到下个 interval 还没动作就再发
+        }
+    }
+
+    // 🌟 启动引擎：每秒轮询（仅前台）+ 切回前台/重新聚焦时立刻补查一次
+    //    这样既能在你盯着屏幕发呆时按时发消息，也能解决手机切后台后定时器被系统冻结的问题
+    function startProactiveEngine() {
+        if (proactiveEngineStarted) return;
+        proactiveEngineStarted = true;
+        setInterval(() => { if (document.visibilityState === 'visible') checkProactiveTick(); }, 1000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkProactiveTick(); });
+        window.addEventListener('focus', checkProactiveTick);
+        checkProactiveTick(); // 启动时先查一次：若你已离开超过设定间隔，回来会很快收到消息
+    }
+
     
     function forceReply() { triggerAutoReply(); resetProactiveTimer(); }
 
@@ -2785,7 +2849,10 @@
         </div>`;
         
         messageArea.insertAdjacentHTML('beforeend', html); messageArea.scrollTop = messageArea.scrollHeight;
-        if (!skipSave) { chatHistory.push({ id: id, type: 'message', isSelf: isSelf, htmlContent: htmlContent, quote: quote, timestamp: ts }); saveChatHistory(); }
+        if (!skipSave) {
+            chatHistory.push({ id: id, type: 'message', isSelf: isSelf, htmlContent: htmlContent, quote: quote, timestamp: ts }); saveChatHistory();
+            if (isSelf) markUserActivity(); // 🌟 你发出的任意消息都算一次主动操作，重置对方的静默计时
+        }
     }
 
     function sendMessage() {
@@ -2858,21 +2925,27 @@
         appendMessage(false, txt, autoQuote);
     }
 
-    // 🌟 对方主动发消息（静默时触发）：10% 查岗 / 5% 涂鸦 / 85% 文本（仅 1 张字卡，不加 emoji）
+    // 🌟 对方主动发消息（静默时触发）：以文字为主、偶尔表情包；字卡池为空时用兜底文案，确保一定能发出来
     function triggerBotProactive() {
-        const r = Math.random();
-        if (r < 0.10) { triggerBotCheckin(); return; }            // 10% 发起查岗
-        if (r < 0.15) {                                            // 5% 涂鸦
-            const url = generateBotDoodleDataURL();
-            if (url) { appendMessage(false, `<img src="${url}">`); sendSystemNotification(config.otherName || '匿名者', '发来一张涂鸦'); return; }
+        const stickers = config.customStickers || [];
+        let html;
+        if (stickers.length > 0 && Math.random() < 0.2) {
+            // 20% 发一张表情包（前提是你设置了表情包）
+            html = `<img src="${stickers[Math.floor(Math.random() * stickers.length)]}">`;
+        } else if (wordCards.length > 0) {
+            // 取一张字卡作为消息内容
+            html = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text);
+        } else {
+            // 兜底：你还没添加任何字卡时，也能主动发来一句，避免"什么都不发"
+            const fallback = ['在干嘛呀？', '想你了～', '怎么不理我啦', '在吗？', '突然好想跟你说说话', '今天过得怎么样？'];
+            html = escapeHtml(fallback[Math.floor(Math.random() * fallback.length)]);
         }
-        // 85% 文本：直接取 1 张字卡，不拼接、不加 emoji
-        if (!wordCards.length) return;
-        const text = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text);
         pendingReplies++; updateChatTitle();
-        const delay = Math.floor(Math.random() * (config.maxReplyDelay - config.minReplyDelay + 1)) + config.minReplyDelay;
+        let minD = parseInt(config.minReplyDelay); if (isNaN(minD)) minD = 3000;
+        let maxD = parseInt(config.maxReplyDelay); if (isNaN(maxD) || maxD < minD) maxD = minD + 2000;
+        const delay = Math.floor(Math.random() * (maxD - minD + 1)) + minD;
         setTimeout(() => {
-            appendMessage(false, text);
+            appendMessage(false, html);
             sendSystemNotification(config.otherName || '匿名者', '给你发了一条新消息');
             finishReply();
         }, delay);
@@ -3081,7 +3154,8 @@
 
         // 🌟 立即应用主动发消息开关
         if (config.allowProactive) {
-            resetProactiveTimer();
+            resetProactiveTimer();     // 重置静默起点，从保存这一刻重新计时
+            startProactiveEngine();    // 确保轮询引擎已启动（幂等，重复调用无副作用）
         } else {
             clearTimeout(proactiveTimer);
         }
