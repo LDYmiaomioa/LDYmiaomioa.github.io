@@ -1524,7 +1524,15 @@
         if (isNaN(interval) || interval < 1000) interval = 1000;
         if (interval > 900000) interval = 900000;
         proactiveTimer = setTimeout(() => {
-            if (document.getElementById('video-call-overlay').style.display === 'none' && document.getElementById('moments-page').style.display === 'none') {
+            // 🌟 用 getComputedStyle 判断遮罩是否真的在显示。
+            // 注意：video-call-overlay / moments-page 的 display:none 来自 CSS，而非内联样式，
+            // 因此初始时 element.style.display 是空字符串 ''，绝不会等于 'none'，
+            // 旧写法 (=== 'none') 会导致主动发消息永远不触发。这里改用 getComputedStyle 修复。
+            const callEl = document.getElementById('video-call-overlay');
+            const momentsEl = document.getElementById('moments-page');
+            const callHidden = !callEl || getComputedStyle(callEl).display === 'none';
+            const momentsHidden = !momentsEl || getComputedStyle(momentsEl).display === 'none';
+            if (callHidden && momentsHidden) {
                 triggerBotProactive(); 
             }
             resetProactiveTimer(); 
