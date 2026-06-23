@@ -190,7 +190,7 @@
         .quick-word-item:active { background: #E8EAED; }
 
         /* ====== 设置面板 ====== */
-        .panel { display: none; padding: 15px; background: #FFF; border-bottom: 1px solid var(--border-color); font-size: 14px; max-height: 80vh; overflow-y: auto; position: absolute; top: calc(95px + env(safe-area-inset-top)); left: 0; width: 100%; z-index: 150; box-shadow: 0 15px 40px rgba(0,0,0,0.08); border-radius: 0 0 20px 20px; }
+        .panel { display: none; padding: 15px; background: #FFF; border-bottom: 1px solid var(--border-color); font-size: 14px; max-height: 80vh; overflow-y: auto; position: absolute; top: 0; left: 0; width: 100%; z-index: 150; box-shadow: 0 15px 40px rgba(0,0,0,0.08); border-radius: 0 0 20px 20px; }
         .panel-title { font-weight: 600; color: #111; margin-bottom: 12px; font-size: 16px; padding-left: 5px;}
         .modern-card { background: var(--light-gray); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
         .form-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 12px; }
@@ -1566,6 +1566,7 @@
         checkBotCheckinDrop(); // 🌟 对方约 50% 概率随机来查你的岗
         checkBotTrackDrop();   // 🌟 对方约 78% 概率随机掉落一条轨迹
         checkBotDoodleDrop();  // 🌟 对方约 70% 概率随机涂鸦并发到聊天
+        checkBotRedPacketDrop(); // 🌟 对方 50% 概率在今日随机时刻发来一个红包
     }
 
     function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -2367,28 +2368,44 @@
         }
     }
 
-    // 对方轨迹随机掉落：每天判定一次，约 78% 概率（参考查岗机制；无词卡则跳过）
+    // 对方轨迹随机掉落：每天判定两次，各约 78% 概率（参考查岗机制；无词卡则跳过）
     function checkBotTrackDrop() {
         if (!trackCards.length) return;
         const todayStr = getLocalDateStr(new Date());
         const lastDate = localStorage.getItem('lastTrackDropDateV1');
         if (lastDate !== todayStr) {
             localStorage.setItem('lastTrackDropDateV1', todayStr);
+            // 第一条：1~4 分钟内掉落
             if (Math.random() < 0.78) {
-                const delayMs = 60000 + Math.random() * (8 * 60 * 1000 - 60000);
-                localStorage.setItem('scheduledTrackTimeV1', (Date.now() + delayMs).toString());
-            } else {
-                localStorage.removeItem('scheduledTrackTimeV1');
-            }
+                const d1 = 60000 + Math.random() * (4 * 60 * 1000 - 60000);
+                localStorage.setItem('scheduledTrackTimeV1', (Date.now() + d1).toString());
+            } else { localStorage.removeItem('scheduledTrackTimeV1'); }
+            // 第二条：5 分钟 ~ 12 小时后掉落（与第一条错开，模拟不同时段）
+            if (Math.random() < 0.78) {
+                const d2 = 5 * 60 * 1000 + Math.random() * (12 * 60 * 60 * 1000 - 5 * 60 * 1000);
+                localStorage.setItem('scheduledTrackTimeV2', (Date.now() + d2).toString());
+            } else { localStorage.removeItem('scheduledTrackTimeV2'); }
         }
-        const t = localStorage.getItem('scheduledTrackTimeV1');
-        if (!t) return;
-        const when = parseInt(t);
-        if (isNaN(when)) { localStorage.removeItem('scheduledTrackTimeV1'); return; }
-        if (getLocalDateStr(new Date(when)) !== todayStr) { localStorage.removeItem('scheduledTrackTimeV1'); return; }
-        const delay = when - Date.now();
-        if (delay <= 0) { localStorage.removeItem('scheduledTrackTimeV1'); botTrackDrop(); }
-        else { setTimeout(() => { botTrackDrop(); localStorage.removeItem('scheduledTrackTimeV1'); }, delay); }
+        // 处理第一条
+        const t1 = localStorage.getItem('scheduledTrackTimeV1');
+        if (t1) {
+            const when1 = parseInt(t1);
+            if (!isNaN(when1) && getLocalDateStr(new Date(when1)) === todayStr) {
+                const delay1 = when1 - Date.now();
+                if (delay1 <= 0) { localStorage.removeItem('scheduledTrackTimeV1'); botTrackDrop(); }
+                else { setTimeout(() => { botTrackDrop(); localStorage.removeItem('scheduledTrackTimeV1'); }, delay1); }
+            } else { localStorage.removeItem('scheduledTrackTimeV1'); }
+        }
+        // 处理第二条
+        const t2 = localStorage.getItem('scheduledTrackTimeV2');
+        if (t2) {
+            const when2 = parseInt(t2);
+            if (!isNaN(when2) && getLocalDateStr(new Date(when2)) === todayStr) {
+                const delay2 = when2 - Date.now();
+                if (delay2 <= 0) { localStorage.removeItem('scheduledTrackTimeV2'); botTrackDrop(); }
+                else { setTimeout(() => { botTrackDrop(); localStorage.removeItem('scheduledTrackTimeV2'); }, delay2); }
+            } else { localStorage.removeItem('scheduledTrackTimeV2'); }
+        }
     }
 
     // ================== 📊 高频词汇统计模块 ==================
@@ -3101,6 +3118,32 @@
         sendSystemNotification(config.otherName || '匿名者', '发来一张涂鸦');
         return true;
     }
+    // 🌟 对方红包随机掉落：每天判定一次，50% 概率在当天某随机时刻发来一个红包
+    function checkBotRedPacketDrop() {
+        const todayStr = getLocalDateStr(new Date());
+        const lastDate = localStorage.getItem('lastRedPacketDropDateV1');
+        if (lastDate !== todayStr) {
+            localStorage.setItem('lastRedPacketDropDateV1', todayStr);
+            if (Math.random() < 0.5) {
+                // 命中：在今天剩余时间内随机时刻（最少 30 分钟后，最多 8 小时后）发来红包
+                const minDelay = 30 * 60 * 1000;
+                const maxDelay = 8 * 60 * 60 * 1000;
+                const delayMs = minDelay + Math.random() * (maxDelay - minDelay);
+                localStorage.setItem('scheduledRedPacketTimeV1', (Date.now() + delayMs).toString());
+            } else {
+                localStorage.removeItem('scheduledRedPacketTimeV1');
+            }
+        }
+        const t = localStorage.getItem('scheduledRedPacketTimeV1');
+        if (!t) return;
+        const when = parseInt(t);
+        if (isNaN(when)) { localStorage.removeItem('scheduledRedPacketTimeV1'); return; }
+        if (getLocalDateStr(new Date(when)) !== todayStr) { localStorage.removeItem('scheduledRedPacketTimeV1'); return; }
+        const delay = when - Date.now();
+        if (delay <= 0) { localStorage.removeItem('scheduledRedPacketTimeV1'); triggerBotSendRedPacket(); }
+        else { setTimeout(() => { triggerBotSendRedPacket(); localStorage.removeItem('scheduledRedPacketTimeV1'); }, delay); }
+    }
+
     // 对方涂鸦随机掉落：每天判定一次，约 70% 概率
     function checkBotDoodleDrop() {
         const todayStr = getLocalDateStr(new Date());
@@ -3271,22 +3314,15 @@
         // 禁用按钮防止重复点
         const parent = btn.closest('div[style]');
         if (parent) { const btns = parent.querySelectorAll('button'); btns.forEach(b => b.disabled = true); btns[0].textContent = '已领取 ✅'; btns[0].style.opacity='0.7'; btns[1].style.display='none'; }
-        // 对方发一条感谢消息
-        setTimeout(() => {
-            const thanks = ['谢谢你的红包！😊🧧', '收到啦，谢谢你 💕', '哇谢谢宝贝！🧧❤️', '嘿嘿拿了哦～ 💰😘'];
-            appendMessage(false, escapeHtml(thanks[Math.floor(Math.random() * thanks.length)]));
-            sendSystemNotification(config.otherName || '对方', `领取了你的 ¥${amount} 红包 🎉`);
-        }, 800 + Math.random() * 1200);
+        // 🌟 修改：不再发送感谢语回复，只做系统通知
+        sendSystemNotification(config.otherName || '对方', `领取了你的 ¥${amount} 红包 🎉`);
     }
     
     function botReturnRedPacket(btn, amount) {
         const parent = btn.closest('div[style]');
         if (parent) { const btns = parent.querySelectorAll('button'); btns.forEach(b => b.disabled = true); btns[1].textContent = '已退回 ↩️'; btns[1].style.opacity='0.7'; btns[0].style.display='none'; }
-        setTimeout(() => {
-            const msg = ['我不要啦，留着自己花吧～', '红包退回了哦，不用给我的 🙈', '人不要啦，心意到就好 💕'];
-            appendMessage(false, escapeHtml(msg[Math.floor(Math.random() * msg.length)]));
-            showCustomNotification(`对方退回了红包 ↩️`, 'info', 3000);
-        }, 800 + Math.random() * 1000);
+        // 🌟 修改：不再发送退回语回复，只做系统通知
+        showCustomNotification(`对方退回了红包 ↩️`, 'info', 3000);
     }
     
     // 对方随机发给我红包
@@ -3388,6 +3424,12 @@
     function togglePanel(id) {
         document.getElementById('sticker-panel').style.display = 'none';
         document.querySelectorAll('.panel').forEach(p => p.style.display = (p.id === id && p.style.display !== 'block') ? 'block' : 'none');
+        // 🌟 修复顶部面板间隙：根据 header 实际高度动态定位面板，消除空白区域
+        const headerEl = document.querySelector('.header');
+        if (headerEl) {
+            const headerH = headerEl.offsetHeight;
+            document.querySelectorAll('.panel').forEach(p => { if (p.style.display === 'block') p.style.top = headerH + 'px'; });
+        }
         
         if(id === 'panel-words') exitMultiSelectMode(); 
         if(id === 'panel-voice') renderVoiceUI();
@@ -3674,11 +3716,6 @@
 
     // 🌟 对方主动发消息（静默时触发）：以文字为主、偶尔表情包；字卡池为空时用兜底文案，确保一定能发出来
     function triggerBotProactive() {
-        // 3% 概率对方发来红包
-        if (Math.random() < 0.03 && typeof triggerBotSendRedPacket === 'function') {
-            triggerBotSendRedPacket();
-            return;
-        }
         const stickers = config.customStickers || [];
         let html;
         if (stickers.length > 0 && Math.random() < 0.2) {
