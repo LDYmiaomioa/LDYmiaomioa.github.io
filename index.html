@@ -124,8 +124,7 @@
         @keyframes heartBeat { 0% { transform: scale(1); } 30% { transform: scale(1.25); } 60% { transform: scale(1); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
         
         /* 加号面板动画 */
-        #plus-panel { animation: slideUpPanel 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-        @keyframes slideUpPanel { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUpPanel { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
         /* 红包气泡 */
         .red-packet-bubble { cursor: pointer; }
@@ -134,7 +133,7 @@
 
         /* ====== 底部输入区 ====== */
         .input-area { 
-            padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); display: flex; gap: 6px; align-items: flex-end; 
+            padding: 0; display: flex; flex-direction: column; gap: 0; align-items: stretch; 
             background-color: rgba(248, 248, 248, 0.95); backdrop-filter: blur(15px); 
             border-top: 1px solid rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; 
             z-index: 600; position: relative; flex-shrink: 0;
@@ -708,8 +707,8 @@
         <div style="font-size:12px; font-weight:600; color:#333; margin-top:14px;">Emoji 表情 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，表情会随机落到画板上)</span></div>
         <div class="doodle-emojis" id="doodle-emojis"></div>
         <button class="doodle-tool-btn" style="margin-top:8px; background:#e84393; color:#fff;" onclick="doodleScatterEmojis()">🎉 随机撒一把 Emoji</button>
-        <div style="font-size:12px; font-weight:600; color:#333; margin-top:14px;">爱心图案 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，图案会落到画板上；可触发对方发来)</span></div>
-        <div class="doodle-letters" id="doodle-love-shapes" style="flex-wrap:wrap;"></div>
+        <div style="font-size:12px; font-weight:600; color:#333; margin-top:14px;">爱心图案 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，图案会落到画板上)</span></div>
+        <div class="doodle-emojis" id="doodle-love-shapes"></div>
         <button class="doodle-tool-btn" style="margin-top:8px; background:#e84393; color:#fff;" onclick="doodleScatterLoveShapes()">💕 随机撒一把爱心图案</button>
         <button class="action-btn" style="background:#07C160; margin-top:12px;" onclick="doodleSendToChat()">📨 发送到聊天</button>
         <div style="font-size:11px; color:#bbb; text-align:center; margin-top:8px; line-height:1.5;">画完后点「发送到聊天」，涂鸦会作为一张图片发到聊天里。涂鸦本身不保存，发送或关闭后即清空。</div>
@@ -747,26 +746,57 @@
         <span class="close-quote" onclick="cancelQuote()">✖</span>
     </div>
 
-    <div class="input-area">
-        <div class="icon-btn" id="mic-icon" onclick="toggleVoiceRecord()" title="点击录制/发送语音">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" y1="19" x2="12" y2="22"></line>
-            </svg>
+    <div class="input-area" id="main-input-area" style="flex-direction:column; padding:0; gap:0;">
+        <!-- 加号展开的功能面板，紧贴输入栏上方 -->
+        <div id="plus-panel" style="display:none; width:100%; background:rgba(250,250,250,0.98); border-top:1px solid rgba(0,0,0,0.06); padding:14px 16px 10px; box-sizing:border-box; animation: slideUpPanel 0.22s cubic-bezier(0.25,0.46,0.45,0.94);">
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px 6px;">
+                <label for="plus-img-upload" style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#4facfe,#00f2fe); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(79,172,254,0.3);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">图片</span>
+                </label>
+                <input type="file" id="plus-img-upload" accept="image/*" multiple style="display:none;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); openRedPacket()">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#FF6B35,#FF3B30); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(255,59,48,0.3);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><path d="M8 6V4a2 2 0 0 1 4 0v2"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">红包</span>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); togglePanel('panel-doodle')">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#a18cd1,#fbc2eb); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(161,140,209,0.3);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">涂鸦</span>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); startOutgoingCall()">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#43e97b,#38f9d7); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(67,233,123,0.3);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">视频通话</span>
+                </div>
+            </div>
         </div>
-        <div class="icon-btn" onclick="toggleStickerPanel('chat')" onmousedown="event.preventDefault()" title="插入表情与字卡">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+        <!-- 底部图标+输入框行 -->
+        <div style="display:flex; align-items:flex-end; gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); width:100%; box-sizing:border-box;">
+            <div class="icon-btn" id="mic-icon" onclick="toggleVoiceRecord()" title="点击录制/发送语音">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+            </div>
+            <div class="icon-btn" onclick="toggleStickerPanel('chat')" onmousedown="event.preventDefault()" title="插入表情与字卡">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+            </div>
+            <!-- 加号按钮 -->
+            <div class="icon-btn" id="plus-btn" onclick="togglePlusPanel()" onmousedown="event.preventDefault()" title="更多功能">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <input type="file" id="chat-image-upload" accept="image/*" multiple style="display:none;">
+            <div id="chat-input" class="chat-input-box" contenteditable="true" data-placeholder="发消息..."></div>
+            <button class="send-btn-style" onclick="sendMessage()">发送</button>
         </div>
-        <!-- 加号按钮 -->
-        <div class="icon-btn" id="plus-btn" onclick="togglePlusPanel()" onmousedown="event.preventDefault()" title="更多功能" style="position:relative;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        </div>
-        <input type="file" id="chat-image-upload" accept="image/*" multiple style="display:none;">
-
-        <div id="chat-input" class="chat-input-box" contenteditable="true" data-placeholder="发消息..."></div>
-        
-        <button class="send-btn-style" onclick="sendMessage()">发送</button>
     </div>
 
     <div id="mood-selector-overlay" class="overlay-mask">
@@ -955,40 +985,6 @@
             <div style="display:flex; gap:10px;">
                 <button class="action-btn" style="background:#f2f2f2; color:#333; flex:1;" onclick="closeRecallConfirm()">取消</button>
                 <button class="action-btn" style="background:#FF3B30; flex:1;" onclick="confirmRecall()">确认撤回</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 加号功能面板 -->
-    <div id="plus-panel" style="display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(20px); border-radius:20px 20px 0 0; box-shadow:0 -5px 30px rgba(0,0,0,0.12); z-index:700; padding:16px 20px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;">
-        <div style="display:flex; justify-content:center; margin-bottom:14px;">
-            <div style="height:4px; width:36px; background:#E0E0E0; border-radius:2px;"></div>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px 8px; padding-bottom:4px;">
-            <label for="plus-img-upload" style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;">
-                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#4facfe,#00f2fe); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(79,172,254,0.3);">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                </div>
-                <span style="font-size:11px; color:#555; font-weight:500;">图片</span>
-            </label>
-            <input type="file" id="plus-img-upload" accept="image/*" multiple style="display:none;">
-            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); openRedPacket()">
-                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#FF6B35,#FF3B30); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(255,59,48,0.3);">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><path d="M8 6V4a2 2 0 0 1 4 0v2"/></svg>
-                </div>
-                <span style="font-size:11px; color:#555; font-weight:500;">红包</span>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); togglePanel('panel-doodle')">
-                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#a18cd1,#fbc2eb); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(161,140,209,0.3);">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-                </div>
-                <span style="font-size:11px; color:#555; font-weight:500;">涂鸦</span>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); startOutgoingCall()">
-                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#43e97b,#38f9d7); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(67,233,123,0.3);">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-                </div>
-                <span style="font-size:11px; color:#555; font-weight:500;">视频通话</span>
             </div>
         </div>
     </div>
@@ -2550,8 +2546,9 @@
         // 渲染颜色板
         const sw = document.getElementById('doodle-swatches');
         if (sw) sw.innerHTML = DOODLE_COLORS.map(c => `<span class="doodle-swatch${c === doodleColor ? ' active' : ''}" style="background:${c};" onclick="doodleSetColor('${c}')"></span>`).join('');
-        // 重置字母序列
+        // 重置字母序列和底层快照
         doodleLetterSeq = [];
+        doodleBaseSnapshot = null;
         // 渲染 A-Z 字母（点击后按顺序居中排列到画板上）
         const lt = document.getElementById('doodle-letters');
         if (lt) { let h = ''; for (let i = 0; i < 26; i++) { const ch = String.fromCharCode(65 + i); h += `<button class="doodle-letter" onclick="doodleDropLetter('${ch}')">${ch}</button>`; } lt.innerHTML = h; }
@@ -2559,10 +2556,10 @@
         const eg = document.getElementById('doodle-emojis');
         if (eg) { eg.innerHTML = DOODLE_EMOJIS.map(e => `<button class="doodle-emoji" onclick="doodleDropEmoji('${e}')">${e}</button>`).join(''); }
         // 指针事件（canvas 已设 touch-action:none，触摸时不会滚动页面）
-        // 渲染爱心图案按钮
+        // 渲染爱心图案按钮（与 Emoji 区一致，使用 doodle-emoji 按钮样式）
         const loveGrid = document.getElementById('doodle-love-shapes');
         if (loveGrid) {
-            loveGrid.innerHTML = LOVE_SHAPES.map(s => `<button class="doodle-letter" onclick="doodleDropLoveShape('${s.id}')" title="${s.name}" style="font-size:18px; min-width:40px;">${s.label}</button>`).join('');
+            loveGrid.innerHTML = LOVE_SHAPES.map(s => `<button class="doodle-emoji" onclick="doodleDropLoveShape('${s.id}')" title="${s.name}">${s.label}</button>`).join('');
         }
         doodleCanvas.addEventListener('pointerdown', doodleDown);
         doodleCanvas.addEventListener('pointermove', doodleMove);
@@ -2634,44 +2631,62 @@
         doodleCtx.clearRect(0, 0, doodleW, doodleH);
         doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
         doodleLetterSeq = [];
+        doodleBaseSnapshot = null;
         doodleDirty = false;
     }
     // 字母序列：点击字母后按顺序居中排列在画板上
-    let doodleLetterSeq = [];   // 当前已添加的字母序列
+    let doodleLetterSeq = [];       // 已添加的字母序列
     let doodleLetterFontSize = 42;  // 字母字号
-    
+    let doodleBaseSnapshot = null;  // 加第一个字母前的画面快照（用于重绘时恢复底层涂鸦）
+
     function doodleRenderLetterSeq() {
-        // 重绘白底后重新画所有序列字母（覆盖在当前涂鸦之上）
-        // 只重绘字母层（先保存涂鸦底，字母画在顶层）
         if (!doodleCtx || doodleLetterSeq.length === 0) return;
         const fs = doodleLetterFontSize;
-        doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
-        doodleCtx.textBaseline = 'middle';
-        // 计算总宽度
-        let totalW = 0;
-        doodleLetterSeq.forEach(item => {
+        // 先恢复底层快照（涂鸦线条），再叠字母
+        const drawLetters = () => {
             doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
-            totalW += doodleCtx.measureText(item.ch).width + 4;
-        });
-        const startX = (doodleW - totalW) / 2;
-        const y = doodleH / 2;
-        let curX = startX;
-        doodleLetterSeq.forEach((item, i) => {
-            doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
-            const w = doodleCtx.measureText(item.ch).width;
-            doodleCtx.fillStyle = item.color;
             doodleCtx.textBaseline = 'middle';
-            doodleCtx.fillText(item.ch, curX, y);
-            curX += w + 4;
-        });
+            let totalW = 0;
+            doodleLetterSeq.forEach(item => {
+                doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
+                totalW += doodleCtx.measureText(item.ch).width + 6;
+            });
+            if (totalW > 0) totalW -= 6; // 去掉最后一个间距
+            const startX = (doodleW - totalW) / 2;
+            const y = doodleH / 2;
+            let curX = startX;
+            doodleLetterSeq.forEach(item => {
+                doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
+                const w = doodleCtx.measureText(item.ch).width;
+                doodleCtx.fillStyle = item.color;
+                doodleCtx.textBaseline = 'middle';
+                doodleCtx.fillText(item.ch, curX, y);
+                curX += w + 6;
+            });
+        };
+        if (doodleBaseSnapshot) {
+            const img = new Image();
+            img.onload = () => {
+                doodleCtx.clearRect(0, 0, doodleW, doodleH);
+                doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
+                doodleCtx.drawImage(img, 0, 0, doodleW, doodleH);
+                drawLetters();
+            };
+            img.src = doodleBaseSnapshot;
+        } else {
+            drawLetters();
+        }
         doodleDirty = true;
     }
 
-    // 在画板上随机位置盖一个字母（点字母触发）
+    // 点字母：加入序列，居中绘制
     function doodleDropLetter(ch) {
         if (!doodleCtx) return;
+        // 在添加第一个字母前保存底层快照
+        if (doodleLetterSeq.length === 0) {
+            try { doodleBaseSnapshot = doodleCanvas.toDataURL('image/png'); } catch(e) {}
+        }
         doodlePushUndo();
-        // 字母加入序列，然后统一居中重绘
         doodleLetterSeq.push({ ch: ch, color: doodleColor });
         doodleRenderLetterSeq();
         doodleDirty = true;
@@ -3159,16 +3174,54 @@
         showCustomNotification('等待对方领取...', 'info', 2000);
     }
     
-    // 对方发来红包（可由对方触发）
+    // 对方收到红包后，在聊天里显示「领取 / 退回」气泡
     function receiveRedPacketFromOther(amount, wish) {
-        // 对方给我发来领取确认
-        const replyHtml = buildBotTextMessage() || (config.otherName + ' 收到了你的红包 🧧');
         pendingReplies++;
         updateChatTitle();
+        const delay = (config.minReplyDelay || 2000) + Math.random() * 2000;
         setTimeout(() => {
-            appendMessage(false, replyHtml || '谢谢红包！😊🧧');
+            const escapedWish = escapeHtml(wish);
+            const safeAmount = String(amount).replace(/'/g, '');
+            const safeWish = (wish || '').replace(/'/g, '').replace(/\/g, '');
+            // 对方看到红包，显示一个可交互气泡
+            const bubbleHtml = `<div style="background:#fff; border:1px solid #FFE0CC; border-radius:14px; padding:12px 14px; min-width:180px; max-width:220px; box-shadow:0 2px 10px rgba(255,107,53,0.1);">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <span style="font-size:28px;">🧧</span>
+                    <div>
+                        <div style="font-size:13px; font-weight:700; color:#FF3B30;">¥${safeAmount}</div>
+                        <div style="font-size:11px; color:#888; margin-top:1px;">${escapedWish}</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="botAcceptRedPacket(this,'${safeAmount}')" style="flex:1; padding:7px 0; background:linear-gradient(135deg,#FF6B35,#FF3B30); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">领取 💰</button>
+                    <button onclick="botReturnRedPacket(this,'${safeAmount}')" style="flex:1; padding:7px 0; background:#F2F2F2; color:#666; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">退回 ↩️</button>
+                </div>
+            </div>`;
+            appendMessage(false, bubbleHtml);
             finishReply();
-        }, config.minReplyDelay || 2000);
+        }, delay);
+    }
+    
+    function botAcceptRedPacket(btn, amount) {
+        // 禁用按钮防止重复点
+        const parent = btn.closest('div[style]');
+        if (parent) { const btns = parent.querySelectorAll('button'); btns.forEach(b => b.disabled = true); btns[0].textContent = '已领取 ✅'; btns[0].style.opacity='0.7'; btns[1].style.display='none'; }
+        // 对方发一条感谢消息
+        setTimeout(() => {
+            const thanks = ['谢谢你的红包！😊🧧', '收到啦，谢谢你 💕', '哇谢谢宝贝！🧧❤️', '嘿嘿拿了哦～ 💰😘'];
+            appendMessage(false, escapeHtml(thanks[Math.floor(Math.random() * thanks.length)]));
+            sendSystemNotification(config.otherName || '对方', `领取了你的 ¥${amount} 红包 🎉`);
+        }, 800 + Math.random() * 1200);
+    }
+    
+    function botReturnRedPacket(btn, amount) {
+        const parent = btn.closest('div[style]');
+        if (parent) { const btns = parent.querySelectorAll('button'); btns.forEach(b => b.disabled = true); btns[1].textContent = '已退回 ↩️'; btns[1].style.opacity='0.7'; btns[0].style.display='none'; }
+        setTimeout(() => {
+            const msg = ['我不要啦，留着自己花吧～', '红包退回了哦，不用给我的 🙈', '人不要啦，心意到就好 💕'];
+            appendMessage(false, escapeHtml(msg[Math.floor(Math.random() * msg.length)]));
+            showCustomNotification(`对方退回了红包 ↩️`, 'info', 3000);
+        }, 800 + Math.random() * 1000);
     }
     
     // 对方随机发给我红包
@@ -3497,7 +3550,7 @@
     };
 
     function triggerAutoReply(userMsgHtml = null) {
-        // 🌟 已读不回：仅在「回应用户消息」时按概率触发
+        // 已读不回：仅在「回应用户消息」时按概率触发
         if (userMsgHtml && config.ignoreReplyEnabled) {
             if (Math.random() * 100 < config.ignoreReplyProb) {
                 setTimeout(() => {
@@ -3507,11 +3560,17 @@
             }
         }
 
-        // 🌟 连发条数：1 条 88%，之后每多一条概率约为前一档的 0.12（封顶 config.maxReplies，默认 3）
-        let maxR = Math.min(10, Math.max(1, parseInt(config.maxReplies) || 3));
-        if (wordCards.length === 0) maxR = 1; // 无字卡时不连发，避免重复「已读不回」
+        // 回复条数：1条 50%，2条 25%，3条 25%
         let target = 1;
-        for (let i = 2; i <= maxR; i++) { if (Math.random() < 0.12) target = i; else break; }
+        if (wordCards.length > 0) {
+            if (Math.random() >= 0.5) {         // 50% → 1条
+                target = 1;
+            } else if (Math.random() >= 0.5) {  // 25% → 2条
+                target = 2;
+            } else {                             // 25% → 3条
+                target = 3;
+            }
+        }
 
         pendingReplies += target; updateChatTitle();
         for (let i = 0; i < target; i++) {
@@ -3586,13 +3645,10 @@
     const BOT_EMOJIS = ['💕','🥺','😊','✨','💫','🌙','❤️','😘','🤍','💭','🫧','🫶'];
     function pickBotEmoji() { return BOT_EMOJIS[Math.floor(Math.random() * BOT_EMOJIS.length)]; }
 
-    // 🌟 生成一条「对方文本消息」：随机取 1~3 张字卡拼接（空格连接），20% 概率末尾加一个 emoji
+    // 每条消息 = 恰好一张字卡，20% 概率末尾加一个 emoji
     function buildBotTextMessage() {
-        if (!wordCards.length) return null;             // 字卡池为空 → 交由上层处理（已读不回）
-        const n = Math.floor(Math.random() * 3) + 1;    // 1/2/3 等概率
-        let parts = [];
-        for (let k = 0; k < n; k++) parts.push(escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text));
-        let html = parts.join(' ');
+        if (!wordCards.length) return null;   // 字卡池为空 → 交由上层处理（已读不回）
+        let html = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text);
         if (Math.random() < 0.2) html += ' ' + escapeHtml(pickBotEmoji());
         return html;
     }
