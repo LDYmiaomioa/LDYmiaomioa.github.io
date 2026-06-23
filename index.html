@@ -4616,9 +4616,9 @@
         const PLAT_GAP_MIN = 92 * DPR;
         const PLAT_GAP_MAX = 172 * DPR;
         const PLAYER_R = 15 * DPR;
-        const GRAVITY = 0.52 * DPR;
-        const MAX_HOLD_MS = 1450;
-        const MIN_JUMP_RATIO = 0.10;
+        const GRAVITY = 0.56 * DPR;
+        const MAX_HOLD_MS = 1650;
+        const MIN_JUMP_RATIO = 0.012;
         const MAX_POWER = 100;
 
         let myScore = 0;
@@ -4644,9 +4644,47 @@
             try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
         }
 
+        function clamp01(t) {
+            return Math.max(0, Math.min(1, t));
+        }
+
+        // 微信跳一跳式蓄力：短按前段增长很慢，避免轻点一下就飞很远；长按才逐渐拉开距离
         function easePower(t) {
-            t = Math.max(0, Math.min(1, t));
-            return 1 - Math.pow(1 - t, 1.45);
+            t = clamp01(t);
+            return Math.pow(t, 1.35);
+        }
+
+        function chargeRatioFromHold(heldMs) {
+            if (heldMs <= 35) return MIN_JUMP_RATIO;
+            return Math.max(MIN_JUMP_RATIO, easePower(heldMs / MAX_HOLD_MS));
+        }
+
+        function jumpOutputCurve(ratio) {
+            ratio = clamp01(ratio);
+            // 轻微提起中后段，保证长按仍能到达远台；前段仍保持克制
+            return Math.pow(ratio, 0.92);
+        }
+
+        function estimateDistanceForRatio(ratio) {
+            const tuned = jumpOutputCurve(ratio);
+            const vx = 1.5 + tuned * 6.0;
+            const vy = 5.9 + tuned * 5.4;
+            return (2 * vx * vy) / 0.56;
+        }
+
+        function ratioForDistance(dist) {
+            let bestRatio = 0.5;
+            let bestDiff = Infinity;
+            for (let i = 0; i <= 100; i++) {
+                const r = MIN_JUMP_RATIO + (1 - MIN_JUMP_RATIO) * (i / 100);
+                const d = estimateDistanceForRatio(r);
+                const diff = Math.abs(d - dist / DPR);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestRatio = r;
+                }
+            }
+            return bestRatio;
         }
 
         function makePlatform(x, y, w, colorIdx) {
@@ -4869,10 +4907,10 @@
         function launchJump(rawRatio) {
             if (!player.onGround || gameOver) return;
             const ratio = Math.max(MIN_JUMP_RATIO, Math.min(1, rawRatio));
-            const eased = easePower(ratio);
-            // 横向速度和上抛速度非线性增长，弱蓄力也能起跳，长蓄力更像微信跳一跳的“弹出去”
-            player.vx = (5.8 + eased * 17.2) * DPR;
-            player.vy = -(8.9 + eased * 12.7) * DPR;
+            const tuned = jumpOutputCurve(ratio);
+            // 重新标定后的微信式手感：短按只是轻轻挪动，长按才会明显飞远
+            player.vx = (1.5 + tuned * 6.0) * DPR;
+            player.vy = -(5.9 + tuned * 5.4) * DPR;
             player.onGround = false;
             player.jumping = true;
             squash = 1.08;
@@ -4886,12 +4924,11 @@
             if (!nextPlat) return 0.5;
             const target = nextPlat.x + nextPlat.w * 0.5;
             const dist = target - player.x;
-            let ratio = (dist - PLAT_GAP_MIN * 0.55) / (PLAT_GAP_MAX * 1.15);
-            ratio = 0.26 + Math.max(0, Math.min(1, ratio)) * 0.58;
-            // 对方不是对手，是一起玩；保留少量失误感，但大部分时候配合你往前走
-            const mistake = Math.random() < 0.08;
-            ratio += mistake ? (Math.random() < 0.5 ? -0.22 : 0.20) : (Math.random() - 0.5) * 0.08;
-            return Math.max(0.14, Math.min(1, ratio));
+            let ratio = ratioForDistance(dist);
+            // 对方不是对手，是一起玩；大部分时候会配合跳到下一块，偶尔有一点点偏差
+            const mistake = Math.random() < 0.06;
+            ratio += mistake ? (Math.random() < 0.5 ? -0.12 : 0.12) : (Math.random() - 0.5) * 0.035;
+            return Math.max(MIN_JUMP_RATIO, Math.min(1, ratio));
         }
 
         function scheduleBotJump() {
@@ -4899,14 +4936,14 @@
             clearInterval(botChargeTimer);
             const targetRatio = estimateBotRatio();
             const chargeMs = 650 + targetRatio * 900 + Math.random() * 260;
-            const startAt = Date.now();
             botJumpTimer = setTimeout(() => {
                 if (gameOver || isMyTurn || !player.onGround) return;
                 if (hintEl) hintEl.textContent = `${config.otherName || '对方'} 正在蓄力...`;
+                const chargeStart = Date.now();
                 botChargeTimer = setInterval(() => {
                     if (gameOver || isMyTurn || !player.onGround) { clearInterval(botChargeTimer); return; }
-                    const t = Math.min(1, (Date.now() - startAt) / chargeMs);
-                    power = Math.min(MAX_POWER, easePower(t) * targetRatio * MAX_POWER);
+                    const t = Math.min(1, (Date.now() - chargeStart) / chargeMs);
+                    power = Math.min(MAX_POWER, t * targetRatio * MAX_POWER);
                     squash = 1 - Math.min(0.24, power / MAX_POWER * 0.24);
                     if (powerBarFill) powerBarFill.style.width = (power / MAX_POWER * 100) + '%';
                 }, 16);
@@ -4925,7 +4962,7 @@
 
             if (holding && player.onGround && isMyTurn) {
                 const held = Date.now() - holdStart;
-                power = Math.min(MAX_POWER, easePower(held / MAX_HOLD_MS) * MAX_POWER);
+                power = Math.min(MAX_POWER, chargeRatioFromHold(held) * MAX_POWER);
                 squash = 1 - Math.min(0.24, power / MAX_POWER * 0.24);
                 const plat = platforms[player.platIdx];
                 if (plat) plat.sink = Math.min(4.5 * DPR, power / MAX_POWER * 4.5 * DPR);
@@ -4955,9 +4992,9 @@
             jumpGame.raf = requestAnimationFrame(gameLoop);
         }
 
-        function doJump() {
+        function doJump(heldMs) {
             if (!player.onGround || gameOver || !isMyTurn) return;
-            const ratio = Math.max(MIN_JUMP_RATIO, power / MAX_POWER);
+            const ratio = chargeRatioFromHold(heldMs || 0);
             launchJump(ratio);
         }
 
@@ -4982,7 +5019,8 @@
             e.preventDefault();
             if (!holding) return;
             holding = false;
-            doJump();
+            const heldMs = Date.now() - holdStart;
+            doJump(heldMs);
         }
         function onCancel(e) {
             if (e) e.preventDefault();
