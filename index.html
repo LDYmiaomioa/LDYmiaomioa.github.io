@@ -814,12 +814,7 @@
                     </div>
                     <span style="font-size:11px; color:#555; font-weight:500;">红包</span>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); togglePanel('panel-doodle')">
-                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#a18cd1,#fbc2eb); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(161,140,209,0.3);">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-                    </div>
-                    <span style="font-size:11px; color:#555; font-weight:500;">涂鸦</span>
-                </div>
+
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); startOutgoingCall()">
                     <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#43e97b,#38f9d7); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(67,233,123,0.3);">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
@@ -1148,19 +1143,21 @@
         </div>
     </div>
 
-    <!-- 跳一跳游戏主界面 -->
+    <!-- 跳一跳游戏主界面（双人交替合作） -->
     <div id="jump-game-overlay">
         <div class="game-top-bar">
             <div class="game-score-panel">
-                <div class="game-score-label">我的得分</div>
+                <div class="game-score-label" id="game-my-score-label">我</div>
                 <div class="game-score-val" id="game-my-score">0</div>
             </div>
             <button class="game-close-btn" onclick="exitJumpGame()">✕</button>
             <div class="game-score-panel" style="text-align:right;">
-                <div class="game-score-label" id="game-other-score-label">对方得分</div>
-                <div class="game-score-val" id="game-other-score">?</div>
+                <div class="game-score-label" id="game-other-score-label">对方</div>
+                <div class="game-score-val" id="game-other-score">0</div>
             </div>
         </div>
+        <!-- 当前轮到谁跳的指示器 -->
+        <div id="game-turn-indicator" style="text-align:center; font-size:12px; font-weight:700; color:rgba(255,255,255,0.75); letter-spacing:0.5px; padding:4px 0 2px;">轮到你跳 🩷</div>
         <canvas id="jump-canvas"></canvas>
         <div class="game-hold-hint" id="game-hint-text">长按屏幕蓄力，松开跳跃 💕</div>
         <div id="power-bar-wrap"><div id="power-bar-fill"></div></div>
@@ -3445,6 +3442,10 @@
     function openRedPacket() {
         const nameEl = document.getElementById('red-packet-receiver-name');
         if (nameEl) nameEl.textContent = config.otherName || '对方';
+        // 随机金额：1 ~ 1,000,000 元
+        const randomAmt = (Math.random() * 999999 + 1).toFixed(2);
+        const amountInput = document.getElementById('red-packet-amount');
+        if (amountInput) amountInput.value = randomAmt;
         document.getElementById('red-packet-overlay').style.display = 'flex';
     }
     function closeRedPacket() {
@@ -3458,103 +3459,105 @@
         amount = amount.toFixed(2);
         const wish = (wishInput.value || '恭喜发财，大吉大利 🧧').trim();
         closeRedPacket();
-        
-        // 发出红包消息气泡
-        const redPacketHtml = `<div onclick="openSentRedPacketAck()" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
+
+        // 给本次红包气泡一个唯一 ID，方便后续更新状态
+        const rpBubbleId = 'rp-sent-' + Date.now();
+
+        // 发出红包消息气泡（状态行初始为"微信红包"）
+        const redPacketHtml = `<div id="${rpBubbleId}" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
             <div style="position:absolute; top:-15px; right:-15px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
             <span style="font-size:36px; flex-shrink:0;">🧧</span>
             <div style="flex:1; min-width:0;">
                 <div style="font-size:15px; font-weight:700; color:#FFE066; margin-bottom:2px;">¥${amount}</div>
                 <div style="font-size:11px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(wish)}</div>
-                <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">微信红包</div>
+                <div id="${rpBubbleId}-status" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">微信红包</div>
             </div>
         </div>`;
         appendMessage(true, redPacketHtml, currentQuote);
         currentQuote = null; cancelQuote();
         resetProactiveTimer();
         showCustomNotification('红包已发送 🧧', 'success');
-        
-        // 对方稍后回应红包
+
+        // 对方稍后自动以 50% 概率领取或退回（不由用户决定）
+        const delay = (config.minReplyDelay || 2000) + Math.random() * 3000;
         setTimeout(() => {
-            receiveRedPacketFromOther(amount, wish);
-        }, 2000 + Math.random() * 3000);
-    }
-    
-    function openSentRedPacketAck() {
-        showCustomNotification('等待对方领取...', 'info', 2000);
-    }
-    
-    // 对方收到红包后，在聊天里显示「领取 / 退回」气泡
-    function receiveRedPacketFromOther(amount, wish) {
-        pendingReplies++;
-        updateChatTitle();
-        const delay = (config.minReplyDelay || 2000) + Math.random() * 2000;
-        setTimeout(() => {
-            const escapedWish = escapeHtml(wish);
-            const safeAmount = String(amount).replace(/'/g, '');
-            const safeWish = (wish || '').replace(/'/g, '').replace(/\\/g, '');
-            // 对方看到红包，显示一个可交互气泡
-            const bubbleHtml = `<div style="background:#fff; border:1px solid #FFE0CC; border-radius:14px; padding:12px 14px; min-width:180px; max-width:220px; box-shadow:0 2px 10px rgba(255,107,53,0.1);">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                    <span style="font-size:28px;">🧧</span>
-                    <div>
-                        <div style="font-size:13px; font-weight:700; color:#FF3B30;">¥${safeAmount}</div>
-                        <div style="font-size:11px; color:#888; margin-top:1px;">${escapedWish}</div>
-                    </div>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button onclick="botAcceptRedPacket(this,'${safeAmount}')" style="flex:1; padding:7px 0; background:linear-gradient(135deg,#FF6B35,#FF3B30); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">领取 💰</button>
-                    <button onclick="botReturnRedPacket(this,'${safeAmount}')" style="flex:1; padding:7px 0; background:#F2F2F2; color:#666; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">退回 ↩️</button>
-                </div>
-            </div>`;
-            appendMessage(false, bubbleHtml);
-            finishReply();
+            const accepted = Math.random() < 0.5;
+            const statusEl = document.getElementById(rpBubbleId + '-status');
+            if (accepted) {
+                // 更新原气泡状态为"已领取"
+                if (statusEl) {
+                    statusEl.textContent = '已领取 ✅';
+                    statusEl.style.color = 'rgba(255,255,255,0.95)';
+                }
+                // 对方在聊天里发一条感谢消息
+                const thankMsgs = [
+                    '谢谢宝贝的红包 🥰❤️',
+                    '哇！谢谢你！🎉',
+                    '收到啦，你真好 💕',
+                    '红包领到了，爱你 😘',
+                    '哈哈哈谢谢你的红包！🧧'
+                ];
+                pendingReplies++;
+                updateChatTitle();
+                setTimeout(() => {
+                    appendMessage(false, escapeHtml(thankMsgs[Math.floor(Math.random() * thankMsgs.length)]));
+                    finishReply();
+                }, 800 + Math.random() * 1200);
+                sendSystemNotification(config.otherName || '对方', `领取了你的 ¥${amount} 红包 🎉`);
+            } else {
+                // 更新原气泡状态为"已退回"
+                if (statusEl) {
+                    statusEl.textContent = '对方退回了红包 ↩️';
+                    statusEl.style.color = 'rgba(255,255,255,0.9)';
+                }
+                // 对方在聊天里发退回消息
+                const returnMsgs = [
+                    '红包退回给你，心意我收到了 🥺',
+                    '不用啦，把钱存起来 😊',
+                    '退回给你，我们不用这么客气～',
+                    '退回了哦，谢谢你的心意 💙'
+                ];
+                pendingReplies++;
+                updateChatTitle();
+                setTimeout(() => {
+                    appendMessage(false, escapeHtml(returnMsgs[Math.floor(Math.random() * returnMsgs.length)]));
+                    finishReply();
+                }, 800 + Math.random() * 1200);
+                showCustomNotification(`对方退回了红包 ↩️`, 'info', 3000);
+            }
         }, delay);
     }
     
-    function botAcceptRedPacket(btn, amount) {
-        // 禁用按钮防止重复点
-        const parent = btn.closest('div[style]');
-        if (parent) { const btns = parent.querySelectorAll('button'); btns.forEach(b => b.disabled = true); btns[0].textContent = '已领取 ✅'; btns[0].style.opacity='0.7'; btns[1].style.display='none'; }
-        // 🌟 修改：不再发送感谢语回复，只做系统通知
-        sendSystemNotification(config.otherName || '对方', `领取了你的 ¥${amount} 红包 🎉`);
-    }
-    
-    function botReturnRedPacket(btn, amount) {
-        const parent = btn.closest('div[style]');
-        if (parent) { const btns = parent.querySelectorAll('button'); btns.forEach(b => b.disabled = true); btns[1].textContent = '已退回 ↩️'; btns[1].style.opacity='0.7'; btns[0].style.display='none'; }
-        // 🌟 修改：不再发送退回语回复，只做系统通知
-        showCustomNotification(`对方退回了红包 ↩️`, 'info', 3000);
-    }
-    
-    // 对方随机发给我红包
+    // 对方随机发给我红包（金额 1~100万随机）
     function triggerBotSendRedPacket() {
-        const amounts = ['6.66', '8.88', '18.88', '66.66', '88.88', '99.99', '168.00', '520.00'];
         const wishes = ['恭喜发财，大吉大利 🧧', '给你一个小惊喜 💕', '喜欢你哦 ❤️', '每天开心 ✨', '爱你哟 😘'];
-        const amount = amounts[Math.floor(Math.random() * amounts.length)];
+        // 随机金额：1 ~ 1,000,000 元
+        const amount = (Math.random() * 999999 + 1).toFixed(2);
         const wish = wishes[Math.floor(Math.random() * wishes.length)];
         const senderName = config.otherName || '对方';
-        
-        const redPacketHtml = `<div onclick="showReceiveRedPacketDialog('${amount}','${escapeForJs(wish)}','${escapeForJs(senderName)}')" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
+        const rpBotId = 'rp-bot-' + Date.now();
+
+        const redPacketHtml = `<div id="${rpBotId}" onclick="showReceiveRedPacketDialog('${amount}','${escapeForJs(wish)}','${escapeForJs(senderName)}','${rpBotId}')" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
             <div style="position:absolute; top:-15px; right:-15px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
             <span style="font-size:36px; flex-shrink:0;">🧧</span>
             <div style="flex:1; min-width:0;">
                 <div style="font-size:13px; font-weight:700; color:#FFE066; margin-bottom:2px;">微信红包</div>
                 <div style="font-size:11px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(wish)}</div>
-                <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">点击领取</div>
+                <div id="${rpBotId}-status" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">点击领取</div>
             </div>
         </div>`;
-        
+
         appendMessage(false, redPacketHtml);
         sendSystemNotification(senderName, '给你发了一个红包 🧧');
     }
     
-    function showReceiveRedPacketDialog(amount, wish, sender) {
+    function showReceiveRedPacketDialog(amount, wish, sender, bubbleId) {
         const senderEl = document.getElementById('rp-receive-sender');
         const wishEl = document.getElementById('rp-receive-wish');
         if (senderEl) senderEl.textContent = (sender || config.otherName || '对方') + ' 给你发了一个红包';
         if (wishEl) wishEl.textContent = wish || '恭喜发财，大吉大利 🧧';
         window._pendingRedPacketAmount = amount;
+        window._pendingRedPacketBubbleId = bubbleId || null;
         document.getElementById('red-packet-receive-overlay').style.display = 'flex';
     }
     
@@ -3572,7 +3575,24 @@
         document.getElementById('red-packet-opened-overlay').style.display = 'none';
         const amount = window._pendingRedPacketAmount || '88.88';
         showCustomNotification(`已收下 ¥${amount} 红包 🎉`, 'success', 3000);
+        // 在原红包气泡上更新状态为"已领取"（仿微信体验）
+        const bubbleId = window._pendingRedPacketBubbleId;
+        if (bubbleId) {
+            const bubbleEl = document.getElementById(bubbleId);
+            if (bubbleEl) {
+                // 移除点击事件，防止重复领取
+                bubbleEl.removeAttribute('onclick');
+                bubbleEl.style.cursor = 'default';
+                // 更新状态行
+                const statusEl = document.getElementById(bubbleId + '-status');
+                if (statusEl) {
+                    statusEl.textContent = '已领取 ✅';
+                    statusEl.style.color = 'rgba(255,255,255,0.95)';
+                }
+            }
+        }
         window._pendingRedPacketAmount = null;
+        window._pendingRedPacketBubbleId = null;
     }
 
     function reEditText(spanEl) { 
@@ -4571,6 +4591,7 @@
             bg1: '#1a1035', bg2: '#2d1b5e',
             platform: ['#e84393', '#7048e8', '#0084FF', '#FF6900', '#07C160'],
             player: '#FF69B4',
+            playerBot: '#B39DDB',   // 对方玩家颜色（淡紫）
             shadow: 'rgba(0,0,0,0.3)'
         };
 
@@ -4584,12 +4605,17 @@
         const GRAVITY = 0.45 * DPR;
 
         // 游戏状态
-        let score = 0;
+        let myScore = 0;
+        let botScore = 0;
         let holding = false;
         let power = 0;
         let maxPower = 80 * DPR;
         let gameOver = false;
-        let offsetX = 0; // 场景水平偏移（镜头跟随）
+        let offsetX = 0;
+        // 双人交替：true=轮到玩家，false=轮到AI
+        let isMyTurn = true;
+        // AI 自动跳的定时
+        let botJumpTimer = null;
 
         // 平台列表
         function makePlatform(x, y, w, colorIdx) {
@@ -4612,7 +4638,7 @@
         // 预生成更多平台
         for (let i = 0; i < 5; i++) addPlatform();
 
-        // 玩家状态
+        // 玩家状态（当前活跃角色，两人共用同一条路径）
         const curPlat = platforms[0];
         let player = {
             x: curPlat.x + curPlat.w * 0.5,
@@ -4626,9 +4652,24 @@
 
         let powerBarFill = document.getElementById('power-bar-fill');
         let myScoreEl = document.getElementById('game-my-score');
+        let botScoreEl = document.getElementById('game-other-score');
         let hintEl = document.getElementById('game-hint-text');
+        let turnEl = document.getElementById('game-turn-indicator');
 
-        jumpGame = { raf: null, score: 0 };
+        jumpGame = { raf: null, myScore: 0, botScore: 0 };
+
+        function updateTurnUI() {
+            const otherName = config.otherName || '对方';
+            if (isMyTurn) {
+                if (turnEl) { turnEl.textContent = '轮到你跳 🩷'; turnEl.style.color = '#FF69B4'; }
+                if (hintEl) hintEl.textContent = '长按屏幕蓄力，松开跳跃 💕';
+                if (powerBarFill) powerBarFill.style.background = 'linear-gradient(90deg,#e84393,#7048e8)';
+            } else {
+                if (turnEl) { turnEl.textContent = `轮到 ${otherName} 跳 💜`; turnEl.style.color = '#B39DDB'; }
+                if (hintEl) hintEl.textContent = `${otherName} 正在跳...`;
+                if (powerBarFill) powerBarFill.style.background = 'linear-gradient(90deg,#7048e8,#B39DDB)';
+            }
+        }
 
         // 绘制背景渐变
         function drawBg() {
@@ -4691,28 +4732,29 @@
             ctx.restore();
         }
 
-        // 绘制玩家（心形）
+        // 绘制玩家（心形，颜色根据当前轮次变化）
         function drawPlayer() {
             const px = player.x - offsetX;
             const py = player.y;
+            const playerColor = isMyTurn ? COLORS.player : COLORS.playerBot;
             // 阴影
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.beginPath();
             ctx.ellipse(px, py + PLAYER_R + 2 * DPR, PLAYER_R * 0.8, 3 * DPR, 0, 0, Math.PI * 2);
             ctx.fill();
-            // 玩家心形
+            // 玩家心形（颜色随轮次变化）
             const s = PLAYER_R * 0.85;
             ctx.save();
-            ctx.shadowColor = 'rgba(255,105,180,0.6)';
+            ctx.shadowColor = isMyTurn ? 'rgba(255,105,180,0.6)' : 'rgba(179,157,219,0.6)';
             ctx.shadowBlur = 8 * DPR;
-            drawHeart(ctx, px, py - s * 0.2, s, COLORS.player);
+            drawHeart(ctx, px, py - s * 0.2, s, playerColor);
             ctx.restore();
-            // 表情
+            // 表情（我=💕，对方=💜）
             ctx.fillStyle = '#fff';
             ctx.font = `${10 * DPR}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('💕', px, py + s * 0.4);
+            ctx.fillText(isMyTurn ? '💕' : '💜', px, py + s * 0.4);
         }
 
         // 绘制蓄力粒子
@@ -4741,42 +4783,95 @@
             ctx.textBaseline = 'top';
         }
 
-        // 检测是否落在平台上
-        function checkLanding() {
-            for (let i = player.platIdx; i < platforms.length; i++) {
-                const p = platforms[i];
-                const px = player.x;
-                const py = player.y;
-                // 玩家底部
-                const bottom = py + PLAYER_R;
-                if (bottom >= p.y && bottom <= p.y + p.h + 5 * DPR) {
-                    if (px >= p.x && px <= p.x + p.w) {
-                        // 落地！
-                        player.y = p.y - PLAYER_R;
-                        player.vy = 0;
-                        player.vx = 0;
-                        player.onGround = true;
-                        player.jumping = false;
-                        if (i > player.platIdx) {
-                            score += (i - player.platIdx);
-                            player.platIdx = i;
-                            if (myScoreEl) myScoreEl.textContent = score;
-                            jumpGame.score = score;
-                        }
-                        // 补充平台
-                        while (platforms.length - i < 6) addPlatform();
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
         // 相机跟随
         function updateCamera() {
             const targetX = player.x - W * 0.3;
             offsetX += (targetX - offsetX) * 0.08;
             if (offsetX < 0) offsetX = 0;
+        }
+
+        // 检测落地（返回是否落地成功）
+        function checkLandingLocal() {
+            for (let i = player.platIdx; i < platforms.length; i++) {
+                const p = platforms[i];
+                if (player.vy > 0 &&
+                    player.x >= p.x - PLAYER_R * 0.5 &&
+                    player.x <= p.x + p.w + PLAYER_R * 0.5 &&
+                    player.y + PLAYER_R >= p.y &&
+                    player.y + PLAYER_R <= p.y + p.h + 15 * DPR) {
+                    player.y = p.y - PLAYER_R;
+                    player.vy = 0;
+                    player.vx = 0;
+                    player.onGround = true;
+                    player.jumping = false;
+                    if (i > player.platIdx) {
+                        player.platIdx = i;
+                        // 成功跳上新平台：给当前回合的玩家加分
+                        if (isMyTurn) {
+                            myScore++;
+                            if (myScoreEl) myScoreEl.textContent = myScore;
+                        } else {
+                            botScore++;
+                            if (botScoreEl) botScoreEl.textContent = botScore;
+                        }
+                        // 保证前方有足够平台
+                        while (platforms.length - player.platIdx < 6) addPlatform();
+                        // 切换回合
+                        isMyTurn = !isMyTurn;
+                        updateTurnUI();
+                        // 如果轮到 AI，延迟后自动跳
+                        if (!isMyTurn) scheduleBotJump();
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // AI 自动跳：随机蓄力，偶尔失败（约 10%）
+        function scheduleBotJump() {
+            if (botJumpTimer) clearTimeout(botJumpTimer);
+            const botDelay = 1200 + Math.random() * 1200;
+            botJumpTimer = setTimeout(() => {
+                if (gameOver || isMyTurn) return;
+                // 90% 成功，10% 失败（掉落）
+                const willSucceed = Math.random() >= 0.10;
+                if (willSucceed) {
+                    // 计算合适的蓄力比例（根据下一平台距离）
+                    const nextPlat = platforms[player.platIdx + 1];
+                    if (!nextPlat) { isMyTurn = true; updateTurnUI(); return; }
+                    const dist = (nextPlat.x + nextPlat.w * 0.5) - player.x;
+                    const distNorm = Math.max(0, Math.min(1, dist / (PLAT_GAP_MAX * 1.5)));
+                    const ratio = 0.35 + distNorm * 0.55 + (Math.random() - 0.5) * 0.12;
+                    const clampedRatio = Math.max(0.2, Math.min(1, ratio));
+                    // 模拟蓄力动画
+                    let chargePct = 0;
+                    const chargeInterval = setInterval(() => {
+                        chargePct = Math.min(chargePct + 5, clampedRatio * 100);
+                        if (powerBarFill) powerBarFill.style.width = chargePct + '%';
+                    }, 30);
+                    setTimeout(() => {
+                        clearInterval(chargeInterval);
+                        if (gameOver || isMyTurn) return;
+                        const jumpVX = (6 + clampedRatio * 14) * DPR;
+                        const jumpVY = -(8 + clampedRatio * 12) * DPR;
+                        player.vx = jumpVX;
+                        player.vy = jumpVY;
+                        player.onGround = false;
+                        player.jumping = true;
+                        power = 0;
+                        if (powerBarFill) powerBarFill.style.width = '0%';
+                    }, botDelay * 0.6);
+                } else {
+                    // AI 失败：给一个过短的跳跃让角色掉落
+                    const jumpVX = 1.5 * DPR;
+                    const jumpVY = -(5) * DPR;
+                    player.vx = jumpVX;
+                    player.vy = jumpVY;
+                    player.onGround = false;
+                    player.jumping = true;
+                }
+            }, botDelay);
         }
 
         // 主循环
@@ -4786,8 +4881,8 @@
 
             if (gameOver) return;
 
-            // 蓄力
-            if (holding && player.onGround) {
+            // 仅玩家回合才响应蓄力
+            if (holding && player.onGround && isMyTurn) {
                 power = Math.min(power + 1.2 * DPR, maxPower);
                 if (powerBarFill) powerBarFill.style.width = (power / maxPower * 100) + '%';
             }
@@ -4797,9 +4892,7 @@
                 player.vy += GRAVITY;
                 player.x += player.vx;
                 player.y += player.vy;
-                // 检测落地
-                if (!checkLanding()) {
-                    // 检测掉落
+                if (!checkLandingLocal()) {
                     if (player.y - PLAYER_R > H + 50 * DPR) {
                         endJumpGame();
                         return;
@@ -4815,9 +4908,9 @@
             jumpGame.raf = requestAnimationFrame(gameLoop);
         }
 
-        // 跳跃
+        // 玩家跳跃
         function doJump() {
-            if (!player.onGround || gameOver) return;
+            if (!player.onGround || gameOver || !isMyTurn) return;
             const ratio = power / maxPower;
             const jumpVX = (6 + ratio * 14) * DPR;
             const jumpVY = -(8 + ratio * 12) * DPR;
@@ -4827,22 +4920,19 @@
             player.jumping = true;
             power = 0;
             if (powerBarFill) powerBarFill.style.width = '0%';
-            if (hintEl) hintEl.textContent = '长按屏幕蓄力，松开跳跃 💕';
         }
 
         function endJumpGame() {
             gameOver = true;
+            if (botJumpTimer) clearTimeout(botJumpTimer);
             if (jumpGame) { cancelAnimationFrame(jumpGame.raf); }
-            // 模拟对方得分
-            const myScore = score;
-            const otherScore = Math.max(0, myScore + Math.floor((Math.random() - 0.4) * (myScore * 0.5 + 5)));
-            showGameResult(myScore, otherScore);
+            showGameResult(myScore, botScore);
         }
 
-        // 事件监听
+        // 事件监听（仅玩家回合响应）
         function onStart(e) {
             e.preventDefault();
-            if (gameOver || !player.onGround) return;
+            if (gameOver || !player.onGround || !isMyTurn) return;
             holding = true;
             if (hintEl) hintEl.textContent = '蓄力中... 松开跳跃！';
         }
@@ -4858,20 +4948,20 @@
         canvas.addEventListener('mousedown', onStart);
         canvas.addEventListener('mouseup', onEnd);
 
-        // 清理旧监听（简单方式：重置canvas）
         jumpGame._cleanUp = () => {
             canvas.removeEventListener('touchstart', onStart);
             canvas.removeEventListener('touchend', onEnd);
             canvas.removeEventListener('mousedown', onStart);
             canvas.removeEventListener('mouseup', onEnd);
+            if (botJumpTimer) clearTimeout(botJumpTimer);
         };
 
         // 重置UI
         if (myScoreEl) myScoreEl.textContent = '0';
-        const otherScoreEl = document.getElementById('game-other-score');
-        if (otherScoreEl) otherScoreEl.textContent = '?';
+        if (botScoreEl) botScoreEl.textContent = '0';
         if (powerBarFill) powerBarFill.style.width = '0%';
-        if (hintEl) hintEl.textContent = '长按屏幕蓄力，松开跳跃 💕';
+        isMyTurn = true;
+        updateTurnUI();
 
         jumpGame.raf = requestAnimationFrame(gameLoop);
     }
@@ -4888,30 +4978,35 @@
         if (otherScoreEl) otherScoreEl.textContent = otherScore;
         if (gameOtherEl) gameOtherEl.textContent = otherScore;
 
-        let winnerText = '';
-        if (myScore > otherScore) {
-            winnerText = '你赢了！🥳 ' + (config.otherName || '对方') + ' 下次加油';
-            if (titleEl) titleEl.textContent = '你赢了 🎊';
-        } else if (myScore < otherScore) {
-            winnerText = (config.otherName || '对方') + ' 赢了！你下次一定可以的 💪';
-            if (titleEl) titleEl.textContent = '游戏结束 🎮';
+        const totalScore = myScore + otherScore;
+        const otherName = config.otherName || '对方';
+        let titleText, winnerText;
+
+        if (totalScore >= 20) {
+            titleText = '配合超默契 💕';
+            winnerText = `你们合计跳了 ${totalScore} 步，天生一对！`;
+        } else if (totalScore >= 10) {
+            titleText = '继续加油 🎮';
+            winnerText = `你们合计跳了 ${totalScore} 步，还能更高！`;
         } else {
-            winnerText = '平局！你们真是天生一对 💕';
-            if (titleEl) titleEl.textContent = '平局 💕';
+            titleText = '游戏结束 🕹️';
+            winnerText = `合计 ${totalScore} 步，下次一起努力 💪`;
         }
+        if (titleEl) titleEl.textContent = titleText;
         if (winnerEl) winnerEl.textContent = winnerText;
         overlay.style.display = 'flex';
 
-        // 在聊天里发送游戏结果
-        const resultHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:180px; max-width:220px;"><span style="font-size:28px;">🕹️</span><div><div style="font-size:13px; font-weight:700; color:#fff; margin-bottom:3px;">跳一跳结果</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.myName||'我')}: ${myScore} 分</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.otherName||'对方')}: ${otherScore} 分</div></div></div>`;
+        // 在聊天里发送合作游戏结果
+        const resultHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:180px; max-width:240px;"><span style="font-size:28px;">🕹️</span><div><div style="font-size:13px; font-weight:700; color:#fff; margin-bottom:3px;">情侣跳一跳结果</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.myName||'我')}: ${myScore} 步</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(otherName)}: ${otherScore} 步</div><div style="font-size:11px; color:rgba(255,255,255,0.7); margin-top:2px;">合计 ${totalScore} 步 💕</div></div></div>`;
         appendMessage(true, resultHtml);
         resetProactiveTimer();
-        // 对方发出反应
-        const reactions = myScore > otherScore 
-            ? ['输了输了😭', '不服！再来！🥊', `哼，你赢了这次😤`, '下次我一定赢你！']
-            : myScore < otherScore 
-            ? ['我赢了哈哈哈~😏', '让着你都让不了😂', `${escapeHtml(config.myName||'你')}加油鸭！`, '嘿嘿～再来一局？']
-            : ['居然平局？！', '咦，心有灵犀😍', '真的是天生一对✨'];
+
+        // 对方发出合作反应
+        const reactions = totalScore >= 20
+            ? [`我们好厉害哦！${totalScore} 步！🥳`, '哇哦，我们配合太默契了💕', '太好玩了，再来一局？🎮']
+            : totalScore >= 10
+            ? ['还不错嘛，再努力一点！💪', '下次一定能跳得更远！', '继续加油，我们可以的 🤍']
+            : ['哈哈哈我们还有进步空间😂', '再来！这次一定要跳更多步！', '下次我配合你好好跳 💕'];
         setTimeout(() => {
             appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
         }, 1500);
