@@ -273,7 +273,14 @@
         #floating-call-time { position: relative; z-index: 2; color: white; font-size: 13px; font-weight: 600; text-shadow: 0px 2px 4px rgba(0,0,0,0.8); }
 
         /* ================== 朋友圈模块 ================== */
-        #moments-page { display: none; position: absolute; inset: 0; background: #FFF; z-index: 800; flex-direction: column; overflow-y: auto; animation: fadeIn 0.3s ease; transform: translateZ(0); }
+        /* 🌟 修复①：原先整个 #moments-page 都是 overflow-y:auto 的滚动容器，
+           且自身带 transform:translateZ(0)（会成为 fixed 定位子元素的新包含块）。
+           底部评论输入框是绝对定位、依附在这个滚动容器上的，于是会跟着内容一起被滚走，
+           在 iOS WebKit 下还会因合成层缓存而出现"滚动后输入框只剩空白外壳、视图未重绘"的残留问题。
+           现在把"可滚动区域"单独拆成 #moments-scroll-wrapper，#moments-page 本身不再滚动、也不再用 transform，
+           评论输入框改为普通流中的 flex 子项，天然贴在底部，和主聊天页的 header/message-area/input-area 结构保持一致。 */
+        #moments-page { display: none; position: absolute; inset: 0; background: #FFF; z-index: 800; flex-direction: column; animation: fadeIn 0.3s ease; }
+        #moments-scroll-wrapper { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .moments-header { display: flex; justify-content: space-between; align-items: center; padding: calc(15px + env(safe-area-inset-top)) 20px 15px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(0,0,0,0.03);}
         .moments-header-icon { font-size: 15px; cursor: pointer; padding: 6px; font-weight: 600; color: #111; display:flex; align-items:center; gap:4px;}
         .moments-header-icon svg { width: 18px; height: 18px; }
@@ -301,7 +308,7 @@
         .moment-comment-name { color: #576b95; font-weight: 600; }
 
         #moment-comment-input-area { 
-            display:none; position:absolute; bottom:0; left:0; width:100%; z-index: 850; 
+            display:none; position:relative; width:100%; flex-shrink:0; z-index: 850; 
             padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:rgba(248, 248, 248, 0.95); backdrop-filter:blur(15px); border-top:1px solid rgba(0,0,0,0.05); gap:10px; align-items:flex-end; box-sizing: border-box;
         }
         #moment-comment-input { flex:1; padding:10px 14px; border:none; border-radius:18px; background:#FFF; font-size:14px; outline:none; box-shadow: 0 1px 3px rgba(0,0,0,0.03); min-height: 38px; max-height: 80px; overflow-y:auto; word-break: break-word; -webkit-user-select: text; user-select: text;}
@@ -731,7 +738,7 @@
                 <line x1="12" y1="19" x2="12" y2="22"></line>
             </svg>
         </div>
-        <div class="icon-btn" onclick="toggleStickerPanel('chat')" title="插入表情与字卡">
+        <div class="icon-btn" onclick="toggleStickerPanel('chat')" onmousedown="event.preventDefault()" title="插入表情与字卡">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
         </div>
         <label for="chat-image-upload" class="icon-btn" title="插入相册图片">
@@ -881,16 +888,18 @@
                 <span class="moments-header-icon" title="发布动态" onclick="openMomentsPublish()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
             </div>
         </div>
-        <div class="moments-cover-container">
-            <img id="moments-cover-img" class="moments-cover-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23E0E0E0'/%3E%3C/svg%3E">
-            <div class="moments-user-info">
-                <span id="moments-my-name" class="moments-my-name">我</span>
-                <img id="moments-my-avatar" class="moments-my-avatar" src="">
+        <div id="moments-scroll-wrapper">
+            <div class="moments-cover-container">
+                <img id="moments-cover-img" class="moments-cover-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23E0E0E0'/%3E%3C/svg%3E">
+                <div class="moments-user-info">
+                    <span id="moments-my-name" class="moments-my-name">我</span>
+                    <img id="moments-my-avatar" class="moments-my-avatar" src="">
+                </div>
             </div>
+            <div id="moments-feed"></div>
         </div>
-        <div id="moments-feed"></div>
         <div id="moment-comment-input-area">
-            <div class="icon-btn" onclick="toggleStickerPanel('moment')" title="插入表情" style="margin-bottom:0;">
+            <div class="icon-btn" onclick="toggleStickerPanel('moment')" onmousedown="event.preventDefault()" title="插入表情" style="margin-bottom:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
             </div>
             <input type="hidden" id="current-moment-id">
@@ -909,7 +918,7 @@
         <div class="publish-toolbar">
             <label for="moment-publish-upload" class="publish-tool-icon" title="上传相册照片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></label>
             <input type="file" id="moment-publish-upload" accept="image/*" multiple style="display:none;" onchange="handlePublishImg(this)">
-            <div class="publish-tool-icon" onclick="toggleStickerPanel('publish')" title="插入图包"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></div>
+            <div class="publish-tool-icon" onclick="toggleStickerPanel('publish')" onmousedown="event.preventDefault()" title="插入图包"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></div>
         </div>
     </div>
 
@@ -3164,10 +3173,28 @@
     };
     function deleteVoiceCard(index) { voiceCards.splice(index, 1); localStorage.setItem('voiceCardsV1', JSON.stringify(voiceCards)); renderVoiceUI(); }
 
+    // 🌟 修复②：把光标移动到目标输入框内容的末尾，并确保该输入框处于聚焦状态。
+    //    用于"点击表情/工具按钮后输入框失焦"的兜底恢复。
+    function refocusInputAtEnd(el) {
+        if (!el) return;
+        el.focus();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false); // false = 折叠到内容末尾，而不是开头
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
     function toggleStickerPanel(target) {
         if(target) activeInputTarget = (target === 'moment') ? document.getElementById('moment-comment-input') : (target === 'publish' ? document.getElementById('moment-input-text') : chatInput);
         const p = document.getElementById('sticker-panel'); p.style.display = p.style.display === 'block' ? 'none' : 'block';
         document.querySelectorAll('.panel').forEach(panel => panel.style.display = 'none');
+        // 🌟 修复②：点击该按钮本身会抢占一次焦点，导致输入框失焦（移动端键盘随之收起）。
+        // 按钮上的 onmousedown="event.preventDefault()" 已经拦掉了绝大多数浏览器下的默认失焦行为；
+        // 这里用 setTimeout 错开当前事件循环，再做一次兜底——把焦点还给输入框，并将光标恢复到文字末尾，
+        // 即便个别移动端浏览器在 mousedown 之前就已经把焦点移走，也能立刻把输入状态接回来。
+        setTimeout(() => refocusInputAtEnd(activeInputTarget), 0);
     }
     function switchStickerTab(type) {
         document.getElementById('emoji-grid').style.display = type === 'emoji' ? 'grid' : 'none'; document.getElementById('quick-words-list').style.display = type === 'words' ? 'flex' : 'none'; document.getElementById('custom-sticker-grid').style.display = type === 'custom' ? 'grid' : 'none';
