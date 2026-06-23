@@ -396,6 +396,57 @@
         .track-rec-time { font-size: 11px; color: #aaa; margin-top: 3px; }
         .track-rec-del { font-size: 11px; color: #ccc; cursor: pointer; align-self: flex-start; padding: 2px 4px; }
         .track-rec-del:active { color: #FF3B30; }
+
+        /* ====== 查岗回复弹窗 ====== */
+        #checkin-reply-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(6px); z-index:4000; display:none; align-items:flex-end; justify-content:center; }
+        .checkin-reply-box { width:100%; max-width:600px; background:#fff; border-radius:22px 22px 0 0; padding:0 0 env(safe-area-inset-bottom); animation: slideUpPanel 0.28s cubic-bezier(0.25,0.46,0.45,0.94); }
+        .checkin-reply-header { background:linear-gradient(135deg,#FF6900,#FF3B30); padding:16px 20px 18px; border-radius:22px 22px 0 0; position:relative; }
+        .checkin-reply-label { display:inline-block; background:rgba(255,255,255,0.2); color:#fff; font-size:11px; font-weight:700; padding:2px 10px; border-radius:10px; margin-bottom:8px; letter-spacing:0.5px; }
+        .checkin-reply-question { color:#fff; font-size:16px; font-weight:600; line-height:1.4; }
+        .checkin-reply-from { color:rgba(255,255,255,0.8); font-size:12px; margin-top:5px; }
+        .checkin-reply-body { padding:16px 16px 12px; }
+        .checkin-reply-input { width:100%; border:none; border-radius:14px; background:var(--light-gray); padding:12px 16px; font-size:15px; outline:none; resize:none; min-height:80px; max-height:140px; font-family:inherit; line-height:1.5; box-sizing:border-box; color:#333; }
+        .checkin-reply-input:focus { background:#eef3ff; }
+        .checkin-reply-footer { display:flex; gap:10px; padding:0 16px 16px; }
+
+        /* ====== 游戏邀请弹窗 ====== */
+        #game-invite-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(6px); z-index:4000; display:none; align-items:center; justify-content:center; }
+        #game-incoming-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(6px); z-index:4000; display:none; align-items:center; justify-content:center; }
+        .game-invite-box { width:85%; max-width:300px; background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.2); animation: heartBeat 0.5s ease; }
+        .game-invite-header { background:linear-gradient(135deg,#e84393,#7048e8); padding:28px 20px 24px; text-align:center; }
+        .game-invite-icon { font-size:52px; margin-bottom:8px; display:block; }
+        .game-invite-title { color:#fff; font-size:18px; font-weight:700; }
+        .game-invite-sub { color:rgba(255,255,255,0.85); font-size:13px; margin-top:5px; }
+        .game-invite-body { padding:18px 20px 20px; }
+        .game-invite-desc { font-size:13px; color:#666; line-height:1.6; text-align:center; margin-bottom:16px; }
+        .game-invite-btns { display:flex; gap:10px; }
+
+        /* ====== 跳一跳游戏覆盖层 ====== */
+        #jump-game-overlay { position:fixed; inset:0; background:#1a1035; z-index:5000; display:none; flex-direction:column; align-items:center; }
+        .game-top-bar { width:100%; display:flex; justify-content:space-between; align-items:center; padding:calc(14px + env(safe-area-inset-top)) 20px 10px; position:relative; z-index:10; }
+        .game-score-panel { text-align:center; }
+        .game-score-label { font-size:11px; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px; }
+        .game-score-val { font-size:28px; font-weight:800; color:#fff; line-height:1; }
+        .game-close-btn { background:rgba(255,255,255,0.15); border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; font-size:18px; }
+        #jump-canvas { width:100%; flex:1; display:block; touch-action:none; }
+        .game-hold-hint { color:rgba(255,255,255,0.7); font-size:13px; text-align:center; padding:10px 0 calc(10px + env(safe-area-inset-bottom)); letter-spacing:0.3px; font-weight:500; }
+        #power-bar-wrap { width:70%; max-width:300px; height:6px; background:rgba(255,255,255,0.15); border-radius:3px; margin:4px auto 0; overflow:hidden; }
+        #power-bar-fill { height:100%; width:0%; background:linear-gradient(90deg,#e84393,#7048e8); border-radius:3px; transition:width 0.05s; }
+
+        /* ====== 游戏结果弹窗 ====== */
+        #game-result-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); z-index:5500; display:none; align-items:center; justify-content:center; }
+        .game-result-box { width:85%; max-width:300px; background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.2); animation:fadeIn 0.3s; }
+        .game-result-header { background:linear-gradient(135deg,#e84393,#7048e8); padding:24px 20px 20px; text-align:center; }
+        .game-result-title { color:#fff; font-size:20px; font-weight:800; margin-bottom:4px; }
+        .game-result-sub { color:rgba(255,255,255,0.8); font-size:13px; }
+        .game-result-scores { display:flex; gap:0; padding:20px 0 10px; }
+        .game-result-side { flex:1; text-align:center; padding:10px; }
+        .game-result-avatar { font-size:36px; margin-bottom:6px; }
+        .game-result-who { font-size:13px; color:#888; font-weight:600; margin-bottom:4px; }
+        .game-result-score { font-size:32px; font-weight:800; color:#333; }
+        .game-result-divider { width:1px; background:var(--border-color); align-self:stretch; margin:10px 0; }
+        .game-result-winner { text-align:center; font-size:14px; font-weight:700; color:var(--theme-blue-text); padding:0 20px 14px; }
+        .game-result-footer { padding:0 16px 20px; display:flex; gap:10px; }
     </style>
 </head>
 <body>
@@ -775,6 +826,12 @@
                     </div>
                     <span style="font-size:11px; color:#555; font-weight:500;">视频通话</span>
                 </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); inviteGameFromUser()">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#e84393,#7048e8); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(232,67,147,0.3);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9H2l6 4.5L5.5 21 12 17l6.5 4L16 13.5 22 9h-7z"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">小游戏</span>
+                </div>
             </div>
         </div>
         <!-- 底部图标+输入框行 -->
@@ -1038,6 +1095,105 @@
         </div>
     </div>
 
+    <!-- 对方查岗——用户回复弹窗 -->
+    <div id="checkin-reply-overlay" onclick="event.target===this && closeCheckinReplyPopup()">
+        <div class="checkin-reply-box">
+            <div class="checkin-reply-header">
+                <div class="checkin-reply-label">📡 查岗到啦</div>
+                <div class="checkin-reply-question" id="checkin-reply-question-text">在干嘛呢？</div>
+                <div class="checkin-reply-from" id="checkin-reply-from-text">对方 来查你的岗</div>
+            </div>
+            <div class="checkin-reply-body">
+                <textarea class="checkin-reply-input" id="checkin-reply-input" placeholder="回复一下 TA 吧..." maxlength="200"></textarea>
+            </div>
+            <div class="checkin-reply-footer">
+                <button onclick="closeCheckinReplyPopup()" style="flex:1; padding:12px; background:#F2F2F2; color:#666; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">忽略</button>
+                <button onclick="sendCheckinReply()" style="flex:2; padding:12px; background:linear-gradient(135deg,#FF6900,#FF3B30); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(255,107,53,0.3);">发送回复 💬</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户邀请对方游戏弹窗（等待/结果） -->
+    <div id="game-invite-overlay" onclick="event.target===this && closeGameInviteOverlay()">
+        <div class="game-invite-box">
+            <div class="game-invite-header">
+                <span class="game-invite-icon">🕹️</span>
+                <div class="game-invite-title">情侣跳一跳</div>
+                <div class="game-invite-sub" id="game-invite-status-text">正在邀请对方...</div>
+            </div>
+            <div class="game-invite-body">
+                <div class="game-invite-desc" id="game-invite-desc-text">已向 <b id="game-invite-other-name">对方</b> 发起游戏邀请，等待 TA 的回应...</div>
+                <div class="game-invite-btns" id="game-invite-btn-area">
+                    <button onclick="closeGameInviteOverlay()" style="flex:1; padding:12px; background:#F2F2F2; color:#666; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 对方邀请用户游戏弹窗 -->
+    <div id="game-incoming-overlay" onclick="event.target===this && declineGameFromOther()">
+        <div class="game-invite-box">
+            <div class="game-invite-header">
+                <span class="game-invite-icon">💕</span>
+                <div class="game-invite-title">情侣跳一跳</div>
+                <div class="game-invite-sub" id="game-incoming-name-text">对方 邀请你玩游戏</div>
+            </div>
+            <div class="game-invite-body">
+                <div class="game-invite-desc">TA 想和你一起玩情侣跳一跳，接受邀请开始游戏吧 💕</div>
+                <div class="game-invite-btns">
+                    <button onclick="declineGameFromOther()" style="flex:1; padding:12px; background:#F2F2F2; color:#666; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">拒绝</button>
+                    <button onclick="acceptGameFromOther()" style="flex:2; padding:12px; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(232,67,147,0.3);">开始游戏 🎮</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 跳一跳游戏主界面 -->
+    <div id="jump-game-overlay">
+        <div class="game-top-bar">
+            <div class="game-score-panel">
+                <div class="game-score-label">我的得分</div>
+                <div class="game-score-val" id="game-my-score">0</div>
+            </div>
+            <button class="game-close-btn" onclick="exitJumpGame()">✕</button>
+            <div class="game-score-panel" style="text-align:right;">
+                <div class="game-score-label" id="game-other-score-label">对方得分</div>
+                <div class="game-score-val" id="game-other-score">?</div>
+            </div>
+        </div>
+        <canvas id="jump-canvas"></canvas>
+        <div class="game-hold-hint" id="game-hint-text">长按屏幕蓄力，松开跳跃 💕</div>
+        <div id="power-bar-wrap"><div id="power-bar-fill"></div></div>
+        <div style="height:calc(10px + env(safe-area-inset-bottom));"></div>
+    </div>
+
+    <!-- 游戏结果弹窗 -->
+    <div id="game-result-overlay">
+        <div class="game-result-box">
+            <div class="game-result-header">
+                <div class="game-result-title" id="result-title-text">游戏结束 🎊</div>
+                <div class="game-result-sub">情侣跳一跳</div>
+            </div>
+            <div class="game-result-scores">
+                <div class="game-result-side">
+                    <div class="game-result-avatar">🧡</div>
+                    <div class="game-result-who" id="result-my-name">我</div>
+                    <div class="game-result-score" id="result-my-score">0</div>
+                </div>
+                <div class="game-result-divider"></div>
+                <div class="game-result-side">
+                    <div class="game-result-avatar">💜</div>
+                    <div class="game-result-who" id="result-other-name">对方</div>
+                    <div class="game-result-score" id="result-other-score">0</div>
+                </div>
+            </div>
+            <div class="game-result-winner" id="result-winner-text">你们真是天生一对！</div>
+            <div class="game-result-footer">
+                <button onclick="closeGameResult()" style="flex:1; padding:12px; background:#F2F2F2; color:#666; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">关闭</button>
+                <button onclick="restartJumpGame()" style="flex:2; padding:12px; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;">再来一局 🎮</button>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -1567,6 +1723,7 @@
         checkBotTrackDrop();   // 🌟 对方约 78% 概率随机掉落一条轨迹
         checkBotDoodleDrop();  // 🌟 对方约 70% 概率随机涂鸦并发到聊天
         checkBotRedPacketDrop(); // 🌟 对方 50% 概率在今日随机时刻发来一个红包
+        checkBotGameInviteDrop(); // 🌟 对方 50% 概率在今日随机时刻邀请你玩小游戏
     }
 
     function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -2189,6 +2346,51 @@
         const chatHtml = `<span style="display:inline-block; background:#FFE9D6; color:#FF6900; font-size:11px; font-weight:700; padding:1px 7px; border-radius:8px; margin-right:6px; vertical-align:middle;">查岗</span>${escapeHtml(question)}`;
         appendMessage(false, chatHtml);
         sendSystemNotification(config.otherName || '匿名者', '查岗：' + question);
+        // 🌟 弹出回复弹窗，让用户打字回复
+        showCheckinReplyPopup(question);
+    }
+
+    // 🌟 显示查岗回复弹窗
+    function showCheckinReplyPopup(question) {
+        const overlay = document.getElementById('checkin-reply-overlay');
+        const qEl = document.getElementById('checkin-reply-question-text');
+        const fromEl = document.getElementById('checkin-reply-from-text');
+        const inputEl = document.getElementById('checkin-reply-input');
+        if (!overlay) return;
+        if (qEl) qEl.textContent = question;
+        if (fromEl) fromEl.textContent = (config.otherName || '对方') + ' 来查你的岗';
+        if (inputEl) inputEl.value = '';
+        overlay.style.display = 'flex';
+        setTimeout(() => { if (inputEl) inputEl.focus(); }, 200);
+    }
+
+    function closeCheckinReplyPopup() {
+        const overlay = document.getElementById('checkin-reply-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    function sendCheckinReply() {
+        const inputEl = document.getElementById('checkin-reply-input');
+        const text = (inputEl ? inputEl.value : '').trim();
+        if (!text) { showCustomNotification('请输入回复内容', 'info'); return; }
+        closeCheckinReplyPopup();
+        // 在聊天里发出用户回复
+        appendMessage(true, escapeHtml(text), null);
+        resetProactiveTimer();
+        // 对方看到回复后随机做一个短回应
+        const replyTexts = ['😊', '嗯嗯～', '收到啦❤️', '好的哦～', '嗯！', '🥰', '好～'];
+        const pickReply = replyTexts[Math.floor(Math.random() * replyTexts.length)];
+        setTimeout(() => {
+            appendMessage(false, escapeHtml(pickReply));
+        }, 1500 + Math.random() * 2000);
+        // 更新查岗记录里最后一条"other"查岗的reply字段
+        for (let i = checkinHistory.length - 1; i >= 0; i--) {
+            if (checkinHistory[i].by === 'other' && checkinHistory[i].reply === '') {
+                checkinHistory[i].reply = escapeHtml(text);
+                saveCheckinHistory();
+                break;
+            }
+        }
     }
 
     // —— 对方查岗：约 50% 概率随机掉落（每天判定一次，参考每日来电机制）——
@@ -4201,6 +4403,518 @@
         localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
         if (document.getElementById('moments-page').style.display !== 'none') renderMoments();
         sendSystemNotification(config.otherName || '匿名者', '更新了朋友圈动态'); 
+    }
+
+    // ================== 🕹️ 情侣跳一跳小游戏 ==================
+    let jumpGame = null; // 游戏状态对象
+
+    // —— 用户从加号面板发起邀请 ——
+    function inviteGameFromUser() {
+        const overlay = document.getElementById('game-invite-overlay');
+        const nameEl = document.getElementById('game-invite-other-name');
+        const statusEl = document.getElementById('game-invite-status-text');
+        const descEl = document.getElementById('game-invite-desc-text');
+        const btnArea = document.getElementById('game-invite-btn-area');
+        if (!overlay) return;
+        const otherName = config.otherName || '对方';
+        if (nameEl) nameEl.textContent = otherName;
+        if (statusEl) statusEl.textContent = '正在邀请对方...';
+        if (descEl) descEl.innerHTML = `已向 <b>${escapeHtml(otherName)}</b> 发起游戏邀请，等待 TA 的回应...`;
+        if (btnArea) btnArea.innerHTML = `<button onclick="closeGameInviteOverlay()" style="flex:1; padding:12px; background:#F2F2F2; color:#666; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">取消</button>`;
+        overlay.style.display = 'flex';
+        // 在聊天里发出邀请气泡
+        const inviteHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(232,67,147,0.3);"><span style="font-size:32px;">🕹️</span><div><div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:2px;">情侣跳一跳</div><div style="font-size:11px; color:rgba(255,255,255,0.85);">等待对方接受邀请...</div></div></div>`;
+        appendMessage(true, inviteHtml);
+        resetProactiveTimer();
+        // 对方 90% 接受，10% 拒绝
+        const willAccept = Math.random() >= 0.10;
+        const responseDelay = 1500 + Math.random() * 2500;
+        setTimeout(() => {
+            if (willAccept) {
+                // 对方接受
+                if (statusEl) statusEl.textContent = '对方接受了！';
+                if (descEl) descEl.innerHTML = `<b>${escapeHtml(otherName)}</b> 接受了你的邀请，游戏即将开始！`;
+                if (btnArea) btnArea.innerHTML = `<button onclick="startJumpGame(true)" style="flex:1; padding:12px; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(232,67,147,0.3);">开始游戏 🎮</button>`;
+                // 对方在聊天里发接受消息
+                const acceptHtml = `<span style="display:inline-block; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; font-size:11px; font-weight:700; padding:2px 10px; border-radius:10px; margin-right:6px; vertical-align:middle;">小游戏</span>好啊，来吧！🎮`;
+                appendMessage(false, acceptHtml);
+            } else {
+                // 对方拒绝
+                if (statusEl) statusEl.textContent = '对方暂时不想玩...';
+                if (descEl) descEl.innerHTML = `<b>${escapeHtml(otherName)}</b> 现在不方便玩游戏，换个时间再约吧～`;
+                if (btnArea) btnArea.innerHTML = `<button onclick="closeGameInviteOverlay()" style="flex:1; padding:12px; background:#F2F2F2; color:#666; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">好的</button>`;
+                const refuseHtml = `<span style="display:inline-block; background:#F2F2F2; color:#666; font-size:11px; font-weight:700; padding:2px 10px; border-radius:10px; margin-right:6px; vertical-align:middle;">小游戏</span>现在不方便，下次吧～`;
+                appendMessage(false, refuseHtml);
+            }
+        }, responseDelay);
+    }
+
+    function closeGameInviteOverlay() {
+        const overlay = document.getElementById('game-invite-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    // —— 对方发起邀请（每天50%概率，随机时刻） ——
+    function checkBotGameInviteDrop() {
+        const todayStr = getLocalDateStr(new Date());
+        const lastDate = localStorage.getItem('lastGameInviteDateV1');
+        if (lastDate !== todayStr) {
+            localStorage.setItem('lastGameInviteDateV1', todayStr);
+            if (Math.random() < 0.5) {
+                // 命中：在 1~8 小时内的随机时刻发起邀请
+                const delayMs = 60 * 1000 + Math.random() * (8 * 60 * 60 * 1000 - 60 * 1000);
+                localStorage.setItem('scheduledGameInviteV1', (Date.now() + delayMs).toString());
+            } else {
+                localStorage.removeItem('scheduledGameInviteV1');
+            }
+        }
+        const t = localStorage.getItem('scheduledGameInviteV1');
+        if (!t) return;
+        const when = parseInt(t);
+        if (isNaN(when)) { localStorage.removeItem('scheduledGameInviteV1'); return; }
+        if (getLocalDateStr(new Date(when)) !== todayStr) { localStorage.removeItem('scheduledGameInviteV1'); return; }
+        const delay = when - Date.now();
+        if (delay <= 0) {
+            localStorage.removeItem('scheduledGameInviteV1');
+            showGameIncomingInvite();
+        } else {
+            setTimeout(() => {
+                showGameIncomingInvite();
+                localStorage.removeItem('scheduledGameInviteV1');
+            }, delay);
+        }
+    }
+
+    function showGameIncomingInvite() {
+        const overlay = document.getElementById('game-incoming-overlay');
+        const nameEl = document.getElementById('game-incoming-name-text');
+        if (!overlay) return;
+        const otherName = config.otherName || '对方';
+        if (nameEl) nameEl.textContent = otherName + ' 邀请你玩游戏';
+        overlay.style.display = 'flex';
+        // 在聊天里也发出邀请气泡
+        const inviteHtml = `<span style="display:inline-block; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; font-size:11px; font-weight:700; padding:2px 10px; border-radius:10px; margin-right:6px; vertical-align:middle;">小游戏</span>我们来玩情侣跳一跳吧 🎮`;
+        appendMessage(false, inviteHtml);
+        sendSystemNotification(otherName, '邀请你玩情侣跳一跳 🕹️');
+    }
+
+    function declineGameFromOther() {
+        const overlay = document.getElementById('game-incoming-overlay');
+        if (overlay) overlay.style.display = 'none';
+        appendMessage(true, escapeHtml('现在不方便，下次再玩吧 😅'), null);
+        resetProactiveTimer();
+        // 对方小失落回应
+        setTimeout(() => {
+            const replyTexts = ['好吧😔', '好的，下次吧', '哦...那算了', '(⊙︿⊙) 好吧'];
+            appendMessage(false, escapeHtml(replyTexts[Math.floor(Math.random() * replyTexts.length)]));
+        }, 1500);
+    }
+
+    function acceptGameFromOther() {
+        const overlay = document.getElementById('game-incoming-overlay');
+        if (overlay) overlay.style.display = 'none';
+        appendMessage(true, escapeHtml('好啊，来玩！🎮'), null);
+        resetProactiveTimer();
+        setTimeout(() => { startJumpGame(false); }, 400);
+    }
+
+    // —— 跳一跳游戏核心逻辑 ——
+    function startJumpGame(fromUserInvite) {
+        closeGameInviteOverlay();
+        const overlay = document.getElementById('jump-game-overlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        // 更新对方名称
+        const otherScoreLabel = document.getElementById('game-other-score-label');
+        const resultOtherName = document.getElementById('result-other-name');
+        if (otherScoreLabel) otherScoreLabel.textContent = (config.otherName || '对方') + '得分';
+        if (resultOtherName) resultOtherName.textContent = config.otherName || '对方';
+        const myNameEl = document.getElementById('result-my-name');
+        if (myNameEl) myNameEl.textContent = config.myName || '我';
+        initJumpGameEngine();
+    }
+
+    function exitJumpGame() {
+        const overlay = document.getElementById('jump-game-overlay');
+        if (overlay) overlay.style.display = 'none';
+        if (jumpGame) { cancelAnimationFrame(jumpGame.raf); jumpGame = null; }
+    }
+
+    function restartJumpGame() {
+        document.getElementById('game-result-overlay').style.display = 'none';
+        initJumpGameEngine();
+    }
+
+    function closeGameResult() {
+        document.getElementById('game-result-overlay').style.display = 'none';
+        exitJumpGame();
+    }
+
+    function initJumpGameEngine() {
+        const canvas = document.getElementById('jump-canvas');
+        if (!canvas) return;
+        if (jumpGame && jumpGame.raf) cancelAnimationFrame(jumpGame.raf);
+        const ctx = canvas.getContext('2d');
+
+        // 设置 canvas 实际尺寸
+        function resize() {
+            canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+            canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+        }
+        resize();
+
+        const W = canvas.width, H = canvas.height;
+        const DPR = window.devicePixelRatio || 1;
+
+        // 颜色方案
+        const COLORS = {
+            bg1: '#1a1035', bg2: '#2d1b5e',
+            platform: ['#e84393', '#7048e8', '#0084FF', '#FF6900', '#07C160'],
+            player: '#FF69B4',
+            shadow: 'rgba(0,0,0,0.3)'
+        };
+
+        // 平台参数
+        const PLAT_H = 18 * DPR;
+        const PLAT_W_MIN = 60 * DPR;
+        const PLAT_W_MAX = 100 * DPR;
+        const PLAT_GAP_MIN = 80 * DPR;
+        const PLAT_GAP_MAX = 160 * DPR;
+        const PLAYER_R = 14 * DPR;
+        const GRAVITY = 0.45 * DPR;
+
+        // 游戏状态
+        let score = 0;
+        let holding = false;
+        let power = 0;
+        let maxPower = 80 * DPR;
+        let gameOver = false;
+        let offsetX = 0; // 场景水平偏移（镜头跟随）
+
+        // 平台列表
+        function makePlatform(x, y, w, colorIdx) {
+            return { x, y, w, h: PLAT_H, color: COLORS.platform[colorIdx % COLORS.platform.length] };
+        }
+        const platforms = [
+            makePlatform(W * 0.1, H * 0.65, PLAT_W_MAX, 0),
+            makePlatform(W * 0.1 + PLAT_W_MAX + PLAT_GAP_MIN + Math.random() * (PLAT_GAP_MAX - PLAT_GAP_MIN), H * 0.65 + (Math.random() - 0.5) * 40 * DPR, PLAT_W_MIN + Math.random() * (PLAT_W_MAX - PLAT_W_MIN), 1)
+        ];
+        let colorIdx = 2;
+
+        function addPlatform() {
+            const last = platforms[platforms.length - 1];
+            const gap = PLAT_GAP_MIN + Math.random() * (PLAT_GAP_MAX - PLAT_GAP_MIN);
+            const yDelta = (Math.random() - 0.5) * 50 * DPR;
+            const newY = Math.max(H * 0.3, Math.min(H * 0.75, last.y + yDelta));
+            const newW = PLAT_W_MIN + Math.random() * (PLAT_W_MAX - PLAT_W_MIN);
+            platforms.push(makePlatform(last.x + last.w + gap, newY, newW, colorIdx++));
+        }
+        // 预生成更多平台
+        for (let i = 0; i < 5; i++) addPlatform();
+
+        // 玩家状态
+        const curPlat = platforms[0];
+        let player = {
+            x: curPlat.x + curPlat.w * 0.5,
+            y: curPlat.y - PLAYER_R,
+            vy: 0,
+            vx: 0,
+            onGround: true,
+            platIdx: 0,
+            jumping: false
+        };
+
+        let powerBarFill = document.getElementById('power-bar-fill');
+        let myScoreEl = document.getElementById('game-my-score');
+        let hintEl = document.getElementById('game-hint-text');
+
+        jumpGame = { raf: null, score: 0 };
+
+        // 绘制背景渐变
+        function drawBg() {
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, COLORS.bg1);
+            grad.addColorStop(1, COLORS.bg2);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+            // 星星
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            for (let s = 0; s < 30; s++) {
+                const sx = ((s * 137 + offsetX * 0.02) % W + W) % W;
+                const sy = (s * 73) % (H * 0.5);
+                ctx.beginPath();
+                ctx.arc(sx, sy, DPR * (s % 2 === 0 ? 1 : 1.5), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 绘制平台
+        function drawPlatforms() {
+            platforms.forEach(p => {
+                const px = p.x - offsetX;
+                if (px + p.w < -20 || px > W + 20) return;
+                // 阴影
+                ctx.fillStyle = COLORS.shadow;
+                ctx.beginPath();
+                ctx.ellipse(px + p.w * 0.5, p.y + p.h + 4 * DPR, p.w * 0.4, 4 * DPR, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // 平台主体（圆角矩形）
+                const r = 8 * DPR;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.roundRect(px, p.y, p.w, p.h, r);
+                ctx.fill();
+                // 光泽条
+                const gloss = ctx.createLinearGradient(px, p.y, px, p.y + p.h * 0.5);
+                gloss.addColorStop(0, 'rgba(255,255,255,0.25)');
+                gloss.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = gloss;
+                ctx.beginPath();
+                ctx.roundRect(px + 2 * DPR, p.y + 2 * DPR, p.w - 4 * DPR, p.h * 0.5, r - 2 * DPR);
+                ctx.fill();
+                // 心形图案（中心）
+                drawHeart(ctx, px + p.w * 0.5, p.y + p.h * 0.5, 5 * DPR, 'rgba(255,255,255,0.35)');
+            });
+        }
+
+        // 绘制小心心
+        function drawHeart(ctx, x, y, size, color) {
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y + size * 0.3);
+            ctx.bezierCurveTo(x, y - size * 0.5, x - size, y - size * 0.5, x - size, y);
+            ctx.bezierCurveTo(x - size, y + size * 0.6, x, y + size * 1.1, x, y + size * 1.1);
+            ctx.bezierCurveTo(x, y + size * 1.1, x + size, y + size * 0.6, x + size, y);
+            ctx.bezierCurveTo(x + size, y - size * 0.5, x, y - size * 0.5, x, y + size * 0.3);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 绘制玩家（心形）
+        function drawPlayer() {
+            const px = player.x - offsetX;
+            const py = player.y;
+            // 阴影
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(px, py + PLAYER_R + 2 * DPR, PLAYER_R * 0.8, 3 * DPR, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // 玩家心形
+            const s = PLAYER_R * 0.85;
+            ctx.save();
+            ctx.shadowColor = 'rgba(255,105,180,0.6)';
+            ctx.shadowBlur = 8 * DPR;
+            drawHeart(ctx, px, py - s * 0.2, s, COLORS.player);
+            ctx.restore();
+            // 表情
+            ctx.fillStyle = '#fff';
+            ctx.font = `${10 * DPR}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('💕', px, py + s * 0.4);
+        }
+
+        // 绘制蓄力粒子
+        function drawChargingEffect() {
+            if (!holding || power <= 0) return;
+            const px = player.x - offsetX;
+            const py = player.y;
+            const ratio = power / maxPower;
+            for (let i = 0; i < Math.floor(ratio * 8); i++) {
+                const angle = (Date.now() / 200 + i * 0.8) % (Math.PI * 2);
+                const dist = (PLAYER_R + 6 * DPR) + ratio * 8 * DPR;
+                const cx = px + Math.cos(angle) * dist;
+                const cy = py + Math.sin(angle) * dist;
+                ctx.fillStyle = `rgba(232,67,147,${ratio * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 2 * DPR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 绘制分数
+        function drawScore() {
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = `bold ${16 * DPR}px -apple-system, "PingFang SC", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+        }
+
+        // 检测是否落在平台上
+        function checkLanding() {
+            for (let i = player.platIdx; i < platforms.length; i++) {
+                const p = platforms[i];
+                const px = player.x;
+                const py = player.y;
+                // 玩家底部
+                const bottom = py + PLAYER_R;
+                if (bottom >= p.y && bottom <= p.y + p.h + 5 * DPR) {
+                    if (px >= p.x && px <= p.x + p.w) {
+                        // 落地！
+                        player.y = p.y - PLAYER_R;
+                        player.vy = 0;
+                        player.vx = 0;
+                        player.onGround = true;
+                        player.jumping = false;
+                        if (i > player.platIdx) {
+                            score += (i - player.platIdx);
+                            player.platIdx = i;
+                            if (myScoreEl) myScoreEl.textContent = score;
+                            jumpGame.score = score;
+                        }
+                        // 补充平台
+                        while (platforms.length - i < 6) addPlatform();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 相机跟随
+        function updateCamera() {
+            const targetX = player.x - W * 0.3;
+            offsetX += (targetX - offsetX) * 0.08;
+            if (offsetX < 0) offsetX = 0;
+        }
+
+        // 主循环
+        function gameLoop() {
+            ctx.clearRect(0, 0, W, H);
+            drawBg();
+
+            if (gameOver) return;
+
+            // 蓄力
+            if (holding && player.onGround) {
+                power = Math.min(power + 1.2 * DPR, maxPower);
+                if (powerBarFill) powerBarFill.style.width = (power / maxPower * 100) + '%';
+            }
+
+            // 物理更新
+            if (!player.onGround) {
+                player.vy += GRAVITY;
+                player.x += player.vx;
+                player.y += player.vy;
+                // 检测落地
+                if (!checkLanding()) {
+                    // 检测掉落
+                    if (player.y - PLAYER_R > H + 50 * DPR) {
+                        endJumpGame();
+                        return;
+                    }
+                }
+            }
+
+            updateCamera();
+            drawPlatforms();
+            drawChargingEffect();
+            drawPlayer();
+
+            jumpGame.raf = requestAnimationFrame(gameLoop);
+        }
+
+        // 跳跃
+        function doJump() {
+            if (!player.onGround || gameOver) return;
+            const ratio = power / maxPower;
+            const jumpVX = (6 + ratio * 14) * DPR;
+            const jumpVY = -(8 + ratio * 12) * DPR;
+            player.vx = jumpVX;
+            player.vy = jumpVY;
+            player.onGround = false;
+            player.jumping = true;
+            power = 0;
+            if (powerBarFill) powerBarFill.style.width = '0%';
+            if (hintEl) hintEl.textContent = '长按屏幕蓄力，松开跳跃 💕';
+        }
+
+        function endJumpGame() {
+            gameOver = true;
+            if (jumpGame) { cancelAnimationFrame(jumpGame.raf); }
+            // 模拟对方得分
+            const myScore = score;
+            const otherScore = Math.max(0, myScore + Math.floor((Math.random() - 0.4) * (myScore * 0.5 + 5)));
+            showGameResult(myScore, otherScore);
+        }
+
+        // 事件监听
+        function onStart(e) {
+            e.preventDefault();
+            if (gameOver || !player.onGround) return;
+            holding = true;
+            if (hintEl) hintEl.textContent = '蓄力中... 松开跳跃！';
+        }
+        function onEnd(e) {
+            e.preventDefault();
+            if (!holding) return;
+            holding = false;
+            doJump();
+        }
+
+        canvas.addEventListener('touchstart', onStart, { passive: false });
+        canvas.addEventListener('touchend', onEnd, { passive: false });
+        canvas.addEventListener('mousedown', onStart);
+        canvas.addEventListener('mouseup', onEnd);
+
+        // 清理旧监听（简单方式：重置canvas）
+        jumpGame._cleanUp = () => {
+            canvas.removeEventListener('touchstart', onStart);
+            canvas.removeEventListener('touchend', onEnd);
+            canvas.removeEventListener('mousedown', onStart);
+            canvas.removeEventListener('mouseup', onEnd);
+        };
+
+        // 重置UI
+        if (myScoreEl) myScoreEl.textContent = '0';
+        const otherScoreEl = document.getElementById('game-other-score');
+        if (otherScoreEl) otherScoreEl.textContent = '?';
+        if (powerBarFill) powerBarFill.style.width = '0%';
+        if (hintEl) hintEl.textContent = '长按屏幕蓄力，松开跳跃 💕';
+
+        jumpGame.raf = requestAnimationFrame(gameLoop);
+    }
+
+    function showGameResult(myScore, otherScore) {
+        const overlay = document.getElementById('game-result-overlay');
+        const myScoreEl = document.getElementById('result-my-score');
+        const otherScoreEl = document.getElementById('result-other-score');
+        const winnerEl = document.getElementById('result-winner-text');
+        const titleEl = document.getElementById('result-title-text');
+        const gameOtherEl = document.getElementById('game-other-score');
+        if (!overlay) return;
+        if (myScoreEl) myScoreEl.textContent = myScore;
+        if (otherScoreEl) otherScoreEl.textContent = otherScore;
+        if (gameOtherEl) gameOtherEl.textContent = otherScore;
+
+        let winnerText = '';
+        if (myScore > otherScore) {
+            winnerText = '你赢了！🥳 ' + (config.otherName || '对方') + ' 下次加油';
+            if (titleEl) titleEl.textContent = '你赢了 🎊';
+        } else if (myScore < otherScore) {
+            winnerText = (config.otherName || '对方') + ' 赢了！你下次一定可以的 💪';
+            if (titleEl) titleEl.textContent = '游戏结束 🎮';
+        } else {
+            winnerText = '平局！你们真是天生一对 💕';
+            if (titleEl) titleEl.textContent = '平局 💕';
+        }
+        if (winnerEl) winnerEl.textContent = winnerText;
+        overlay.style.display = 'flex';
+
+        // 在聊天里发送游戏结果
+        const resultHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:180px; max-width:220px;"><span style="font-size:28px;">🕹️</span><div><div style="font-size:13px; font-weight:700; color:#fff; margin-bottom:3px;">跳一跳结果</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.myName||'我')}: ${myScore} 分</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.otherName||'对方')}: ${otherScore} 分</div></div></div>`;
+        appendMessage(true, resultHtml);
+        resetProactiveTimer();
+        // 对方发出反应
+        const reactions = myScore > otherScore 
+            ? ['输了输了😭', '不服！再来！🥊', `哼，你赢了这次😤`, '下次我一定赢你！']
+            : myScore < otherScore 
+            ? ['我赢了哈哈哈~😏', '让着你都让不了😂', `${escapeHtml(config.myName||'你')}加油鸭！`, '嘿嘿～再来一局？']
+            : ['居然平局？！', '咦，心有灵犀😍', '真的是天生一对✨'];
+        setTimeout(() => {
+            appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
+        }, 1500);
     }
 
     init();
