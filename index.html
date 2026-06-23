@@ -129,6 +129,17 @@
         /* 红包气泡 */
         .red-packet-bubble { cursor: pointer; }
         .red-packet-bubble:active { opacity: 0.85; transform: scale(0.97); }
+        .red-packet-card { transition: opacity .22s ease, filter .22s ease, box-shadow .22s ease, transform .12s ease; }
+        .red-packet-card.claimed, .red-packet-card.returned {
+            background: linear-gradient(135deg, #C9C9C9, #9F9F9F) !important;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.10) !important;
+            opacity: .72;
+            filter: grayscale(.45);
+        }
+        .red-packet-card.claimed:active, .red-packet-card.returned:active { transform: none; opacity: .72; }
+        .red-packet-card.claimed .red-packet-icon, .red-packet-card.returned .red-packet-icon { opacity: .72; }
+        .red-packet-card.claimed .red-packet-title, .red-packet-card.returned .red-packet-title { color: rgba(255,255,255,.92) !important; }
+        .red-packet-card.claimed .red-packet-status, .red-packet-card.returned .red-packet-status { color: rgba(255,255,255,.95) !important; }
         @keyframes pulseMic { 0% { transform: scale(1); opacity: 1;} 50% { transform: scale(1.15); opacity: 0.7;} 100% { transform: scale(1); opacity: 1;} }
 
         /* ====== 底部输入区 ====== */
@@ -3451,6 +3462,24 @@
     function closeRedPacket() {
         document.getElementById('red-packet-overlay').style.display = 'none';
     }
+
+    // 统一更新红包原气泡状态：仿微信，领取/退回后原红包直接变灰并不可再点
+    function markRedPacketBubble(bubbleId, state, statusText) {
+        if (!bubbleId) return;
+        const bubbleEl = document.getElementById(bubbleId);
+        if (!bubbleEl) return;
+        bubbleEl.classList.remove('claimed', 'returned');
+        if (state === 'claimed' || state === 'returned') bubbleEl.classList.add(state);
+        bubbleEl.removeAttribute('onclick');
+        bubbleEl.style.cursor = 'default';
+        bubbleEl.setAttribute('aria-disabled', 'true');
+        const statusEl = document.getElementById(bubbleId + '-status');
+        if (statusEl) {
+            statusEl.textContent = statusText || (state === 'returned' ? '已退回 ↩️' : '已领取 ✅');
+            statusEl.style.color = 'rgba(255,255,255,0.95)';
+        }
+    }
+
     function sendRedPacket() {
         const amountInput = document.getElementById('red-packet-amount');
         const wishInput = document.getElementById('red-packet-wish');
@@ -3463,33 +3492,27 @@
         // 给本次红包气泡一个唯一 ID，方便后续更新状态
         const rpBubbleId = 'rp-sent-' + Date.now();
 
-        // 发出红包消息气泡（状态行初始为"微信红包"）
-        const redPacketHtml = `<div id="${rpBubbleId}" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
+        // 发出红包消息气泡。对方是否收下由程序在稍后自动 50% 判定，不再让用户选择。
+        const redPacketHtml = `<div id="${rpBubbleId}" class="red-packet-card red-packet-bubble" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
             <div style="position:absolute; top:-15px; right:-15px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
-            <span style="font-size:36px; flex-shrink:0;">🧧</span>
+            <span class="red-packet-icon" style="font-size:36px; flex-shrink:0;">🧧</span>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:15px; font-weight:700; color:#FFE066; margin-bottom:2px;">¥${amount}</div>
+                <div class="red-packet-title" style="font-size:15px; font-weight:700; color:#FFE066; margin-bottom:2px;">¥${amount}</div>
                 <div style="font-size:11px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(wish)}</div>
-                <div id="${rpBubbleId}-status" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">微信红包</div>
+                <div id="${rpBubbleId}-status" class="red-packet-status" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">等待对方领取</div>
             </div>
         </div>`;
         appendMessage(true, redPacketHtml, currentQuote);
         currentQuote = null; cancelQuote();
         resetProactiveTimer();
-        showCustomNotification('红包已发送 🧧', 'success');
+        showCustomNotification('红包已发送，等待对方处理 🧧', 'success');
 
-        // 对方稍后自动以 50% 概率领取或退回（不由用户决定）
+        // 对方稍后自动以 50% 概率领取或退回（像微信转账/红包体验，不由用户决定）
         const delay = (config.minReplyDelay || 2000) + Math.random() * 3000;
         setTimeout(() => {
             const accepted = Math.random() < 0.5;
-            const statusEl = document.getElementById(rpBubbleId + '-status');
             if (accepted) {
-                // 更新原气泡状态为"已领取"
-                if (statusEl) {
-                    statusEl.textContent = '已领取 ✅';
-                    statusEl.style.color = 'rgba(255,255,255,0.95)';
-                }
-                // 对方在聊天里发一条感谢消息
+                markRedPacketBubble(rpBubbleId, 'claimed', '对方已领取 ✅');
                 const thankMsgs = [
                     '谢谢宝贝的红包 🥰❤️',
                     '哇！谢谢你！🎉',
@@ -3505,12 +3528,7 @@
                 }, 800 + Math.random() * 1200);
                 sendSystemNotification(config.otherName || '对方', `领取了你的 ¥${amount} 红包 🎉`);
             } else {
-                // 更新原气泡状态为"已退回"
-                if (statusEl) {
-                    statusEl.textContent = '对方退回了红包 ↩️';
-                    statusEl.style.color = 'rgba(255,255,255,0.9)';
-                }
-                // 对方在聊天里发退回消息
+                markRedPacketBubble(rpBubbleId, 'returned', '对方已退回 ↩️');
                 const returnMsgs = [
                     '红包退回给你，心意我收到了 🥺',
                     '不用啦，把钱存起来 😊',
@@ -3523,7 +3541,7 @@
                     appendMessage(false, escapeHtml(returnMsgs[Math.floor(Math.random() * returnMsgs.length)]));
                     finishReply();
                 }, 800 + Math.random() * 1200);
-                showCustomNotification(`对方退回了红包 ↩️`, 'info', 3000);
+                showCustomNotification('对方退回了红包 ↩️', 'info', 3000);
             }
         }, delay);
     }
@@ -3537,13 +3555,13 @@
         const senderName = config.otherName || '对方';
         const rpBotId = 'rp-bot-' + Date.now();
 
-        const redPacketHtml = `<div id="${rpBotId}" onclick="showReceiveRedPacketDialog('${amount}','${escapeForJs(wish)}','${escapeForJs(senderName)}','${rpBotId}')" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
+        const redPacketHtml = `<div id="${rpBotId}" class="red-packet-card red-packet-bubble" onclick="showReceiveRedPacketDialog('${amount}','${escapeForJs(wish)}','${escapeForJs(senderName)}','${rpBotId}')" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
             <div style="position:absolute; top:-15px; right:-15px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
-            <span style="font-size:36px; flex-shrink:0;">🧧</span>
+            <span class="red-packet-icon" style="font-size:36px; flex-shrink:0;">🧧</span>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:700; color:#FFE066; margin-bottom:2px;">微信红包</div>
+                <div class="red-packet-title" style="font-size:13px; font-weight:700; color:#FFE066; margin-bottom:2px;">微信红包</div>
                 <div style="font-size:11px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(wish)}</div>
-                <div id="${rpBotId}-status" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">点击领取</div>
+                <div id="${rpBotId}-status" class="red-packet-status" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">点击领取</div>
             </div>
         </div>`;
 
@@ -3552,6 +3570,11 @@
     }
     
     function showReceiveRedPacketDialog(amount, wish, sender, bubbleId) {
+        const bubbleEl = bubbleId ? document.getElementById(bubbleId) : null;
+        if (bubbleEl && bubbleEl.classList.contains('claimed')) {
+            showCustomNotification('这个红包已经领取过啦', 'info', 2000);
+            return;
+        }
         const senderEl = document.getElementById('rp-receive-sender');
         const wishEl = document.getElementById('rp-receive-wish');
         if (senderEl) senderEl.textContent = (sender || config.otherName || '对方') + ' 给你发了一个红包';
@@ -3575,22 +3598,8 @@
         document.getElementById('red-packet-opened-overlay').style.display = 'none';
         const amount = window._pendingRedPacketAmount || '88.88';
         showCustomNotification(`已收下 ¥${amount} 红包 🎉`, 'success', 3000);
-        // 在原红包气泡上更新状态为"已领取"（仿微信体验）
-        const bubbleId = window._pendingRedPacketBubbleId;
-        if (bubbleId) {
-            const bubbleEl = document.getElementById(bubbleId);
-            if (bubbleEl) {
-                // 移除点击事件，防止重复领取
-                bubbleEl.removeAttribute('onclick');
-                bubbleEl.style.cursor = 'default';
-                // 更新状态行
-                const statusEl = document.getElementById(bubbleId + '-status');
-                if (statusEl) {
-                    statusEl.textContent = '已领取 ✅';
-                    statusEl.style.color = 'rgba(255,255,255,0.95)';
-                }
-            }
-        }
+        // 用户收下后，直接在对方发来的原红包气泡上变灰，类似微信里已领取红包的状态
+        markRedPacketBubble(window._pendingRedPacketBubbleId, 'claimed', '已领取 ✅');
         window._pendingRedPacketAmount = null;
         window._pendingRedPacketBubbleId = null;
     }
@@ -4544,19 +4553,23 @@
         const overlay = document.getElementById('jump-game-overlay');
         if (!overlay) return;
         overlay.style.display = 'flex';
-        // 更新对方名称
+        const myScoreLabel = document.getElementById('game-my-score-label');
         const otherScoreLabel = document.getElementById('game-other-score-label');
         const resultOtherName = document.getElementById('result-other-name');
-        if (otherScoreLabel) otherScoreLabel.textContent = (config.otherName || '对方') + '得分';
-        if (resultOtherName) resultOtherName.textContent = config.otherName || '对方';
         const myNameEl = document.getElementById('result-my-name');
-        if (myNameEl) myNameEl.textContent = config.myName || '我';
+        const myName = config.myName || '我';
+        const otherName = config.otherName || '对方';
+        if (myScoreLabel) myScoreLabel.textContent = `${myName}贡献`;
+        if (otherScoreLabel) otherScoreLabel.textContent = `${otherName}贡献`;
+        if (resultOtherName) resultOtherName.textContent = `${otherName}贡献`;
+        if (myNameEl) myNameEl.textContent = `${myName}贡献`;
         initJumpGameEngine();
     }
 
     function exitJumpGame() {
         const overlay = document.getElementById('jump-game-overlay');
         if (overlay) overlay.style.display = 'none';
+        if (jumpGame && typeof jumpGame._cleanUp === 'function') jumpGame._cleanUp();
         if (jumpGame) { cancelAnimationFrame(jumpGame.raf); jumpGame = null; }
     }
 
@@ -4573,72 +4586,89 @@
     function initJumpGameEngine() {
         const canvas = document.getElementById('jump-canvas');
         if (!canvas) return;
+        if (jumpGame && typeof jumpGame._cleanUp === 'function') jumpGame._cleanUp();
         if (jumpGame && jumpGame.raf) cancelAnimationFrame(jumpGame.raf);
         const ctx = canvas.getContext('2d');
 
-        // 设置 canvas 实际尺寸
         function resize() {
-            canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-            canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+            const DPR = window.devicePixelRatio || 1;
+            canvas.width = canvas.clientWidth * DPR;
+            canvas.height = canvas.clientHeight * DPR;
         }
         resize();
 
-        const W = canvas.width, H = canvas.height;
+        const W = canvas.width;
+        const H = canvas.height;
         const DPR = window.devicePixelRatio || 1;
 
-        // 颜色方案
         const COLORS = {
             bg1: '#1a1035', bg2: '#2d1b5e',
             platform: ['#e84393', '#7048e8', '#0084FF', '#FF6900', '#07C160'],
             player: '#FF69B4',
-            playerBot: '#B39DDB',   // 对方玩家颜色（淡紫）
-            shadow: 'rgba(0,0,0,0.3)'
+            playerBot: '#B39DDB',
+            shadow: 'rgba(0,0,0,0.28)'
         };
 
-        // 平台参数
+        // 手感参数：偏微信跳一跳的“长按压缩、松手弹起、距离跟蓄力非线性增长”
         const PLAT_H = 18 * DPR;
-        const PLAT_W_MIN = 60 * DPR;
-        const PLAT_W_MAX = 100 * DPR;
-        const PLAT_GAP_MIN = 80 * DPR;
-        const PLAT_GAP_MAX = 160 * DPR;
-        const PLAYER_R = 14 * DPR;
-        const GRAVITY = 0.45 * DPR;
+        const PLAT_W_MIN = 64 * DPR;
+        const PLAT_W_MAX = 104 * DPR;
+        const PLAT_GAP_MIN = 92 * DPR;
+        const PLAT_GAP_MAX = 172 * DPR;
+        const PLAYER_R = 15 * DPR;
+        const GRAVITY = 0.52 * DPR;
+        const MAX_HOLD_MS = 1450;
+        const MIN_JUMP_RATIO = 0.10;
+        const MAX_POWER = 100;
 
-        // 游戏状态
         let myScore = 0;
         let botScore = 0;
         let holding = false;
+        let holdStart = 0;
         let power = 0;
-        let maxPower = 80 * DPR;
         let gameOver = false;
         let offsetX = 0;
-        // 双人交替：true=轮到玩家，false=轮到AI
-        let isMyTurn = true;
-        // AI 自动跳的定时
+        let isMyTurn = true; // true=用户跳，false=对方跳；两人合作交替前进
         let botJumpTimer = null;
+        let botChargeTimer = null;
+        let squash = 1;
+        let landingPulse = 0;
 
-        // 平台列表
-        function makePlatform(x, y, w, colorIdx) {
-            return { x, y, w, h: PLAT_H, color: COLORS.platform[colorIdx % COLORS.platform.length] };
+        let powerBarFill = document.getElementById('power-bar-fill');
+        let myScoreEl = document.getElementById('game-my-score');
+        let botScoreEl = document.getElementById('game-other-score');
+        let hintEl = document.getElementById('game-hint-text');
+        let turnEl = document.getElementById('game-turn-indicator');
+
+        function vibrate(ms) {
+            try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
         }
+
+        function easePower(t) {
+            t = Math.max(0, Math.min(1, t));
+            return 1 - Math.pow(1 - t, 1.45);
+        }
+
+        function makePlatform(x, y, w, colorIdx) {
+            return { x, y, w, h: PLAT_H, color: COLORS.platform[colorIdx % COLORS.platform.length], sink: 0 };
+        }
+
         const platforms = [
             makePlatform(W * 0.1, H * 0.65, PLAT_W_MAX, 0),
-            makePlatform(W * 0.1 + PLAT_W_MAX + PLAT_GAP_MIN + Math.random() * (PLAT_GAP_MAX - PLAT_GAP_MIN), H * 0.65 + (Math.random() - 0.5) * 40 * DPR, PLAT_W_MIN + Math.random() * (PLAT_W_MAX - PLAT_W_MIN), 1)
+            makePlatform(W * 0.1 + PLAT_W_MAX + PLAT_GAP_MIN + Math.random() * (PLAT_GAP_MAX - PLAT_GAP_MIN), H * 0.65 + (Math.random() - 0.5) * 38 * DPR, PLAT_W_MIN + Math.random() * (PLAT_W_MAX - PLAT_W_MIN), 1)
         ];
         let colorIdx = 2;
 
         function addPlatform() {
             const last = platforms[platforms.length - 1];
             const gap = PLAT_GAP_MIN + Math.random() * (PLAT_GAP_MAX - PLAT_GAP_MIN);
-            const yDelta = (Math.random() - 0.5) * 50 * DPR;
-            const newY = Math.max(H * 0.3, Math.min(H * 0.75, last.y + yDelta));
+            const yDelta = (Math.random() - 0.5) * 48 * DPR;
+            const newY = Math.max(H * 0.32, Math.min(H * 0.74, last.y + yDelta));
             const newW = PLAT_W_MIN + Math.random() * (PLAT_W_MAX - PLAT_W_MIN);
             platforms.push(makePlatform(last.x + last.w + gap, newY, newW, colorIdx++));
         }
-        // 预生成更多平台
-        for (let i = 0; i < 5; i++) addPlatform();
+        for (let i = 0; i < 6; i++) addPlatform();
 
-        // 玩家状态（当前活跃角色，两人共用同一条路径）
         const curPlat = platforms[0];
         let player = {
             x: curPlat.x + curPlat.w * 0.5,
@@ -4647,41 +4677,34 @@
             vx: 0,
             onGround: true,
             platIdx: 0,
-            jumping: false
+            jumping: false,
+            rot: 0
         };
-
-        let powerBarFill = document.getElementById('power-bar-fill');
-        let myScoreEl = document.getElementById('game-my-score');
-        let botScoreEl = document.getElementById('game-other-score');
-        let hintEl = document.getElementById('game-hint-text');
-        let turnEl = document.getElementById('game-turn-indicator');
 
         jumpGame = { raf: null, myScore: 0, botScore: 0 };
 
         function updateTurnUI() {
             const otherName = config.otherName || '对方';
             if (isMyTurn) {
-                if (turnEl) { turnEl.textContent = '轮到你跳 🩷'; turnEl.style.color = '#FF69B4'; }
-                if (hintEl) hintEl.textContent = '长按屏幕蓄力，松开跳跃 💕';
+                if (turnEl) { turnEl.textContent = '轮到你跳：你跳一下，TA 再跳一下 🩷'; turnEl.style.color = '#FF69B4'; }
+                if (hintEl) hintEl.textContent = '像微信跳一跳一样：长按蓄力，松开跳跃 💕';
                 if (powerBarFill) powerBarFill.style.background = 'linear-gradient(90deg,#e84393,#7048e8)';
             } else {
-                if (turnEl) { turnEl.textContent = `轮到 ${otherName} 跳 💜`; turnEl.style.color = '#B39DDB'; }
-                if (hintEl) hintEl.textContent = `${otherName} 正在跳...`;
+                if (turnEl) { turnEl.textContent = `轮到 ${otherName} 跳：你们在一起往前走 💜`; turnEl.style.color = '#B39DDB'; }
+                if (hintEl) hintEl.textContent = `${otherName} 正在蓄力...`;
                 if (powerBarFill) powerBarFill.style.background = 'linear-gradient(90deg,#7048e8,#B39DDB)';
             }
         }
 
-        // 绘制背景渐变
         function drawBg() {
             const grad = ctx.createLinearGradient(0, 0, 0, H);
             grad.addColorStop(0, COLORS.bg1);
             grad.addColorStop(1, COLORS.bg2);
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, W, H);
-            // 星星
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            for (let s = 0; s < 30; s++) {
-                const sx = ((s * 137 + offsetX * 0.02) % W + W) % W;
+            ctx.fillStyle = 'rgba(255,255,255,0.42)';
+            for (let s = 0; s < 34; s++) {
+                const sx = ((s * 137 + offsetX * 0.018) % W + W) % W;
                 const sy = (s * 73) % (H * 0.5);
                 ctx.beginPath();
                 ctx.arc(sx, sy, DPR * (s % 2 === 0 ? 1 : 1.5), 0, Math.PI * 2);
@@ -4689,36 +4712,6 @@
             }
         }
 
-        // 绘制平台
-        function drawPlatforms() {
-            platforms.forEach(p => {
-                const px = p.x - offsetX;
-                if (px + p.w < -20 || px > W + 20) return;
-                // 阴影
-                ctx.fillStyle = COLORS.shadow;
-                ctx.beginPath();
-                ctx.ellipse(px + p.w * 0.5, p.y + p.h + 4 * DPR, p.w * 0.4, 4 * DPR, 0, 0, Math.PI * 2);
-                ctx.fill();
-                // 平台主体（圆角矩形）
-                const r = 8 * DPR;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.roundRect(px, p.y, p.w, p.h, r);
-                ctx.fill();
-                // 光泽条
-                const gloss = ctx.createLinearGradient(px, p.y, px, p.y + p.h * 0.5);
-                gloss.addColorStop(0, 'rgba(255,255,255,0.25)');
-                gloss.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = gloss;
-                ctx.beginPath();
-                ctx.roundRect(px + 2 * DPR, p.y + 2 * DPR, p.w - 4 * DPR, p.h * 0.5, r - 2 * DPR);
-                ctx.fill();
-                // 心形图案（中心）
-                drawHeart(ctx, px + p.w * 0.5, p.y + p.h * 0.5, 5 * DPR, 'rgba(255,255,255,0.35)');
-            });
-        }
-
-        // 绘制小心心
         function drawHeart(ctx, x, y, size, color) {
             ctx.save();
             ctx.fillStyle = color;
@@ -4732,94 +4725,139 @@
             ctx.restore();
         }
 
-        // 绘制玩家（心形，颜色根据当前轮次变化）
-        function drawPlayer() {
-            const px = player.x - offsetX;
-            const py = player.y;
-            const playerColor = isMyTurn ? COLORS.player : COLORS.playerBot;
-            // 阴影
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.beginPath();
-            ctx.ellipse(px, py + PLAYER_R + 2 * DPR, PLAYER_R * 0.8, 3 * DPR, 0, 0, Math.PI * 2);
-            ctx.fill();
-            // 玩家心形（颜色随轮次变化）
-            const s = PLAYER_R * 0.85;
-            ctx.save();
-            ctx.shadowColor = isMyTurn ? 'rgba(255,105,180,0.6)' : 'rgba(179,157,219,0.6)';
-            ctx.shadowBlur = 8 * DPR;
-            drawHeart(ctx, px, py - s * 0.2, s, playerColor);
-            ctx.restore();
-            // 表情（我=💕，对方=💜）
-            ctx.fillStyle = '#fff';
-            ctx.font = `${10 * DPR}px sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(isMyTurn ? '💕' : '💜', px, py + s * 0.4);
+        function drawPlatforms() {
+            platforms.forEach((p, idx) => {
+                p.sink *= 0.86;
+                const px = p.x - offsetX;
+                if (px + p.w < -30 || px > W + 30) return;
+                const py = p.y + p.sink;
+                ctx.fillStyle = COLORS.shadow;
+                ctx.beginPath();
+                ctx.ellipse(px + p.w * 0.5, py + p.h + 5 * DPR, p.w * 0.42, 4 * DPR, 0, 0, Math.PI * 2);
+                ctx.fill();
+                const r = 8 * DPR;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.roundRect(px, py, p.w, p.h, r);
+                ctx.fill();
+                const gloss = ctx.createLinearGradient(px, py, px, py + p.h * 0.5);
+                gloss.addColorStop(0, 'rgba(255,255,255,0.25)');
+                gloss.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = gloss;
+                ctx.beginPath();
+                ctx.roundRect(px + 2 * DPR, py + 2 * DPR, p.w - 4 * DPR, p.h * 0.5, r - 2 * DPR);
+                ctx.fill();
+                drawHeart(ctx, px + p.w * 0.5, py + p.h * 0.5, 5 * DPR, idx === player.platIdx ? 'rgba(255,255,255,0.52)' : 'rgba(255,255,255,0.32)');
+            });
         }
 
-        // 绘制蓄力粒子
         function drawChargingEffect() {
-            if (!holding || power <= 0) return;
+            if ((!holding && !player.onGround) || power <= 0) return;
             const px = player.x - offsetX;
             const py = player.y;
-            const ratio = power / maxPower;
-            for (let i = 0; i < Math.floor(ratio * 8); i++) {
-                const angle = (Date.now() / 200 + i * 0.8) % (Math.PI * 2);
-                const dist = (PLAYER_R + 6 * DPR) + ratio * 8 * DPR;
+            const ratio = power / MAX_POWER;
+            ctx.save();
+            ctx.strokeStyle = `rgba(255,255,255,${0.12 + ratio * 0.25})`;
+            ctx.lineWidth = 2 * DPR;
+            ctx.beginPath();
+            ctx.arc(px, py + PLAYER_R * 0.1, PLAYER_R + ratio * 28 * DPR, 0, Math.PI * 2);
+            ctx.stroke();
+            for (let i = 0; i < Math.floor(ratio * 10); i++) {
+                const angle = (Date.now() / 180 + i * 0.75) % (Math.PI * 2);
+                const dist = PLAYER_R + 7 * DPR + ratio * 10 * DPR;
                 const cx = px + Math.cos(angle) * dist;
                 const cy = py + Math.sin(angle) * dist;
-                ctx.fillStyle = `rgba(232,67,147,${ratio * 0.8})`;
+                ctx.fillStyle = `rgba(232,67,147,${ratio * 0.85})`;
                 ctx.beginPath();
                 ctx.arc(cx, cy, 2 * DPR, 0, Math.PI * 2);
                 ctx.fill();
             }
+            ctx.restore();
         }
 
-        // 绘制分数
-        function drawScore() {
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.font = `bold ${16 * DPR}px -apple-system, "PingFang SC", sans-serif`;
+        function drawPlayer() {
+            const px = player.x - offsetX;
+            const py = player.y;
+            const playerColor = isMyTurn ? COLORS.player : COLORS.playerBot;
+            const s = PLAYER_R * 0.85;
+            const compressY = player.onGround ? squash : 1;
+            const compressX = player.onGround ? (1 + (1 - squash) * 0.65) : 1;
+            const jumpTilt = player.jumping ? Math.min(0.35, Math.abs(player.vx) / (22 * DPR)) : 0;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.22)';
+            ctx.beginPath();
+            const shadowW = PLAYER_R * (player.onGround ? (1.0 + (1 - squash) * 1.8) : 0.75);
+            ctx.ellipse(px, py + PLAYER_R + 3 * DPR, shadowW, 3 * DPR, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (landingPulse > 0) {
+                ctx.save();
+                ctx.strokeStyle = `rgba(255,255,255,${landingPulse * 0.32})`;
+                ctx.lineWidth = 2 * DPR;
+                ctx.beginPath();
+                ctx.arc(px, py + PLAYER_R * 0.2, PLAYER_R + (1 - landingPulse) * 22 * DPR, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(jumpTilt);
+            ctx.scale(compressX, compressY);
+            ctx.shadowColor = isMyTurn ? 'rgba(255,105,180,0.62)' : 'rgba(179,157,219,0.62)';
+            ctx.shadowBlur = 8 * DPR;
+            drawHeart(ctx, 0, -s * 0.2, s, playerColor);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            ctx.font = `${10 * DPR}px sans-serif`;
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(isMyTurn ? '💕' : '💜', 0, s * 0.4);
+            ctx.restore();
         }
 
-        // 相机跟随
         function updateCamera() {
-            const targetX = player.x - W * 0.3;
-            offsetX += (targetX - offsetX) * 0.08;
+            const targetX = player.x - W * 0.32;
+            offsetX += (targetX - offsetX) * 0.075;
             if (offsetX < 0) offsetX = 0;
         }
 
-        // 检测落地（返回是否落地成功）
+        function setScoreForLanding() {
+            if (isMyTurn) {
+                myScore++;
+                if (myScoreEl) myScoreEl.textContent = myScore;
+            } else {
+                botScore++;
+                if (botScoreEl) botScoreEl.textContent = botScore;
+            }
+            jumpGame.myScore = myScore;
+            jumpGame.botScore = botScore;
+        }
+
         function checkLandingLocal() {
             for (let i = player.platIdx; i < platforms.length; i++) {
                 const p = platforms[i];
+                const py = p.y + p.sink;
                 if (player.vy > 0 &&
-                    player.x >= p.x - PLAYER_R * 0.5 &&
-                    player.x <= p.x + p.w + PLAYER_R * 0.5 &&
-                    player.y + PLAYER_R >= p.y &&
-                    player.y + PLAYER_R <= p.y + p.h + 15 * DPR) {
+                    player.x >= p.x - PLAYER_R * 0.45 &&
+                    player.x <= p.x + p.w + PLAYER_R * 0.45 &&
+                    player.y + PLAYER_R >= py &&
+                    player.y + PLAYER_R <= py + p.h + 16 * DPR) {
                     player.y = p.y - PLAYER_R;
                     player.vy = 0;
                     player.vx = 0;
                     player.onGround = true;
                     player.jumping = false;
+                    squash = 0.78;
+                    landingPulse = 1;
+                    p.sink = 4 * DPR;
+                    vibrate(12);
                     if (i > player.platIdx) {
                         player.platIdx = i;
-                        // 成功跳上新平台：给当前回合的玩家加分
-                        if (isMyTurn) {
-                            myScore++;
-                            if (myScoreEl) myScoreEl.textContent = myScore;
-                        } else {
-                            botScore++;
-                            if (botScoreEl) botScoreEl.textContent = botScore;
-                        }
-                        // 保证前方有足够平台
-                        while (platforms.length - player.platIdx < 6) addPlatform();
-                        // 切换回合
+                        setScoreForLanding();
+                        while (platforms.length - player.platIdx < 7) addPlatform();
                         isMyTurn = !isMyTurn;
                         updateTurnUI();
-                        // 如果轮到 AI，延迟后自动跳
                         if (!isMyTurn) scheduleBotJump();
                     }
                     return true;
@@ -4828,66 +4866,76 @@
             return false;
         }
 
-        // AI 自动跳：随机蓄力，偶尔失败（约 10%）
-        function scheduleBotJump() {
-            if (botJumpTimer) clearTimeout(botJumpTimer);
-            const botDelay = 1200 + Math.random() * 1200;
-            botJumpTimer = setTimeout(() => {
-                if (gameOver || isMyTurn) return;
-                // 90% 成功，10% 失败（掉落）
-                const willSucceed = Math.random() >= 0.10;
-                if (willSucceed) {
-                    // 计算合适的蓄力比例（根据下一平台距离）
-                    const nextPlat = platforms[player.platIdx + 1];
-                    if (!nextPlat) { isMyTurn = true; updateTurnUI(); return; }
-                    const dist = (nextPlat.x + nextPlat.w * 0.5) - player.x;
-                    const distNorm = Math.max(0, Math.min(1, dist / (PLAT_GAP_MAX * 1.5)));
-                    const ratio = 0.35 + distNorm * 0.55 + (Math.random() - 0.5) * 0.12;
-                    const clampedRatio = Math.max(0.2, Math.min(1, ratio));
-                    // 模拟蓄力动画
-                    let chargePct = 0;
-                    const chargeInterval = setInterval(() => {
-                        chargePct = Math.min(chargePct + 5, clampedRatio * 100);
-                        if (powerBarFill) powerBarFill.style.width = chargePct + '%';
-                    }, 30);
-                    setTimeout(() => {
-                        clearInterval(chargeInterval);
-                        if (gameOver || isMyTurn) return;
-                        const jumpVX = (6 + clampedRatio * 14) * DPR;
-                        const jumpVY = -(8 + clampedRatio * 12) * DPR;
-                        player.vx = jumpVX;
-                        player.vy = jumpVY;
-                        player.onGround = false;
-                        player.jumping = true;
-                        power = 0;
-                        if (powerBarFill) powerBarFill.style.width = '0%';
-                    }, botDelay * 0.6);
-                } else {
-                    // AI 失败：给一个过短的跳跃让角色掉落
-                    const jumpVX = 1.5 * DPR;
-                    const jumpVY = -(5) * DPR;
-                    player.vx = jumpVX;
-                    player.vy = jumpVY;
-                    player.onGround = false;
-                    player.jumping = true;
-                }
-            }, botDelay);
+        function launchJump(rawRatio) {
+            if (!player.onGround || gameOver) return;
+            const ratio = Math.max(MIN_JUMP_RATIO, Math.min(1, rawRatio));
+            const eased = easePower(ratio);
+            // 横向速度和上抛速度非线性增长，弱蓄力也能起跳，长蓄力更像微信跳一跳的“弹出去”
+            player.vx = (5.8 + eased * 17.2) * DPR;
+            player.vy = -(8.9 + eased * 12.7) * DPR;
+            player.onGround = false;
+            player.jumping = true;
+            squash = 1.08;
+            power = 0;
+            if (powerBarFill) powerBarFill.style.width = '0%';
+            vibrate(18);
         }
 
-        // 主循环
+        function estimateBotRatio() {
+            const nextPlat = platforms[player.platIdx + 1];
+            if (!nextPlat) return 0.5;
+            const target = nextPlat.x + nextPlat.w * 0.5;
+            const dist = target - player.x;
+            let ratio = (dist - PLAT_GAP_MIN * 0.55) / (PLAT_GAP_MAX * 1.15);
+            ratio = 0.26 + Math.max(0, Math.min(1, ratio)) * 0.58;
+            // 对方不是对手，是一起玩；保留少量失误感，但大部分时候配合你往前走
+            const mistake = Math.random() < 0.08;
+            ratio += mistake ? (Math.random() < 0.5 ? -0.22 : 0.20) : (Math.random() - 0.5) * 0.08;
+            return Math.max(0.14, Math.min(1, ratio));
+        }
+
+        function scheduleBotJump() {
+            clearTimeout(botJumpTimer);
+            clearInterval(botChargeTimer);
+            const targetRatio = estimateBotRatio();
+            const chargeMs = 650 + targetRatio * 900 + Math.random() * 260;
+            const startAt = Date.now();
+            botJumpTimer = setTimeout(() => {
+                if (gameOver || isMyTurn || !player.onGround) return;
+                if (hintEl) hintEl.textContent = `${config.otherName || '对方'} 正在蓄力...`;
+                botChargeTimer = setInterval(() => {
+                    if (gameOver || isMyTurn || !player.onGround) { clearInterval(botChargeTimer); return; }
+                    const t = Math.min(1, (Date.now() - startAt) / chargeMs);
+                    power = Math.min(MAX_POWER, easePower(t) * targetRatio * MAX_POWER);
+                    squash = 1 - Math.min(0.24, power / MAX_POWER * 0.24);
+                    if (powerBarFill) powerBarFill.style.width = (power / MAX_POWER * 100) + '%';
+                }, 16);
+                setTimeout(() => {
+                    clearInterval(botChargeTimer);
+                    if (gameOver || isMyTurn || !player.onGround) return;
+                    launchJump(targetRatio);
+                }, chargeMs);
+            }, 700 + Math.random() * 700);
+        }
+
         function gameLoop() {
             ctx.clearRect(0, 0, W, H);
             drawBg();
-
             if (gameOver) return;
 
-            // 仅玩家回合才响应蓄力
             if (holding && player.onGround && isMyTurn) {
-                power = Math.min(power + 1.2 * DPR, maxPower);
-                if (powerBarFill) powerBarFill.style.width = (power / maxPower * 100) + '%';
+                const held = Date.now() - holdStart;
+                power = Math.min(MAX_POWER, easePower(held / MAX_HOLD_MS) * MAX_POWER);
+                squash = 1 - Math.min(0.24, power / MAX_POWER * 0.24);
+                const plat = platforms[player.platIdx];
+                if (plat) plat.sink = Math.min(4.5 * DPR, power / MAX_POWER * 4.5 * DPR);
+                if (powerBarFill) powerBarFill.style.width = (power / MAX_POWER * 100) + '%';
+            } else if (player.onGround) {
+                squash += (1 - squash) * 0.16;
             }
 
-            // 物理更新
+            if (landingPulse > 0) landingPulse *= 0.86;
+
             if (!player.onGround) {
                 player.vy += GRAVITY;
                 player.x += player.vx;
@@ -4904,37 +4952,31 @@
             drawPlatforms();
             drawChargingEffect();
             drawPlayer();
-
             jumpGame.raf = requestAnimationFrame(gameLoop);
         }
 
-        // 玩家跳跃
         function doJump() {
             if (!player.onGround || gameOver || !isMyTurn) return;
-            const ratio = power / maxPower;
-            const jumpVX = (6 + ratio * 14) * DPR;
-            const jumpVY = -(8 + ratio * 12) * DPR;
-            player.vx = jumpVX;
-            player.vy = jumpVY;
-            player.onGround = false;
-            player.jumping = true;
-            power = 0;
-            if (powerBarFill) powerBarFill.style.width = '0%';
+            const ratio = Math.max(MIN_JUMP_RATIO, power / MAX_POWER);
+            launchJump(ratio);
         }
 
         function endJumpGame() {
             gameOver = true;
-            if (botJumpTimer) clearTimeout(botJumpTimer);
+            clearTimeout(botJumpTimer);
+            clearInterval(botChargeTimer);
             if (jumpGame) { cancelAnimationFrame(jumpGame.raf); }
             showGameResult(myScore, botScore);
         }
 
-        // 事件监听（仅玩家回合响应）
         function onStart(e) {
             e.preventDefault();
             if (gameOver || !player.onGround || !isMyTurn) return;
             holding = true;
-            if (hintEl) hintEl.textContent = '蓄力中... 松开跳跃！';
+            holdStart = Date.now();
+            power = 0;
+            vibrate(8);
+            if (hintEl) hintEl.textContent = '蓄力中... 松开就跳！';
         }
         function onEnd(e) {
             e.preventDefault();
@@ -4942,21 +4984,32 @@
             holding = false;
             doJump();
         }
+        function onCancel(e) {
+            if (e) e.preventDefault();
+            holding = false;
+            if (powerBarFill) powerBarFill.style.width = '0%';
+            power = 0;
+            squash = 1;
+        }
 
         canvas.addEventListener('touchstart', onStart, { passive: false });
         canvas.addEventListener('touchend', onEnd, { passive: false });
+        canvas.addEventListener('touchcancel', onCancel, { passive: false });
         canvas.addEventListener('mousedown', onStart);
         canvas.addEventListener('mouseup', onEnd);
+        canvas.addEventListener('mouseleave', onCancel);
 
         jumpGame._cleanUp = () => {
             canvas.removeEventListener('touchstart', onStart);
             canvas.removeEventListener('touchend', onEnd);
+            canvas.removeEventListener('touchcancel', onCancel);
             canvas.removeEventListener('mousedown', onStart);
             canvas.removeEventListener('mouseup', onEnd);
-            if (botJumpTimer) clearTimeout(botJumpTimer);
+            canvas.removeEventListener('mouseleave', onCancel);
+            clearTimeout(botJumpTimer);
+            clearInterval(botChargeTimer);
         };
 
-        // 重置UI
         if (myScoreEl) myScoreEl.textContent = '0';
         if (botScoreEl) botScoreEl.textContent = '0';
         if (powerBarFill) powerBarFill.style.width = '0%';
@@ -4984,33 +5037,32 @@
 
         if (totalScore >= 20) {
             titleText = '配合超默契 💕';
-            winnerText = `你们合计跳了 ${totalScore} 步，天生一对！`;
+            winnerText = `你们不是对决，是一起前进：合计跳了 ${totalScore} 步！`;
         } else if (totalScore >= 10) {
-            titleText = '继续加油 🎮';
-            winnerText = `你们合计跳了 ${totalScore} 步，还能更高！`;
+            titleText = '一起跳得不错 🎮';
+            winnerText = `你跳一下，${otherName} 跳一下，合计 ${totalScore} 步，还能更远！`;
         } else {
-            titleText = '游戏结束 🕹️';
-            winnerText = `合计 ${totalScore} 步，下次一起努力 💪`;
+            titleText = '合作结束 🕹️';
+            winnerText = `这局合计 ${totalScore} 步，下次一起配合得更好 💪`;
         }
         if (titleEl) titleEl.textContent = titleText;
         if (winnerEl) winnerEl.textContent = winnerText;
         overlay.style.display = 'flex';
 
-        // 在聊天里发送合作游戏结果
-        const resultHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:180px; max-width:240px;"><span style="font-size:28px;">🕹️</span><div><div style="font-size:13px; font-weight:700; color:#fff; margin-bottom:3px;">情侣跳一跳结果</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.myName||'我')}: ${myScore} 步</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(otherName)}: ${otherScore} 步</div><div style="font-size:11px; color:rgba(255,255,255,0.7); margin-top:2px;">合计 ${totalScore} 步 💕</div></div></div>`;
+        const resultHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:180px; max-width:250px;"><span style="font-size:28px;">🕹️</span><div><div style="font-size:13px; font-weight:700; color:#fff; margin-bottom:3px;">情侣跳一跳合作结果</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.myName||'我')} 贡献：${myScore} 步</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(otherName)} 贡献：${otherScore} 步</div><div style="font-size:11px; color:rgba(255,255,255,0.7); margin-top:2px;">两个人合计 ${totalScore} 步 💕</div></div></div>`;
         appendMessage(true, resultHtml);
         resetProactiveTimer();
 
-        // 对方发出合作反应
         const reactions = totalScore >= 20
-            ? [`我们好厉害哦！${totalScore} 步！🥳`, '哇哦，我们配合太默契了💕', '太好玩了，再来一局？🎮']
+            ? [`我们好厉害哦！合计 ${totalScore} 步！🥳`, '哇哦，我们配合太默契了💕', '太好玩了，再来一局继续一起跳？🎮']
             : totalScore >= 10
-            ? ['还不错嘛，再努力一点！💪', '下次一定能跳得更远！', '继续加油，我们可以的 🤍']
-            : ['哈哈哈我们还有进步空间😂', '再来！这次一定要跳更多步！', '下次我配合你好好跳 💕'];
+            ? ['还不错嘛，我们再一起努力一点！💪', '下次一定能一起跳得更远！', '继续加油，我们可以的 🤍']
+            : ['哈哈哈我们还有进步空间😂', '再来！这次我们一起跳更多步！', '下次我配合你好好跳 💕'];
         setTimeout(() => {
             appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
         }, 1500);
     }
+
 
     init();
     // 🌟 兜底：万一 init() 因任何异常没执行到引擎启动，4 秒后再确保启动一次。
