@@ -121,6 +121,15 @@
         .close-quote { cursor: pointer; color: #999; font-size: 16px; padding: 0 5px; font-weight: 300;}
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes heartBeat { 0% { transform: scale(1); } 30% { transform: scale(1.25); } 60% { transform: scale(1); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        
+        /* 加号面板动画 */
+        #plus-panel { animation: slideUpPanel 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        @keyframes slideUpPanel { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* 红包气泡 */
+        .red-packet-bubble { cursor: pointer; }
+        .red-packet-bubble:active { opacity: 0.85; transform: scale(0.97); }
         @keyframes pulseMic { 0% { transform: scale(1); opacity: 1;} 50% { transform: scale(1.15); opacity: 0.7;} 100% { transform: scale(1); opacity: 1;} }
 
         /* ====== 底部输入区 ====== */
@@ -699,6 +708,9 @@
         <div style="font-size:12px; font-weight:600; color:#333; margin-top:14px;">Emoji 表情 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，表情会随机落到画板上)</span></div>
         <div class="doodle-emojis" id="doodle-emojis"></div>
         <button class="doodle-tool-btn" style="margin-top:8px; background:#e84393; color:#fff;" onclick="doodleScatterEmojis()">🎉 随机撒一把 Emoji</button>
+        <div style="font-size:12px; font-weight:600; color:#333; margin-top:14px;">爱心图案 <span style="font-size:11px; color:#aaa; font-weight:normal;">(点一下，图案会落到画板上；可触发对方发来)</span></div>
+        <div class="doodle-letters" id="doodle-love-shapes" style="flex-wrap:wrap;"></div>
+        <button class="doodle-tool-btn" style="margin-top:8px; background:#e84393; color:#fff;" onclick="doodleScatterLoveShapes()">💕 随机撒一把爱心图案</button>
         <button class="action-btn" style="background:#07C160; margin-top:12px;" onclick="doodleSendToChat()">📨 发送到聊天</button>
         <div style="font-size:11px; color:#bbb; text-align:center; margin-top:8px; line-height:1.5;">画完后点「发送到聊天」，涂鸦会作为一张图片发到聊天里。涂鸦本身不保存，发送或关闭后即清空。</div>
     </div>
@@ -746,17 +758,14 @@
         <div class="icon-btn" onclick="toggleStickerPanel('chat')" onmousedown="event.preventDefault()" title="插入表情与字卡">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
         </div>
-        <label for="chat-image-upload" class="icon-btn" title="插入相册图片">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        </label>
-        <input type="file" id="chat-image-upload" accept="image/*" multiple style="display:none;">
-        <div class="icon-btn" onclick="startOutgoingCall()" title="视频通话">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+        <!-- 加号按钮 -->
+        <div class="icon-btn" id="plus-btn" onclick="togglePlusPanel()" onmousedown="event.preventDefault()" title="更多功能" style="position:relative;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         </div>
+        <input type="file" id="chat-image-upload" accept="image/*" multiple style="display:none;">
 
         <div id="chat-input" class="chat-input-box" contenteditable="true" data-placeholder="发消息..."></div>
         
-        <button class="summon-btn-style" onclick="forceReply()" title="召唤对方">召唤</button>
         <button class="send-btn-style" onclick="sendMessage()">发送</button>
     </div>
 
@@ -937,6 +946,102 @@
         <div id="quick-words-list" style="display:none; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; padding:5px;"></div>
         <div id="custom-sticker-grid" class="sticker-grid" style="display:none"></div>
     </div>
+    <!-- 撤回确认弹窗 -->
+    <div id="recall-confirm-overlay" class="overlay-mask" style="z-index:3500;">
+        <div class="custom-prompt-box" style="text-align:center; max-width:280px;">
+            <div style="font-size:32px; margin-bottom:8px;">↩️</div>
+            <div class="custom-prompt-title">确认撤回</div>
+            <div style="font-size:13px; color:#888; margin-bottom:20px; line-height:1.5;">撤回后这条消息将从对话中消失，确定要撤回吗？</div>
+            <div style="display:flex; gap:10px;">
+                <button class="action-btn" style="background:#f2f2f2; color:#333; flex:1;" onclick="closeRecallConfirm()">取消</button>
+                <button class="action-btn" style="background:#FF3B30; flex:1;" onclick="confirmRecall()">确认撤回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加号功能面板 -->
+    <div id="plus-panel" style="display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(20px); border-radius:20px 20px 0 0; box-shadow:0 -5px 30px rgba(0,0,0,0.12); z-index:700; padding:16px 20px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;">
+        <div style="display:flex; justify-content:center; margin-bottom:14px;">
+            <div style="height:4px; width:36px; background:#E0E0E0; border-radius:2px;"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px 8px; padding-bottom:4px;">
+            <label for="plus-img-upload" style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;">
+                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#4facfe,#00f2fe); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(79,172,254,0.3);">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <span style="font-size:11px; color:#555; font-weight:500;">图片</span>
+            </label>
+            <input type="file" id="plus-img-upload" accept="image/*" multiple style="display:none;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); openRedPacket()">
+                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#FF6B35,#FF3B30); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(255,59,48,0.3);">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><path d="M8 6V4a2 2 0 0 1 4 0v2"/></svg>
+                </div>
+                <span style="font-size:11px; color:#555; font-weight:500;">红包</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); togglePanel('panel-doodle')">
+                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#a18cd1,#fbc2eb); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(161,140,209,0.3);">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                </div>
+                <span style="font-size:11px; color:#555; font-weight:500;">涂鸦</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="closePlusPanel(); startOutgoingCall()">
+                <div style="width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#43e97b,#38f9d7); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(67,233,123,0.3);">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                </div>
+                <span style="font-size:11px; color:#555; font-weight:500;">视频通话</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 红包发送弹窗 -->
+    <div id="red-packet-overlay" class="overlay-mask" style="z-index:3500;">
+        <div class="custom-prompt-box" style="width:88%; max-width:300px; padding:0; border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(255,59,48,0.25);">
+            <div style="background:linear-gradient(160deg,#FF6B35,#FF3B30); padding:24px 20px 28px; text-align:center; position:relative; overflow:hidden;">
+                <div style="font-size:13px; color:rgba(255,255,255,0.85); font-weight:500; margin-bottom:6px;">发红包给</div>
+                <div style="font-size:18px; color:#FFE066; font-weight:700; margin-bottom:18px;" id="red-packet-receiver-name">对方</div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:4px;">
+                    <span style="font-size:22px; color:rgba(255,220,100,0.9); font-weight:700;">¥</span>
+                    <input id="red-packet-amount" type="number" min="0.01" max="9999" step="0.01" value="88.88" style="background:none; border:none; border-bottom:2px solid rgba(255,220,100,0.7); outline:none; font-size:38px; font-weight:700; color:#FFE066; width:140px; text-align:center; padding:4px 0; -webkit-appearance:none;">
+                </div>
+                <div style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:8px;">元</div>
+                <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
+            </div>
+            <div style="padding:14px 20px 8px; background:#fff;">
+                <input id="red-packet-wish" type="text" value="恭喜发财，大吉大利 🧧" maxlength="30" style="width:100%; padding:10px 14px; border:1px solid #F0F0F0; border-radius:10px; font-size:14px; color:#333; box-sizing:border-box; background:#FAFAFA; outline:none;">
+            </div>
+            <div style="display:flex; gap:10px; padding:12px 20px 20px; background:#fff;">
+                <button onclick="closeRedPacket()" style="flex:1; padding:12px; background:#F2F2F2; color:#333; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;">取消</button>
+                <button onclick="sendRedPacket()" style="flex:2; padding:12px; background:linear-gradient(135deg,#FF6B35,#FF3B30); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(255,59,48,0.3);">塞入红包 🧧</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收到红包弹窗 -->
+    <div id="red-packet-receive-overlay" class="overlay-mask" style="z-index:3500;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0; width:88%; max-width:300px; border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(255,59,48,0.25);">
+            <div style="background:linear-gradient(160deg,#FF6B35,#FF3B30); width:100%; padding:30px 20px 40px; text-align:center; position:relative; overflow:hidden;">
+                <div style="font-size:13px; color:rgba(255,255,255,0.85); font-weight:500; margin-bottom:6px;" id="rp-receive-sender">对方</div>
+                <div style="font-size:15px; color:#FFE066; font-weight:700; margin-bottom:24px;" id="rp-receive-wish">恭喜发财，大吉大利 🧧</div>
+                <div style="width:80px; height:80px; background:rgba(255,220,100,0.2); border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; border:2px solid rgba(255,220,100,0.4);">
+                    <span style="font-size:42px;">🧧</span>
+                </div>
+                <div style="position:absolute; top:-20px; right:-20px; width:100px; height:100px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
+            </div>
+            <button onclick="openRedPacket_receive()" style="background:#FFE066; color:#C0392B; border:none; width:100%; padding:18px; font-size:18px; font-weight:700; cursor:pointer; letter-spacing:1px; transition:background 0.15s;" onmousedown="this.style.background='#FFD700'" onmouseup="this.style.background='#FFE066'">开 🧧</button>
+        </div>
+    </div>
+
+    <!-- 红包金额揭晓弹窗 -->
+    <div id="red-packet-opened-overlay" class="overlay-mask" style="z-index:3600;">
+        <div style="background:#fff; border-radius:20px; padding:30px 24px; text-align:center; width:88%; max-width:280px; box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+            <div style="font-size:52px; margin-bottom:8px; animation: heartBeat 0.5s ease;">🎉</div>
+            <div style="font-size:13px; color:#888; margin-bottom:4px;" id="rp-opened-from">来自 对方 的红包</div>
+            <div style="font-size:46px; font-weight:800; color:#FF3B30; margin:12px 0; letter-spacing:-1px;" id="rp-opened-amount">88.88</div>
+            <div style="font-size:15px; color:#aaa; margin-bottom:24px;">元</div>
+            <button onclick="closeRedPacketOpened()" style="width:100%; padding:13px; background:linear-gradient(135deg,#FF6B35,#FF3B30); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 4px 15px rgba(255,59,48,0.3);">收下这份心意 ❤️</button>
+        </div>
+    </div>
+
 
 </div>
 
@@ -2403,6 +2508,21 @@
 
     // ================== 🎨 涂鸦本模块（手写/形状 + 26 字母拼字） ==================
     const DOODLE_COLORS = ['#0084FF', '#FF6900', '#111111', '#FF3B30', '#07C160', '#F5C518', '#7048e8', '#16a085'];
+    // 爱情和心情图案（SVG 路径绘制到画布）
+    const LOVE_SHAPES = [
+        { id: 'heart', label: '❤️', name: '爱心' },
+        { id: 'heart2', label: '💕', name: '双心' },
+        { id: 'circle', label: '⭕', name: '圆圈' },
+        { id: 'star', label: '⭐', name: '星星' },
+        { id: 'arrow', label: '➡️', name: '箭头' },
+        { id: 'arrow_heart', label: '💘', name: '心箭' },
+        { id: 'infinity', label: '∞', name: '无限' },
+        { id: 'wave', label: '〰️', name: '波浪' },
+        { id: 'kiss', label: '💋', name: '吻' },
+        { id: 'sparkle', label: '✨', name: '闪光' },
+        { id: 'ring', label: '💍', name: '戒指' },
+        { id: 'flower', label: '🌸', name: '花朵' },
+    ];
     const DOODLE_EMOJIS = ['😊','😂','🥰','🤣','✨','🎈','🌊','🍬','🌙','☁️','💖','🌟','🌸','🎂','🥳','🥺','😭','😡','😱','🤔','🙄','😴','😈','👻','💥','💫','🐶','🐱','🦊','🐼','🐸','🦋','🌹','🌻','🍕','🍩','🍰','☕','🎁','🎉','⚽','🎮','🎸','🧸','💌','🔥','🌈','🍀','🎀','👑'];
 
     let doodleCanvas = null, doodleCtx = null, doodleInited = false;
@@ -2430,13 +2550,20 @@
         // 渲染颜色板
         const sw = document.getElementById('doodle-swatches');
         if (sw) sw.innerHTML = DOODLE_COLORS.map(c => `<span class="doodle-swatch${c === doodleColor ? ' active' : ''}" style="background:${c};" onclick="doodleSetColor('${c}')"></span>`).join('');
-        // 渲染 A-Z 字母（点击后随机落到画板上）
+        // 重置字母序列
+        doodleLetterSeq = [];
+        // 渲染 A-Z 字母（点击后按顺序居中排列到画板上）
         const lt = document.getElementById('doodle-letters');
         if (lt) { let h = ''; for (let i = 0; i < 26; i++) { const ch = String.fromCharCode(65 + i); h += `<button class="doodle-letter" onclick="doodleDropLetter('${ch}')">${ch}</button>`; } lt.innerHTML = h; }
         // 渲染 Emoji 表情板（点击后随机落到画板上）
         const eg = document.getElementById('doodle-emojis');
         if (eg) { eg.innerHTML = DOODLE_EMOJIS.map(e => `<button class="doodle-emoji" onclick="doodleDropEmoji('${e}')">${e}</button>`).join(''); }
         // 指针事件（canvas 已设 touch-action:none，触摸时不会滚动页面）
+        // 渲染爱心图案按钮
+        const loveGrid = document.getElementById('doodle-love-shapes');
+        if (loveGrid) {
+            loveGrid.innerHTML = LOVE_SHAPES.map(s => `<button class="doodle-letter" onclick="doodleDropLoveShape('${s.id}')" title="${s.name}" style="font-size:18px; min-width:40px;">${s.label}</button>`).join('');
+        }
         doodleCanvas.addEventListener('pointerdown', doodleDown);
         doodleCanvas.addEventListener('pointermove', doodleMove);
         doodleCanvas.addEventListener('pointerup', doodleUp);
@@ -2496,6 +2623,8 @@
             doodleCtx.clearRect(0, 0, doodleW, doodleH);
             doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
             doodleCtx.drawImage(img, 0, 0, doodleW, doodleH);
+            // 撤销一步，移除最后一个字母
+            if (doodleLetterSeq.length > 0) doodleLetterSeq.pop();
         };
         img.src = data;
     }
@@ -2504,23 +2633,47 @@
         doodlePushUndo();
         doodleCtx.clearRect(0, 0, doodleW, doodleH);
         doodleCtx.fillStyle = '#ffffff'; doodleCtx.fillRect(0, 0, doodleW, doodleH);
+        doodleLetterSeq = [];
         doodleDirty = false;
     }
+    // 字母序列：点击字母后按顺序居中排列在画板上
+    let doodleLetterSeq = [];   // 当前已添加的字母序列
+    let doodleLetterFontSize = 42;  // 字母字号
+    
+    function doodleRenderLetterSeq() {
+        // 重绘白底后重新画所有序列字母（覆盖在当前涂鸦之上）
+        // 只重绘字母层（先保存涂鸦底，字母画在顶层）
+        if (!doodleCtx || doodleLetterSeq.length === 0) return;
+        const fs = doodleLetterFontSize;
+        doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
+        doodleCtx.textBaseline = 'middle';
+        // 计算总宽度
+        let totalW = 0;
+        doodleLetterSeq.forEach(item => {
+            doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
+            totalW += doodleCtx.measureText(item.ch).width + 4;
+        });
+        const startX = (doodleW - totalW) / 2;
+        const y = doodleH / 2;
+        let curX = startX;
+        doodleLetterSeq.forEach((item, i) => {
+            doodleCtx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
+            const w = doodleCtx.measureText(item.ch).width;
+            doodleCtx.fillStyle = item.color;
+            doodleCtx.textBaseline = 'middle';
+            doodleCtx.fillText(item.ch, curX, y);
+            curX += w + 4;
+        });
+        doodleDirty = true;
+    }
+
     // 在画板上随机位置盖一个字母（点字母触发）
     function doodleDropLetter(ch) {
         if (!doodleCtx) return;
         doodlePushUndo();
-        const fs = 26 + Math.random() * 30;                  // 26~56px
-        const x = 12 + Math.random() * Math.max(1, doodleW - 44);
-        const y = fs + Math.random() * Math.max(1, doodleH - fs - 10);
-        const rot = (Math.random() - 0.5) * 0.7;             // 约 ±20°
-        doodleCtx.save();
-        doodleCtx.translate(x, y); doodleCtx.rotate(rot);
-        doodleCtx.fillStyle = doodleColor;
-        doodleCtx.textBaseline = 'alphabetic';
-        doodleCtx.font = `700 ${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
-        doodleCtx.fillText(ch, 0, 0);
-        doodleCtx.restore();
+        // 字母加入序列，然后统一居中重绘
+        doodleLetterSeq.push({ ch: ch, color: doodleColor });
+        doodleRenderLetterSeq();
         doodleDirty = true;
     }
     // 一次随机撒一把字母（颜色也随机）
@@ -2580,6 +2733,204 @@
         }
         doodleDirty = true;
     }
+    // ===== 爱心图案绘制函数 =====
+    function drawLoveShape(ctx, shapeId, x, y, size, color) {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = size * 0.08;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        switch(shapeId) {
+            case 'heart': {
+                // 经典爱心
+                ctx.beginPath();
+                const s = size * 0.45;
+                ctx.moveTo(x, y + s * 0.3);
+                ctx.bezierCurveTo(x, y - s * 0.6, x - s * 1.1, y - s * 0.6, x - s * 1.1, y);
+                ctx.bezierCurveTo(x - s * 1.1, y + s * 0.6, x, y + s * 1.2, x, y + s * 1.2);
+                ctx.bezierCurveTo(x, y + s * 1.2, x + s * 1.1, y + s * 0.6, x + s * 1.1, y);
+                ctx.bezierCurveTo(x + s * 1.1, y - s * 0.6, x, y - s * 0.6, x, y + s * 0.3);
+                ctx.fill();
+                break;
+            }
+            case 'heart2': {
+                // 双小心
+                const s2 = size * 0.3;
+                [-1, 1].forEach(dx => {
+                    ctx.beginPath();
+                    const cx = x + dx * s2 * 0.9;
+                    ctx.moveTo(cx, y + s2 * 0.3);
+                    ctx.bezierCurveTo(cx, y - s2 * 0.6, cx - s2 * 1.1, y - s2 * 0.6, cx - s2 * 1.1, y);
+                    ctx.bezierCurveTo(cx - s2 * 1.1, y + s2 * 0.6, cx, y + s2 * 1.2, cx, y + s2 * 1.2);
+                    ctx.bezierCurveTo(cx, y + s2 * 1.2, cx + s2 * 1.1, y + s2 * 0.6, cx + s2 * 1.1, y);
+                    ctx.bezierCurveTo(cx + s2 * 1.1, y - s2 * 0.6, cx, y - s2 * 0.6, cx, y + s2 * 0.3);
+                    ctx.fill();
+                });
+                break;
+            }
+            case 'circle': {
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+                ctx.stroke();
+                break;
+            }
+            case 'star': {
+                ctx.beginPath();
+                const r1 = size * 0.5, r2 = size * 0.2;
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i * Math.PI) / 5 - Math.PI / 2;
+                    const r = i % 2 === 0 ? r1 : r2;
+                    if (i === 0) ctx.moveTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
+                    else ctx.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
+                }
+                ctx.closePath();
+                ctx.fill();
+                break;
+            }
+            case 'arrow': {
+                const aw = size * 0.6, ah = size * 0.25;
+                ctx.beginPath();
+                ctx.moveTo(x - aw, y);
+                ctx.lineTo(x + aw * 0.4, y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x + aw * 0.4, y - ah);
+                ctx.lineTo(x + aw, y);
+                ctx.lineTo(x + aw * 0.4, y + ah);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            }
+            case 'arrow_heart': {
+                // 心+箭
+                const sh = size * 0.35;
+                ctx.beginPath();
+                ctx.moveTo(x, y + sh * 0.3);
+                ctx.bezierCurveTo(x, y - sh * 0.6, x - sh * 1.1, y - sh * 0.6, x - sh * 1.1, y);
+                ctx.bezierCurveTo(x - sh * 1.1, y + sh * 0.6, x, y + sh * 1.2, x, y + sh * 1.2);
+                ctx.bezierCurveTo(x, y + sh * 1.2, x + sh * 1.1, y + sh * 0.6, x + sh * 1.1, y);
+                ctx.bezierCurveTo(x + sh * 1.1, y - sh * 0.6, x, y - sh * 0.6, x, y + sh * 0.3);
+                ctx.fill();
+                // 箭
+                ctx.save();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = size * 0.06;
+                ctx.beginPath();
+                ctx.moveTo(x - sh * 0.7, y + sh * 0.7);
+                ctx.lineTo(x + sh * 0.7, y - sh * 0.3);
+                ctx.stroke();
+                ctx.restore();
+                break;
+            }
+            case 'infinity': {
+                ctx.lineWidth = size * 0.1;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.bezierCurveTo(x - size * 0.15, y - size * 0.35, x - size * 0.55, y - size * 0.35, x - size * 0.5, y);
+                ctx.bezierCurveTo(x - size * 0.45, y + size * 0.35, x - size * 0.05, y + size * 0.35, x, y);
+                ctx.bezierCurveTo(x + size * 0.05, y - size * 0.35, x + size * 0.45, y - size * 0.35, x + size * 0.5, y);
+                ctx.bezierCurveTo(x + size * 0.55, y + size * 0.35, x + size * 0.15, y + size * 0.35, x, y);
+                ctx.stroke();
+                break;
+            }
+            case 'wave': {
+                ctx.lineWidth = size * 0.1;
+                ctx.beginPath();
+                ctx.moveTo(x - size * 0.5, y);
+                ctx.bezierCurveTo(x - size * 0.25, y - size * 0.3, x, y - size * 0.3, x, y);
+                ctx.bezierCurveTo(x, y + size * 0.3, x + size * 0.25, y + size * 0.3, x + size * 0.5, y);
+                ctx.stroke();
+                break;
+            }
+            case 'kiss': {
+                // 口红印
+                ctx.beginPath();
+                ctx.ellipse(x, y - size * 0.1, size * 0.45, size * 0.25, 0, Math.PI, 2 * Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x - size * 0.45, y - size * 0.1);
+                ctx.bezierCurveTo(x - size * 0.3, y + size * 0.2, x - size * 0.1, y + size * 0.4, x, y + size * 0.1);
+                ctx.bezierCurveTo(x + size * 0.1, y + size * 0.4, x + size * 0.3, y + size * 0.2, x + size * 0.45, y - size * 0.1);
+                ctx.fill();
+                break;
+            }
+            case 'sparkle': {
+                // 4角星光
+                for (let i = 0; i < 4; i++) {
+                    const a = (i * Math.PI) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + Math.cos(a) * size * 0.5, y + Math.sin(a) * size * 0.5);
+                    ctx.lineWidth = size * 0.08;
+                    ctx.stroke();
+                }
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+            case 'ring': {
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.4, 0, Math.PI * 2);
+                ctx.lineWidth = size * 0.13;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(x, y - size * 0.4, size * 0.12, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                break;
+            }
+            case 'flower': {
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                    const px = x + Math.cos(angle) * size * 0.28, py = y + Math.sin(angle) * size * 0.28;
+                    ctx.beginPath();
+                    ctx.arc(px, py, size * 0.22, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+        }
+        ctx.restore();
+    }
+
+    // 点击爱心图案，落到画板上（随机位置）
+    function doodleDropLoveShape(shapeId) {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        const size = 40 + Math.random() * 30;
+        const x = size + Math.random() * Math.max(1, doodleW - size * 2);
+        const y = size + Math.random() * Math.max(1, doodleH - size * 2);
+        const colors = ['#FF3B30', '#e84393', '#FF6B35', '#F5C518', '#7048e8', '#0084FF'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        drawLoveShape(doodleCtx, shapeId, x, y, size, color);
+        doodleDirty = true;
+    }
+
+    // 随机撒一把爱心图案
+    function doodleScatterLoveShapes() {
+        if (!doodleCtx) return;
+        doodlePushUndo();
+        const n = 4 + Math.floor(Math.random() * 6);
+        const shapeIds = LOVE_SHAPES.map(s => s.id);
+        for (let i = 0; i < n; i++) {
+            const shapeId = shapeIds[Math.floor(Math.random() * shapeIds.length)];
+            const size = 30 + Math.random() * 28;
+            const x = size + Math.random() * Math.max(1, doodleW - size * 2);
+            const y = size + Math.random() * Math.max(1, doodleH - size * 2);
+            const colors = ['#FF3B30', '#e84393', '#FF6B35', '#F5C518', '#7048e8', '#0084FF'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            drawLoveShape(doodleCtx, shapeId, x, y, size, color);
+        }
+        doodleDirty = true;
+    }
+
     // 把当前涂鸦作为一张图片直接发送到聊天界面（不保存涂鸦本身）
     function doodleSendToChat() {
         if (!doodleCtx) { showCustomNotification('画板还没准备好', 'info'); return; }
@@ -2634,6 +2985,18 @@
             ctx.fillText(ch, 0, 0);
             ctx.restore();
         }
+        // 随机落爱心图案（1~3 个）
+        const loveCount = 1 + Math.floor(Math.random() * 3);
+        const loveShapeIds = LOVE_SHAPES.map(s => s.id);
+        const loveColors = ['#FF3B30', '#e84393', '#FF6B35', '#F5C518', '#7048e8', '#0084FF'];
+        for (let i = 0; i < loveCount; i++) {
+            const shapeId = loveShapeIds[Math.floor(Math.random() * loveShapeIds.length)];
+            const size = 28 + Math.random() * 24;
+            const x = size + Math.random() * (W - size * 2);
+            const y = size + Math.random() * (H - size * 2);
+            const lc = loveColors[Math.floor(Math.random() * loveColors.length)];
+            drawLoveShape(ctx, shapeId, x, y, size, lc);
+        }
         // 随机落 Emoji 表情（3~6 个）
         const emojiCount = 3 + Math.floor(Math.random() * 4);
         for (let i = 0; i < emojiCount; i++) {
@@ -2683,6 +3046,22 @@
 
     function recallMessage(element) {
         const wrapper = element.closest('.message-wrapper'); if (!wrapper) return;
+        // 显示撤回确认弹窗
+        showRecallConfirm(element);
+    }
+    
+    function showRecallConfirm(element) {
+        const overlay = document.getElementById('recall-confirm-overlay');
+        overlay.style.display = 'flex';
+        overlay.setAttribute('data-pending-element-id', '');
+        // 存储待撤回的元素引用
+        window._pendingRecallElement = element;
+    }
+    
+    function confirmRecall() {
+        const element = window._pendingRecallElement;
+        if (!element) { closeRecallConfirm(); return; }
+        const wrapper = element.closest('.message-wrapper'); if (!wrapper) { closeRecallConfirm(); return; }
         const msgId = wrapper.getAttribute('data-id'); const msgDiv = wrapper.querySelector('.message');
         const clone = msgDiv.cloneNode(true);
         const qb = clone.querySelector('.quote-block'); if (qb) qb.remove();
@@ -2692,8 +3071,154 @@
         wrapper.outerHTML = systemMsgHtml;
         const idx = chatHistory.findIndex(m => m.id === msgId);
         if (idx !== -1) { chatHistory[idx] = { id: msgId, type: 'system', text: systemText }; saveChatHistory(); }
+        window._pendingRecallElement = null;
+        closeRecallConfirm();
     }
     
+    function closeRecallConfirm() {
+        document.getElementById('recall-confirm-overlay').style.display = 'none';
+        window._pendingRecallElement = null;
+    }
+    
+    // ===== 加号面板功能 =====
+    function togglePlusPanel() {
+        const panel = document.getElementById('plus-panel');
+        const isOpen = panel.style.display === 'block';
+        // 关闭其他面板
+        if (!isOpen) {
+            closeAllPanels();
+            panel.style.display = 'block';
+            document.getElementById('plus-btn').style.color = 'var(--theme-blue-text)';
+        } else {
+            closePlusPanel();
+        }
+    }
+    function closePlusPanel() {
+        const panel = document.getElementById('plus-panel');
+        if (panel) panel.style.display = 'none';
+        const btn = document.getElementById('plus-btn');
+        if (btn) btn.style.color = '';
+    }
+    
+    // 图片上传（加号面板）
+    document.addEventListener('DOMContentLoaded', () => {});
+    // 绑定加号面板图片上传
+    setTimeout(() => {
+        const plusImg = document.getElementById('plus-img-upload');
+        if (plusImg) {
+            plusImg.onchange = e => {
+                const files = e.target.files;
+                if (files.length === 0) return;
+                closePlusPanel();
+                Array.from(files).forEach(file => { processChatImg(file, d => { insertHtmlAtCursor(`<img src="${d}">`); }); });
+                e.target.value = '';
+            };
+        }
+    }, 500);
+
+    // ===== 红包功能 =====
+    function openRedPacket() {
+        const nameEl = document.getElementById('red-packet-receiver-name');
+        if (nameEl) nameEl.textContent = config.otherName || '对方';
+        document.getElementById('red-packet-overlay').style.display = 'flex';
+    }
+    function closeRedPacket() {
+        document.getElementById('red-packet-overlay').style.display = 'none';
+    }
+    function sendRedPacket() {
+        const amountInput = document.getElementById('red-packet-amount');
+        const wishInput = document.getElementById('red-packet-wish');
+        let amount = parseFloat(amountInput.value);
+        if (isNaN(amount) || amount <= 0) { showCustomNotification('请输入有效金额', 'error'); return; }
+        amount = amount.toFixed(2);
+        const wish = (wishInput.value || '恭喜发财，大吉大利 🧧').trim();
+        closeRedPacket();
+        
+        // 发出红包消息气泡
+        const redPacketHtml = `<div onclick="openSentRedPacketAck()" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
+            <div style="position:absolute; top:-15px; right:-15px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
+            <span style="font-size:36px; flex-shrink:0;">🧧</span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:15px; font-weight:700; color:#FFE066; margin-bottom:2px;">¥${amount}</div>
+                <div style="font-size:11px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(wish)}</div>
+                <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">微信红包</div>
+            </div>
+        </div>`;
+        appendMessage(true, redPacketHtml, currentQuote);
+        currentQuote = null; cancelQuote();
+        resetProactiveTimer();
+        showCustomNotification('红包已发送 🧧', 'success');
+        
+        // 对方稍后回应红包
+        setTimeout(() => {
+            receiveRedPacketFromOther(amount, wish);
+        }, 2000 + Math.random() * 3000);
+    }
+    
+    function openSentRedPacketAck() {
+        showCustomNotification('等待对方领取...', 'info', 2000);
+    }
+    
+    // 对方发来红包（可由对方触发）
+    function receiveRedPacketFromOther(amount, wish) {
+        // 对方给我发来领取确认
+        const replyHtml = buildBotTextMessage() || (config.otherName + ' 收到了你的红包 🧧');
+        pendingReplies++;
+        updateChatTitle();
+        setTimeout(() => {
+            appendMessage(false, replyHtml || '谢谢红包！😊🧧');
+            finishReply();
+        }, config.minReplyDelay || 2000);
+    }
+    
+    // 对方随机发给我红包
+    function triggerBotSendRedPacket() {
+        const amounts = ['6.66', '8.88', '18.88', '66.66', '88.88', '99.99', '168.00', '520.00'];
+        const wishes = ['恭喜发财，大吉大利 🧧', '给你一个小惊喜 💕', '喜欢你哦 ❤️', '每天开心 ✨', '爱你哟 😘'];
+        const amount = amounts[Math.floor(Math.random() * amounts.length)];
+        const wish = wishes[Math.floor(Math.random() * wishes.length)];
+        const senderName = config.otherName || '对方';
+        
+        const redPacketHtml = `<div onclick="showReceiveRedPacketDialog('${amount}','${escapeForJs(wish)}','${escapeForJs(senderName)}')" style="background:linear-gradient(135deg,#FF6B35,#FF3B30); border-radius:14px; padding:14px 16px; display:inline-flex; align-items:center; gap:12px; cursor:pointer; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(255,59,48,0.25); position:relative; overflow:hidden;">
+            <div style="position:absolute; top:-15px; right:-15px; width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,0.06);"></div>
+            <span style="font-size:36px; flex-shrink:0;">🧧</span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:700; color:#FFE066; margin-bottom:2px;">微信红包</div>
+                <div style="font-size:11px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(wish)}</div>
+                <div style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:4px;">点击领取</div>
+            </div>
+        </div>`;
+        
+        appendMessage(false, redPacketHtml);
+        sendSystemNotification(senderName, '给你发了一个红包 🧧');
+    }
+    
+    function showReceiveRedPacketDialog(amount, wish, sender) {
+        const senderEl = document.getElementById('rp-receive-sender');
+        const wishEl = document.getElementById('rp-receive-wish');
+        if (senderEl) senderEl.textContent = (sender || config.otherName || '对方') + ' 给你发了一个红包';
+        if (wishEl) wishEl.textContent = wish || '恭喜发财，大吉大利 🧧';
+        window._pendingRedPacketAmount = amount;
+        document.getElementById('red-packet-receive-overlay').style.display = 'flex';
+    }
+    
+    function openRedPacket_receive() {
+        document.getElementById('red-packet-receive-overlay').style.display = 'none';
+        const amount = window._pendingRedPacketAmount || '88.88';
+        const fromEl = document.getElementById('rp-opened-from');
+        const amountEl = document.getElementById('rp-opened-amount');
+        if (fromEl) fromEl.textContent = '来自 ' + (config.otherName || '对方') + ' 的红包';
+        if (amountEl) amountEl.textContent = amount;
+        document.getElementById('red-packet-opened-overlay').style.display = 'flex';
+    }
+    
+    function closeRedPacketOpened() {
+        document.getElementById('red-packet-opened-overlay').style.display = 'none';
+        const amount = window._pendingRedPacketAmount || '88.88';
+        showCustomNotification(`已收下 ¥${amount} 红包 🎉`, 'success', 3000);
+        window._pendingRedPacketAmount = null;
+    }
+
     function reEditText(spanEl) { 
         const html = spanEl.getAttribute('data-html'); const txt = document.createElement("textarea"); txt.innerHTML = html;
         chatInput.innerHTML = txt.value; chatInput.focus();
@@ -2797,6 +3322,7 @@
     function closeAllPanels() { 
         document.querySelectorAll('.panel').forEach(p => p.style.display = 'none'); 
         document.getElementById('sticker-panel').style.display = 'none';
+        closePlusPanel();
         exitMultiSelectMode(); 
     }
 
@@ -3024,6 +3550,11 @@
 
     // 🌟 对方主动发消息（静默时触发）：以文字为主、偶尔表情包；字卡池为空时用兜底文案，确保一定能发出来
     function triggerBotProactive() {
+        // 3% 概率对方发来红包
+        if (Math.random() < 0.03 && typeof triggerBotSendRedPacket === 'function') {
+            triggerBotSendRedPacket();
+            return;
+        }
         const stickers = config.customStickers || [];
         let html;
         if (stickers.length > 0 && Math.random() < 0.2) {
