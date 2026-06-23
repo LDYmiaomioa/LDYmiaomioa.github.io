@@ -3182,7 +3182,7 @@
         setTimeout(() => {
             const escapedWish = escapeHtml(wish);
             const safeAmount = String(amount).replace(/'/g, '');
-            const safeWish = (wish || '').replace(/'/g, '').replace(/\/g, '');
+            const safeWish = (wish || '').replace(/'/g, '').replace(/\\/g, '');
             // 对方看到红包，显示一个可交互气泡
             const bubbleHtml = `<div style="background:#fff; border:1px solid #FFE0CC; border-radius:14px; padding:12px 14px; min-width:180px; max-width:220px; box-shadow:0 2px 10px rgba(255,107,53,0.1);">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
