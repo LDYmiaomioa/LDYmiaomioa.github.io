@@ -307,9 +307,14 @@
         .moment-comment-item img { max-width: 40px; vertical-align: middle; border-radius: 4px;}
         .moment-comment-name { color: #576b95; font-weight: 600; }
 
+        /* 🌟 修复③：评论输入条原先使用 backdrop-filter:blur(15px)。
+           在 iOS WebKit 下，backdrop-filter 会把该元素提升为一个对"背后内容"做采样的 GPU 合成层。
+           上滑滚动时，这个采样快照不会被及时失效/重绘，于是输入条会冻结成一张「过期的模糊截图」——
+           看起来就是"只剩空白外壳、遮挡内容、且不随滚动刷新"的焦点残留。
+           这里去掉 backdrop-filter，改用不透明纯色背景（视觉几乎一致），从根本上消除会产生残影的合成快照层。 */
         #moment-comment-input-area { 
             display:none; position:relative; width:100%; flex-shrink:0; z-index: 850; 
-            padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:rgba(248, 248, 248, 0.95); backdrop-filter:blur(15px); border-top:1px solid rgba(0,0,0,0.05); gap:10px; align-items:flex-end; box-sizing: border-box;
+            padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#F7F8FA; border-top:1px solid rgba(0,0,0,0.05); gap:10px; align-items:flex-end; box-sizing: border-box;
         }
         #moment-comment-input { flex:1; padding:10px 14px; border:none; border-radius:18px; background:#FFF; font-size:14px; outline:none; box-shadow: 0 1px 3px rgba(0,0,0,0.03); min-height: 38px; max-height: 80px; overflow-y:auto; word-break: break-word; -webkit-user-select: text; user-select: text;}
         #moment-comment-input:empty:before { content: attr(data-placeholder); color: #BBB; }
@@ -3372,14 +3377,44 @@
         });
     }
 
+    // 🌟 修复③：打开评论后短暂屏蔽"滚动收起"。
+    //    因为 input.focus() 会唤起软键盘，iOS 往往会随即触发一次自动滚动，
+    //    若不加保护，这次程序性滚动会把刚弹出的输入条立刻又收起。给一个 ~400ms 的缓冲窗口即可避开。
+    let momentScrollDismissReady = false;
+
     function openMomentComment(id) {
         document.getElementById('current-moment-id').value = id; document.getElementById('moment-comment-input-area').style.display = 'flex';
-        const input = document.getElementById('moment-comment-input'); input.innerHTML = ''; input.focus(); activeInputTarget = input; 
+        const input = document.getElementById('moment-comment-input'); input.innerHTML = ''; input.focus(); activeInputTarget = input;
+        momentScrollDismissReady = false;
+        setTimeout(() => { momentScrollDismissReady = true; }, 400);
     }
     
     function closeMomentComment() { 
-        document.getElementById('moment-comment-input-area').style.display = 'none'; document.getElementById('moment-comment-input').innerHTML = ''; activeInputTarget = chatInput; closeAllPanels();
+        const bar = document.getElementById('moment-comment-input-area');
+        const input = document.getElementById('moment-comment-input');
+        // 🌟 修复③：先让输入框失焦，主动收起软键盘——这是"焦点残留"的根源。
+        if (input) input.blur();
+        if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+        bar.style.display = 'none';
+        // 🌟 修复③：强制一次回流重绘，确保即便个别浏览器仍残留合成层快照，也会被立即清掉，不会留下空白外壳。
+        void bar.offsetHeight;
+        if (input) input.innerHTML = '';
+        momentScrollDismissReady = false;
+        activeInputTarget = chatInput; closeAllPanels();
     }
+
+    // 🌟 修复③：上滑滚动朋友圈时，自动收起评论输入条（顺带收起键盘并清除残影），
+    //    与微信等原生 App 的交互一致；并避开打开瞬间软键盘引发的程序性自动滚动。
+    (function bindMomentsScrollDismiss() {
+        const wrap = document.getElementById('moments-scroll-wrapper');
+        if (!wrap) return;
+        wrap.addEventListener('scroll', function () {
+            const bar = document.getElementById('moment-comment-input-area');
+            if (bar && bar.style.display !== 'none' && momentScrollDismissReady) {
+                closeMomentComment();
+            }
+        }, { passive: true });
+    })();
     
     function sendMomentComment() {
         const id = parseInt(document.getElementById('current-moment-id').value); const input = document.getElementById('moment-comment-input'); const content = input.innerHTML.trim();
