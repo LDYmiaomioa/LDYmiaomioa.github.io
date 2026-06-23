@@ -51,7 +51,7 @@
         .header {
             padding: calc(12px + env(safe-area-inset-top)) 15px 10px; display: flex; flex-direction: column; align-items: center; gap: 10px;
             background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(0,0,0,0.04); z-index: 100;
+            border-bottom: 1px solid rgba(0,0,0,0.04); z-index: 200;
         }
         .chat-title-text { font-size: 16px; font-weight: 600; color: #111; letter-spacing: 0.5px; }
         
@@ -190,7 +190,7 @@
         .quick-word-item:active { background: #E8EAED; }
 
         /* ====== 设置面板 ====== */
-        .panel { display: none; padding: 15px; background: #FFF; border-bottom: 1px solid var(--border-color); font-size: 14px; max-height: 80vh; overflow-y: auto; position: absolute; top: calc(65px + env(safe-area-inset-top)); left: 0; width: 100%; z-index: 150; box-shadow: 0 15px 40px rgba(0,0,0,0.08); border-radius: 0 0 20px 20px; }
+        .panel { display: none; padding: 15px; background: #FFF; border-bottom: 1px solid var(--border-color); font-size: 14px; max-height: 80vh; overflow-y: auto; position: absolute; top: calc(95px + env(safe-area-inset-top)); left: 0; width: 100%; z-index: 150; box-shadow: 0 15px 40px rgba(0,0,0,0.08); border-radius: 0 0 20px 20px; }
         .panel-title { font-weight: 600; color: #111; margin-bottom: 12px; font-size: 16px; padding-left: 5px;}
         .modern-card { background: var(--light-gray); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
         .form-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 12px; }
@@ -1116,7 +1116,12 @@
     const defaultMyPats = ["的肩膀", "的脑袋", "的腹肌", "的背影", "，并叫了一声大哥"];
     const defaultBotPats = ["的脑袋", "的肩膀", "的小脸并捏了一下", "的呆毛", "的肚子并戳了戳", "的肩膀，并递过来一杯奶茶", "，并温柔地摸了摸头", "的狗头", "的衣角"];
 
-    let config = JSON.parse(localStorage.getItem('chatConfigV6')) || {
+    // 🔧 安全的 JSON 解析：localStorage 数据损坏时不会崩溃整个脚本
+    function safeJsonParse(str, defaultVal) {
+        try { const v = JSON.parse(str); return (v !== null && v !== undefined) ? v : defaultVal; } catch(e) { return defaultVal; }
+    }
+
+    let config = safeJsonParse(localStorage.getItem('chatConfigV6'), null) || {
         myName: '我', myAvatar: '', otherName: '匿名者', otherAvatar: '', bgImage: '', bgClarity: 100, 
         emojis: defaultEmojis, customStickers: [], minReplyDelay: 3000, maxReplyDelay: 5000, videoBg: '',
         myPats: defaultMyPats, botPats: defaultBotPats, momentsBg: '',
@@ -1151,17 +1156,17 @@
     if (typeof config.pokeChance === 'undefined') config.pokeChance = 3;
     config.pokeChance = Math.min(100, Math.max(0, parseInt(config.pokeChance) || 0));
 
-    let wordCards = JSON.parse(localStorage.getItem('wordCardsV2')) || [{text:"我在听。", tag:"日常"}];
-    let voiceCards = JSON.parse(localStorage.getItem('voiceCardsV1')) || []; 
-    let moments = JSON.parse(localStorage.getItem('chatMomentsV1')) || [];
+    let wordCards = safeJsonParse(localStorage.getItem('wordCardsV2'), [{text:"我在听。", tag:"日常"}]);
+    let voiceCards = safeJsonParse(localStorage.getItem('voiceCardsV1'), []); 
+    let moments = safeJsonParse(localStorage.getItem('chatMomentsV1'), []);
     // 🌟 聊天记录改为大容量存储（IndexedDB），此处先置空，由 initChatStorage() 异步载入
     let chatHistory = [];
-    let callHistory = JSON.parse(localStorage.getItem('callHistoryV1')) || []; // 🌟 通话记录
-    let checkinHistory = JSON.parse(localStorage.getItem('checkinHistoryV1')) || []; // 🌟 查岗记录
-    let trackCards = JSON.parse(localStorage.getItem('trackCardsV1')) || [];        // 🌟 轨迹词卡（用户维护，供对方轨迹掉落）
-    let trackRecords = JSON.parse(localStorage.getItem('trackRecordsV1')) || [];    // 🌟 双方轨迹记录
+    let callHistory = safeJsonParse(localStorage.getItem('callHistoryV1'), []); // 🌟 通话记录
+    let checkinHistory = safeJsonParse(localStorage.getItem('checkinHistoryV1'), []); // 🌟 查岗记录
+    let trackCards = safeJsonParse(localStorage.getItem('trackCardsV1'), []);        // 🌟 轨迹词卡（用户维护，供对方轨迹掉落）
+    let trackRecords = safeJsonParse(localStorage.getItem('trackRecordsV1'), []);    // 🌟 双方轨迹记录
     
-    let moodData = JSON.parse(localStorage.getItem('chatMoodDataV1')) || {};
+    let moodData = safeJsonParse(localStorage.getItem('chatMoodDataV1'), {});
     let currentCalDate = new Date();
     const defaultMoods = [
         // —— 正向 / 高能量 ——
@@ -1546,6 +1551,10 @@
     async function init() {
         applyBg(config.bgImage, config.bgClarity);
         renderStickerGrids(); renderVoiceUI(); updateChatTitle();
+        // 🔧 Enter 键发送消息（Shift+Enter 换行）
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
         // 🌟 防止 IndexedDB 在个别手机/隐私模式下卡死，导致后续初始化（包括主动发消息引擎）永远不执行：
         //    最多等 3 秒，超时或报错也继续往下走，保证引擎一定会启动
         try { await Promise.race([initChatStorage(), new Promise(res => setTimeout(res, 3000))]); }
@@ -1565,15 +1574,17 @@
     function escapeForJs(str) { return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ').replace(/\r/g, ''); }
 
     // 🌟 修改：光标在输入框内保持原位，不在则强制定位到末尾，保证表情包始终跟在文字后面
-    function insertHtmlAtCursor(html) {
-        const targetEl = activeInputTarget;
-        targetEl.focus();
+    // 支持第二参数 targetEl，用于指定目标输入框（不传则用 activeInputTarget）
+    function insertHtmlAtCursor(html, targetEl = null) {
+        const inputEl = targetEl || activeInputTarget;
+        if (!inputEl) return;
+        inputEl.focus();
         let sel = window.getSelection();
 
         // 如果当前选区不在目标输入框内，强制将光标移到末尾
-        if (!sel.rangeCount || !targetEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+        if (!sel.rangeCount || !inputEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
             const endRange = document.createRange();
-            endRange.selectNodeContents(targetEl);
+            endRange.selectNodeContents(inputEl);
             endRange.collapse(false); // false = 定位到末尾
             sel.removeAllRanges();
             sel.addRange(endRange);
@@ -1582,9 +1593,9 @@
         if (sel.getRangeAt && sel.rangeCount) {
             let range = sel.getRangeAt(0);
             range.deleteContents();
-            let el = document.createElement("div"); el.innerHTML = html;
+            let tmp = document.createElement("div"); tmp.innerHTML = html;
             let frag = document.createDocumentFragment(), node, lastNode;
-            while ((node = el.firstChild)) { lastNode = frag.appendChild(node); }
+            while ((node = tmp.firstChild)) { lastNode = frag.appendChild(node); }
             range.insertNode(frag);
             if (lastNode) {
                 range = range.cloneRange(); range.setStartAfter(lastNode); range.collapse(true);
