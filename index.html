@@ -1551,10 +1551,8 @@
     async function init() {
         applyBg(config.bgImage, config.bgClarity);
         renderStickerGrids(); renderVoiceUI(); updateChatTitle();
-        // 🔧 Enter 键发送消息（Shift+Enter 换行）
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        });
+        // 🔧 回车键不再用于发送消息：按 Enter 仅在输入框内换行，发送请点击「发送」按钮。
+        //    （按需求移除了 Enter 发送逻辑，避免误发；contenteditable 默认 Enter 即换行，无需额外处理）
         // 🌟 防止 IndexedDB 在个别手机/隐私模式下卡死，导致后续初始化（包括主动发消息引擎）永远不执行：
         //    最多等 3 秒，超时或报错也继续往下走，保证引擎一定会启动
         try { await Promise.race([initChatStorage(), new Promise(res => setTimeout(res, 3000))]); }
@@ -1563,7 +1561,7 @@
         checkChatCapacity();       // 🌟 启动时检查一次容量
         checkDailyCall(); startProactiveEngine(); bindDoubleTap(); checkAndGenerateBotMood(); 
         checkPendingBotMoment(); setInterval(checkPendingBotMoment, 60000); 
-        checkBotDailyMoments();  // 🌟 对方每天 70% 概率发一篇朋友圈
+        startMomentsEngine();    // 🌟 朋友圈引擎：凭概率调度，且用户不在本网站时也能补发（回前台/定时轮询时触发）
         scheduleRandomPoke();    // 🌟 对方周期性主动互动（约 5%）
         checkBotCheckinDrop(); // 🌟 对方约 50% 概率随机来查你的岗
         checkBotTrackDrop();   // 🌟 对方约 78% 概率随机掉落一条轨迹
@@ -1704,7 +1702,9 @@
     function startProactiveEngine() {
         if (proactiveEngineStarted) return;
         proactiveEngineStarted = true;
-        setInterval(() => { if (document.visibilityState === 'visible') checkProactiveTick(); }, 1000);
+        // 🌟 每秒轮询，不再限制"仅前台"：即使用户切到后台 / 不在本网站，只要脚本仍有机会运行，
+        //    到点也会发出主动消息（页面隐藏时通过系统通知推送，用户回到前台即可看到这条消息）。
+        setInterval(() => { checkProactiveTick(); }, 1000);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkProactiveTick(); });
         window.addEventListener('focus', checkProactiveTick);
         checkProactiveTick(); // 启动时先查一次：若你已离开超过设定间隔，回来会很快收到消息
@@ -2975,7 +2975,10 @@
         showCustomNotification('涂鸦已发送到聊天', 'success');
     }
 
-    // —— 对方的涂鸦：随机生成（随机字母 + 几笔随机线），直接展示在聊天界面 ——
+    // —— 对方的涂鸦：随机生成。按需求重新设计为「模式化」生成：
+    //    · 字母模式：字母像用户那样居中成行排列，不再散落整个画面，且【绝不与线条混用】；
+    //    · 线条可单独，也可与 emoji / 爱心图案组合；
+    //    · emoji 可单独发；爱心图案可单独发；线条可单独发。
     function generateBotDoodleDataURL() {
         const c = document.createElement('canvas');
         const W = 320, H = 280;
@@ -2984,60 +2987,111 @@
         if (!ctx) return null;
         ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        // 几笔随机涂鸦曲线
-        const strokes = 2 + Math.floor(Math.random() * 3);
-        for (let s = 0; s < strokes; s++) {
-            ctx.strokeStyle = DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)];
-            ctx.lineWidth = 2 + Math.random() * 4;
-            ctx.beginPath();
-            ctx.moveTo(Math.random() * W, Math.random() * H);
-            const segs = 3 + Math.floor(Math.random() * 4);
-            for (let k = 0; k < segs; k++) ctx.quadraticCurveTo(Math.random() * W, Math.random() * H, Math.random() * W, Math.random() * H);
-            ctx.stroke();
-        }
-        // 随机落字母
-        const n = 5 + Math.floor(Math.random() * 8);
-        for (let i = 0; i < n; i++) {
-            const ch = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-            const fs = 26 + Math.random() * 30;
-            const x = 12 + Math.random() * (W - 44);
-            const y = fs + Math.random() * (H - fs - 10);
-            const rot = (Math.random() - 0.5) * 0.7;
-            ctx.save();
-            ctx.translate(x, y); ctx.rotate(rot);
-            ctx.fillStyle = DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)];
-            ctx.textBaseline = 'alphabetic';
-            ctx.font = `700 ${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
-            ctx.fillText(ch, 0, 0);
-            ctx.restore();
-        }
-        // 随机落爱心图案（1~3 个）
-        const loveCount = 1 + Math.floor(Math.random() * 3);
-        const loveShapeIds = LOVE_SHAPES.map(s => s.id);
+
         const loveColors = ['#FF3B30', '#e84393', '#FF6B35', '#F5C518', '#7048e8', '#0084FF'];
-        for (let i = 0; i < loveCount; i++) {
-            const shapeId = loveShapeIds[Math.floor(Math.random() * loveShapeIds.length)];
-            const size = 28 + Math.random() * 24;
-            const x = size + Math.random() * (W - size * 2);
-            const y = size + Math.random() * (H - size * 2);
-            const lc = loveColors[Math.floor(Math.random() * loveColors.length)];
-            drawLoveShape(ctx, shapeId, x, y, size, lc);
+
+        // 几笔随机涂鸦曲线（线条）
+        function drawBotLines() {
+            const strokes = 2 + Math.floor(Math.random() * 3);
+            for (let s = 0; s < strokes; s++) {
+                ctx.strokeStyle = DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)];
+                ctx.lineWidth = 2 + Math.random() * 4;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * W, Math.random() * H);
+                const segs = 3 + Math.floor(Math.random() * 4);
+                for (let k = 0; k < segs; k++) ctx.quadraticCurveTo(Math.random() * W, Math.random() * H, Math.random() * W, Math.random() * H);
+                ctx.stroke();
+            }
         }
+
+        // 字母：像用户点字母那样，整行居中排列（自动按画板宽度缩放字号以保证不溢出）
+        function drawBotLettersCentered() {
+            const count = 2 + Math.floor(Math.random() * 5);   // 2~6 个字母
+            const seq = [];
+            for (let i = 0; i < count; i++) {
+                seq.push({
+                    ch: String.fromCharCode(65 + Math.floor(Math.random() * 26)),
+                    color: DOODLE_COLORS[Math.floor(Math.random() * DOODLE_COLORS.length)]
+                });
+            }
+            const gap = 8;
+            const measure = (fontSize) => {
+                let tw = 0;
+                seq.forEach(it => { ctx.font = `700 ${fontSize}px -apple-system, "PingFang SC", sans-serif`; tw += ctx.measureText(it.ch).width + gap; });
+                return tw > 0 ? tw - gap : 0;
+            };
+            let fs = 54;
+            const maxW = W - 28;
+            let totalW = measure(fs);
+            if (totalW > maxW) { fs = Math.max(22, Math.floor(fs * maxW / totalW)); totalW = measure(fs); }
+            ctx.textBaseline = 'middle';
+            let curX = (W - totalW) / 2;
+            const y = H / 2;
+            seq.forEach(it => {
+                ctx.font = `700 ${fs}px -apple-system, "PingFang SC", sans-serif`;
+                const w = ctx.measureText(it.ch).width;
+                ctx.fillStyle = it.color;
+                ctx.fillText(it.ch, curX, y);
+                curX += w + gap;
+            });
+        }
+
         // 随机落 Emoji 表情（3~6 个）
-        const emojiCount = 3 + Math.floor(Math.random() * 4);
-        for (let i = 0; i < emojiCount; i++) {
-            const emoji = DOODLE_EMOJIS[Math.floor(Math.random() * DOODLE_EMOJIS.length)];
-            const fs = 24 + Math.random() * 28;
-            const x = 12 + Math.random() * (W - 50);
-            const y = fs + Math.random() * (H - fs - 10);
-            const rot = (Math.random() - 0.5) * 0.5;
-            ctx.save();
-            ctx.translate(x, y); ctx.rotate(rot);
-            ctx.textBaseline = 'alphabetic';
-            ctx.font = `${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
-            ctx.fillText(emoji, 0, 0);
-            ctx.restore();
+        function drawBotEmojis() {
+            const emojiCount = 3 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < emojiCount; i++) {
+                const emoji = DOODLE_EMOJIS[Math.floor(Math.random() * DOODLE_EMOJIS.length)];
+                const fs = 24 + Math.random() * 28;
+                const x = 12 + Math.random() * (W - 50);
+                const y = fs + Math.random() * (H - fs - 10);
+                const rot = (Math.random() - 0.5) * 0.5;
+                ctx.save();
+                ctx.translate(x, y); ctx.rotate(rot);
+                ctx.textBaseline = 'alphabetic';
+                ctx.font = `${fs.toFixed(0)}px -apple-system, "PingFang SC", sans-serif`;
+                ctx.fillText(emoji, 0, 0);
+                ctx.restore();
+            }
         }
+
+        // 随机落爱心/心情图案（2~4 个）
+        function drawBotHearts() {
+            const loveCount = 2 + Math.floor(Math.random() * 3);
+            const loveShapeIds = LOVE_SHAPES.map(s => s.id);
+            for (let i = 0; i < loveCount; i++) {
+                const shapeId = loveShapeIds[Math.floor(Math.random() * loveShapeIds.length)];
+                const size = 28 + Math.random() * 24;
+                const x = size + Math.random() * (W - size * 2);
+                const y = size + Math.random() * (H - size * 2);
+                const lc = loveColors[Math.floor(Math.random() * loveColors.length)];
+                drawLoveShape(ctx, shapeId, x, y, size, lc);
+            }
+        }
+
+        // 随机挑选一种模式。字母自成一类（绝不与线条同框）；其余为「线条/emoji/爱心」的可组合集合，
+        // 且保证线条、emoji、爱心都能单独出现。
+        const modes = [
+            'letters',              // 仅字母（居中）
+            'lines',                // 仅线条
+            'emoji',                // 仅 emoji
+            'hearts',               // 仅爱心图案
+            'lines_emoji',          // 线条 + emoji
+            'lines_hearts',         // 线条 + 爱心
+            'lines_emoji_hearts',   // 线条 + emoji + 爱心
+            'emoji_hearts'          // emoji + 爱心
+        ];
+        const mode = modes[Math.floor(Math.random() * modes.length)];
+        switch (mode) {
+            case 'letters': drawBotLettersCentered(); break;
+            case 'lines': drawBotLines(); break;
+            case 'emoji': drawBotEmojis(); break;
+            case 'hearts': drawBotHearts(); break;
+            case 'lines_emoji': drawBotLines(); drawBotEmojis(); break;
+            case 'lines_hearts': drawBotLines(); drawBotHearts(); break;
+            case 'lines_emoji_hearts': drawBotLines(); drawBotEmojis(); drawBotHearts(); break;
+            case 'emoji_hearts': drawBotEmojis(); drawBotHearts(); break;
+        }
+
         try { return c.toDataURL('image/png'); } catch (e) { return null; }
     }
     function botDoodleDrop() {
@@ -3923,32 +3977,53 @@
         }
     }
 
-    // 🌟 对方每天 70% 概率发一篇朋友圈：每天掷一次骰，命中则在当天剩余时间内随机时刻发布
-    function checkBotDailyMoments() {
+    // 🌟 凭概率调度今天是否发朋友圈：每天掷一次骰（70% 命中），命中则在当天剩余时间内取一个随机时刻
+    //    （只负责"排期"，真正的发布由 checkScheduledMoments 在到点时执行，互不耦合）
+    function scheduleBotDailyMoments() {
         const todayStr = getLocalDateStr(new Date());
         const lastDate = localStorage.getItem('lastMomentsBatchDateV1');
         if (lastDate !== todayStr) {
             localStorage.setItem('lastMomentsBatchDateV1', todayStr);
             const now = Date.now();
-            let times = [];
-            if (Math.random() < 0.7) {  // 🌟 70% 概率今天发一篇
+            let newTimes = [];
+            if (Math.random() < 0.7) {  // 🌟 凭概率：今天 70% 概率发一篇
                 const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
                 const remaining = Math.max(60000, endOfDay.getTime() - now);
-                times.push(now + Math.random() * remaining);
+                newTimes.push(now + Math.random() * remaining);
             }
-            localStorage.setItem('scheduledMomentsV1', JSON.stringify(times));
+            // 合并到已有排期（保留尚未发布的时刻，避免覆盖掉之前还没到点的计划）
+            let existing = [];
+            try { existing = JSON.parse(localStorage.getItem('scheduledMomentsV1')) || []; } catch (e) { existing = []; }
+            localStorage.setItem('scheduledMomentsV1', JSON.stringify(existing.concat(newTimes)));
         }
+    }
+
+    // 🌟 到点就发：检查所有已排期时刻，凡是已到/已过的就发布。
+    //    关键点——用"计划时刻"作为这条朋友圈的时间戳进行回填：
+    //    这样即便用户当时不在本网站（脚本被冻结），等下次脚本有机会运行（回到前台或下一次轮询）补发时，
+    //    这条动态在时间线上仍表现为"用户离开期间发出的"，而不是回到页面那一刻才发的。
+    function checkScheduledMoments() {
         let times = [];
         try { times = JSON.parse(localStorage.getItem('scheduledMomentsV1')) || []; } catch (e) { times = []; }
-        times = times.filter(t => getLocalDateStr(new Date(t)) === todayStr);
-        const future = [];
-        let missed = 0;
-        times.forEach(t => {
-            const delay = t - Date.now();
-            if (delay <= 0) { const m = missed++; setTimeout(() => triggerBotMoment(), m * 1500); } // 错过的稍微错开补发
-            else { future.push(t); setTimeout(() => triggerBotMoment(), delay); }
-        });
-        localStorage.setItem('scheduledMomentsV1', JSON.stringify(future));
+        if (!Array.isArray(times) || times.length === 0) return;
+        const now = Date.now();
+        const due = times.filter(t => t <= now).sort((a, b) => a - b); // 升序，保证最新的最后插入→排在最前
+        const remaining = times.filter(t => t > now);
+        localStorage.setItem('scheduledMomentsV1', JSON.stringify(remaining));
+        due.forEach((t, i) => { setTimeout(() => triggerBotMoment(t), i * 800); }); // 多条时稍微错开，时间戳仍用各自计划时刻
+    }
+
+    // 🌟 朋友圈引擎（幂等）：启动时立刻排期+检查一次；并周期轮询、在回到前台/重新聚焦时补查，
+    //    使"凭概率发布"且"用户不在时也能补发"两件事都成立。
+    let momentsEngineStarted = false;
+    function startMomentsEngine() {
+        scheduleBotDailyMoments();
+        checkScheduledMoments();
+        if (momentsEngineStarted) return;
+        momentsEngineStarted = true;
+        setInterval(() => { scheduleBotDailyMoments(); checkScheduledMoments(); }, 60000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { scheduleBotDailyMoments(); checkScheduledMoments(); } });
+        window.addEventListener('focus', () => { scheduleBotDailyMoments(); checkScheduledMoments(); });
     }
 
     function toggleMoments(show) {
@@ -4062,7 +4137,7 @@
         if(wordCards.length > 0) botReplyToMomentComment(newMoment.id); showCustomNotification("发布成功", "success");
     }
 
-    function triggerBotMoment() {
+    function triggerBotMoment(scheduledTs) {
         if(wordCards.length === 0) return;
         // 🌟 写信式长文：取 10~20 张字卡连成一段（字卡不够会重复选取），中间随机穿插 emoji，结尾随机配一张图片表情包
         const count = Math.floor(Math.random() * 11) + 10;   // 10 ~ 20
@@ -4080,8 +4155,13 @@
             const botImg = config.customStickers[Math.floor(Math.random() * config.customStickers.length)];
             finalHtml += `<br><img src="${botImg}">`;
         }
-        const newMoment = { id: Date.now(), isSelf: false, text: finalHtml, img: null, comments: [], timestamp: Date.now() };
-        moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
+        // 🌟 scheduledTs：若由排期补发传入，则用"计划时刻"回填时间戳，使其表现为用户离开期间发的；否则用当前时间
+        const ts = scheduledTs || Date.now();
+        const newMoment = { id: ts, isSelf: false, text: finalHtml, img: null, comments: [], timestamp: ts };
+        moments.unshift(newMoment);
+        // 🌟 按时间戳降序排序，确保即便是回填的历史时刻也能落到时间线上的正确位置（最新在最前）
+        moments.sort((a, b) => ((b.timestamp || b.id) - (a.timestamp || a.id)));
+        localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
         if (document.getElementById('moments-page').style.display !== 'none') renderMoments();
         sendSystemNotification(config.otherName || '匿名者', '更新了朋友圈动态'); 
     }
