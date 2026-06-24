@@ -458,6 +458,34 @@
         .game-result-divider { width:1px; background:var(--border-color); align-self:stretch; margin:10px 0; }
         .game-result-winner { text-align:center; font-size:14px; font-weight:700; color:var(--theme-blue-text); padding:0 20px 14px; }
         .game-result-footer { padding:0 16px 20px; display:flex; gap:10px; }
+
+        /* ====== 🕹️ 游戏记录单独页面 ====== */
+        #game-records-page { display:none; position:absolute; inset:0; background:#FFF; z-index:800; flex-direction:column; animation:fadeIn 0.3s ease; }
+        .game-records-header { display:flex; justify-content:space-between; align-items:center; padding:calc(15px + env(safe-area-inset-top)) 20px 15px; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-bottom:1px solid rgba(0,0,0,0.03); flex-shrink:0; }
+        #game-records-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+
+        /* ====== 📊 问卷单独页面 ====== */
+        #poll-page { display:none; position:absolute; inset:0; background:#FFF; z-index:800; flex-direction:column; animation:fadeIn 0.3s ease; }
+        .poll-page-header { display:flex; justify-content:space-between; align-items:center; padding:calc(15px + env(safe-area-inset-top)) 20px 15px; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-bottom:1px solid rgba(0,0,0,0.03); flex-shrink:0; }
+        #poll-page-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+
+        /* 聊天里的问卷气泡 */
+        .poll-bubble-card { background:#fff; border-radius:14px; padding:14px 16px; min-width:180px; max-width:232px; box-shadow:0 2px 12px rgba(0,0,0,0.08); border:1px solid var(--border-color); }
+        .poll-bubble-label { font-size:10px; font-weight:700; color:#fff; background:linear-gradient(135deg,#e84393,#7048e8); padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:8px; letter-spacing:0.5px; }
+        .poll-bubble-question { font-size:14px; font-weight:600; color:#111; line-height:1.5; margin-bottom:12px; }
+        .poll-opt { position:relative; display:flex; align-items:center; justify-content:space-between; background:var(--light-gray); border-radius:10px; padding:9px 12px; margin-bottom:6px; font-size:13px; color:#333; overflow:hidden; }
+        .poll-opt.voted { background:rgba(232,67,147,0.04); border:1px solid rgba(232,67,147,0.2); }
+        .poll-opt-bar { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,rgba(232,67,147,0.13),rgba(112,72,232,0.13)); transition:width 0.6s ease; border-radius:10px; z-index:0; width:0%; }
+        .poll-opt-text { position:relative; z-index:1; font-weight:500; flex:1; }
+        .poll-opt-count { position:relative; z-index:1; font-size:11px; font-weight:700; color:#e84393; background:rgba(232,67,147,0.12); padding:2px 8px; border-radius:10px; min-width:22px; text-align:center; transition:all 0.3s; }
+        .poll-total { font-size:11px; color:#bbb; text-align:center; margin-top:6px; }
+
+        /* 问卷创建页选项输入行 */
+        .poll-input-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .poll-opt-input { flex:1; padding:10px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:14px; outline:none; background:#fafafa; font-family:inherit; }
+        .poll-opt-input:focus { border-color:var(--theme-blue-text); background:#fff; box-shadow:0 0 0 3px rgba(0,132,255,.1); }
+        .del-opt-btn { width:28px; height:28px; background:rgba(255,59,48,0.08); border:none; border-radius:50%; color:#FF3B30; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.2s; }
+        .del-opt-btn:active { background:#FF3B30; color:#fff; }
     </style>
 </head>
 <body>
@@ -479,7 +507,7 @@
             <button class="nav-btn" onclick="togglePanel('panel-frequency')" style="color:#0084FF;">高频词</button>
             <button class="nav-btn" onclick="togglePanel('panel-doodle')" style="color:#7048e8;">涂鸦本</button>
             <button class="nav-btn" onclick="togglePanel('panel-track')" style="color:#16a085;">双方轨迹</button>
-            <button class="nav-btn" onclick="togglePanel('panel-games')" style="color:#e84393;">游戏记录</button>
+            <button class="nav-btn" onclick="openGameRecordsPage()" style="color:#e84393;">游戏记录</button>
             <button class="nav-btn" onclick="togglePanel('panel-voice')">语音库</button>
             <button class="nav-btn" onclick="togglePanel('panel-stickers')">表情</button>
             <button class="nav-btn" onclick="toggleMoments(true)" style="color: var(--wechat-green);">朋友圈</button>
@@ -655,13 +683,6 @@
         <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearCallHistory()">🗑️ 清空通话记录</button>
     </div>
 
-    <!-- 🌟 新增：小游戏记录面板（双方一起玩过的小游戏战绩都汇总在这里，不再刷屏聊天） -->
-    <div id="panel-games" class="panel">
-        <div class="panel-title">小游戏记录 <span style="font-size: 11px; color: #888; font-weight: normal; margin-left: 5px;">(你和对方玩过的小游戏都会记录在此)</span></div>
-        <div class="modern-card" id="game-stats-card" style="display:flex; justify-content:space-around; text-align:center; padding:16px 8px;"></div>
-        <div id="game-history-list" style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px;"></div>
-        <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearGameRecords()">🗑️ 清空游戏记录</button>
-    </div>
 
     <div id="panel-data" class="panel">
         <div class="panel-title">数据备份与恢复</div>
@@ -846,6 +867,18 @@
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 9H2l6 4.5L5.5 21 12 17l6.5 4L16 13.5 22 9h-7z"/></svg>
                     </div>
                     <span style="font-size:11px; color:#555; font-weight:500;">小游戏</span>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="openGameRecordsPage()">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#f093fb,#f5576c); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(240,147,251,0.35);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">游戏记录</span>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; -webkit-tap-highlight-color:transparent;" onclick="openPollPage()">
+                    <div style="width:52px; height:52px; border-radius:13px; background:linear-gradient(135deg,#4facfe,#00f2fe); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(79,172,254,0.35);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    </div>
+                    <span style="font-size:11px; color:#555; font-weight:500;">问卷</span>
                 </div>
             </div>
         </div>
@@ -1212,6 +1245,62 @@
         </div>
     </div>
 
+    <!-- 🌟 游戏记录单独页面 -->
+    <div id="game-records-page">
+        <div class="game-records-header">
+            <span style="font-size:15px; cursor:pointer; color:#111; font-weight:500; display:flex; align-items:center; gap:4px;" onclick="closeGameRecordsPage()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>返回
+            </span>
+            <span style="font-size:16px; font-weight:600; color:#111;">🕹️ 游戏记录</span>
+            <span style="font-size:13px; color:#e84393; cursor:pointer; font-weight:600;" onclick="clearGameRecords()">清空</span>
+        </div>
+        <div id="game-records-scroll">
+            <div class="modern-card" style="display:flex; justify-content:space-around; text-align:center; padding:16px 8px; margin-bottom:14px;" id="game-stats-wrapper">
+                <div id="game-stats-card" style="display:contents;">
+                    <div><div style="font-size:22px; font-weight:700; color:#111;">0</div><div style="font-size:11px; color:#888; margin-top:2px;">总局数</div></div>
+                    <div><div style="font-size:22px; font-weight:700; color:#e84393;">0</div><div style="font-size:11px; color:#888; margin-top:2px;">累计步数</div></div>
+                    <div><div style="font-size:22px; font-weight:700; color:#7048e8;">0</div><div style="font-size:11px; color:#888; margin-top:2px;">最佳一局</div></div>
+                </div>
+            </div>
+            <div id="game-history-list">
+                <div style="text-align:center; padding:36px 20px; color:#999; font-size:14px;">🕹️ 暂无游戏记录<br><span style="font-size:12px; color:#bbb;">在聊天框里发起"情侣跳一跳"，一起玩完后战绩就会出现在这里</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 问卷单独页面 -->
+    <div id="poll-page">
+        <div class="poll-page-header">
+            <span style="font-size:15px; cursor:pointer; color:#111; font-weight:500; display:flex; align-items:center; gap:4px;" onclick="closePollPage()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>返回
+            </span>
+            <span style="font-size:16px; font-weight:600; color:#111;">📊 发起问卷</span>
+            <button onclick="sendPoll()" style="font-size:13px; font-weight:700; padding:8px 16px; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; border:none; border-radius:14px; cursor:pointer; box-shadow:0 3px 10px rgba(232,67,147,0.3);">发送</button>
+        </div>
+        <div id="poll-page-scroll">
+            <div style="font-size:13px; color:#888; line-height:1.7; margin-bottom:14px; background:#f8f0ff; border-radius:10px; padding:10px 12px; border-left:3px solid #e84393;">
+                📝 填好问题和选项，点右上角「发送」，对方会在几秒内作出选择，结果显示在聊天里 🗳️
+            </div>
+            <!-- 问题输入 -->
+            <div class="modern-card" style="margin-bottom:12px;">
+                <div class="form-label" style="margin-bottom:8px;">问题内容</div>
+                <textarea id="poll-question-input" class="settings-input" style="min-height:60px; resize:vertical;" placeholder="例如：你是否想睡觉？今晚想吃什么？"></textarea>
+            </div>
+            <!-- 选项 -->
+            <div class="modern-card" style="margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span class="form-label">投票选项</span>
+                    <button onclick="addPollOption()" style="font-size:12px; font-weight:600; padding:5px 12px; background:linear-gradient(135deg,#e84393,#7048e8); color:#fff; border:none; border-radius:10px; cursor:pointer; transition:transform 0.1s;" onactive="this.style.transform='scale(0.95)'">+ 添加选项</button>
+                </div>
+                <div id="poll-options-container"></div>
+                <div style="font-size:11px; color:#bbb; margin-top:6px;">最少 2 个选项，最多 6 个选项</div>
+            </div>
+            <!-- 历史问卷 -->
+            <div style="font-size:14px; font-weight:600; color:#333; margin-bottom:10px;">历史问卷 <span id="poll-history-count" style="font-size:12px; color:#aaa; font-weight:normal;"></span></div>
+            <div id="poll-history-list"></div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -1339,6 +1428,7 @@
     let trackCards = safeJsonParse(localStorage.getItem('trackCardsV1'), []);        // 🌟 轨迹词卡（用户维护，供对方轨迹掉落）
     let trackRecords = safeJsonParse(localStorage.getItem('trackRecordsV1'), []);    // 🌟 双方轨迹记录
     let gameRecords = safeJsonParse(localStorage.getItem('gameRecordsV1'), []);      // 🌟 小游戏战绩记录（跳一跳等，统一汇总到“游戏记录”面板，不进聊天）
+    let polls = safeJsonParse(localStorage.getItem('pollsV1'), []);                  // 🌟 问卷记录
     
     let moodData = safeJsonParse(localStorage.getItem('chatMoodDataV1'), {});
     let currentCalDate = new Date();
@@ -2283,8 +2373,8 @@
             total: myScore + otherScore
         });
         saveGameRecords();
-        const panel = document.getElementById('panel-games');
-        if (panel && panel.style.display === 'block') renderGameRecords();
+        const page = document.getElementById('game-records-page');
+        if (page && page.style.display === 'flex') renderGameRecords();
     }
 
     function renderGameRecords() {
@@ -3768,7 +3858,6 @@
         if(id === 'panel-words') exitMultiSelectMode(); 
         if(id === 'panel-voice') renderVoiceUI();
         if(id === 'panel-calls') renderCallHistory();
-        if(id === 'panel-games') renderGameRecords();
         if(id === 'panel-checkin') renderCheckinHistory();
         if(id === 'panel-frequency') renderFrequencyPanel();
         if(id === 'panel-doodle') initDoodle();
@@ -3898,7 +3987,7 @@
     }
 
     function exportData() {
-        const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, callHistory: callHistory, checkinHistory: checkinHistory, trackCards: trackCards, trackRecords: trackRecords, gameRecords: gameRecords, timestamp: new Date().toISOString() };
+        const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, callHistory: callHistory, checkinHistory: checkinHistory, trackCards: trackCards, trackRecords: trackRecords, gameRecords: gameRecords, polls: polls, timestamp: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(fullData)], { type: "application/json" }); const url = URL.createObjectURL(blob);
         const a = document.createElement("a"); a.href = url; a.download = `private_space_backup_${new Date().getTime()}.json`; a.click(); URL.revokeObjectURL(url);
         showCustomNotification("数据已成功导出", "success");
@@ -3919,7 +4008,7 @@
                     localStorage.setItem('checkinHistoryV1', JSON.stringify(data.checkinHistory || []));
                     localStorage.setItem('trackCardsV1', JSON.stringify(data.trackCards || []));
                     localStorage.setItem('trackRecordsV1', JSON.stringify(data.trackRecords || []));
-                    localStorage.setItem('gameRecordsV1', JSON.stringify(data.gameRecords || []));
+                    localStorage.setItem('gameRecordsV1', JSON.stringify(data.gameRecords || [])); localStorage.setItem('pollsV1', JSON.stringify(data.polls || []));
                     // 🌟 聊天记录写入大容量存储（IndexedDB），确保刷新后能读到导入的数据
                     if (!chatDB) await openChatDB();
                     await persistChat(data.chatHistory || []);
@@ -5196,6 +5285,209 @@
         setTimeout(() => {
             appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
         }, 1500);
+    }
+
+
+    // ================== 🕹️ 游戏记录单独页面函数 ==================
+    function openGameRecordsPage() {
+        closePlusPanel();
+        closeAllPanels();
+        const page = document.getElementById('game-records-page');
+        if (page) { page.style.display = 'flex'; renderGameRecords(); }
+    }
+
+    function closeGameRecordsPage() {
+        const page = document.getElementById('game-records-page');
+        if (page) page.style.display = 'none';
+    }
+
+    // ================== 📊 问卷功能模块 ==================
+    function savePolls() { try { localStorage.setItem('pollsV1', JSON.stringify(polls)); } catch(e) {} }
+
+    function openPollPage() {
+        closePlusPanel();
+        closeAllPanels();
+        const page = document.getElementById('poll-page');
+        if (!page) return;
+        page.style.display = 'flex';
+        // 初始化创建表单
+        document.getElementById('poll-question-input').value = '';
+        const container = document.getElementById('poll-options-container');
+        container.innerHTML = '';
+        _addPollOptionEl(container, '是');
+        _addPollOptionEl(container, '否');
+        renderPollHistory();
+    }
+
+    function closePollPage() {
+        const page = document.getElementById('poll-page');
+        if (page) page.style.display = 'none';
+    }
+
+    function _addPollOptionEl(container, text) {
+        const idx = container.querySelectorAll('.poll-input-row').length;
+        const div = document.createElement('div');
+        div.className = 'poll-input-row';
+        div.innerHTML = `
+            <span style="font-size:12px; color:#bbb; font-weight:700; width:18px; text-align:center; flex-shrink:0;">${String.fromCharCode(65 + idx)}</span>
+            <input class="poll-opt-input" type="text" placeholder="选项 ${String.fromCharCode(65 + idx)}" value="${escapeHtml(text)}">
+            <button class="del-opt-btn" onclick="removePollOption(this)" title="删除此选项">×</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function addPollOption() {
+        const container = document.getElementById('poll-options-container');
+        const existing = container.querySelectorAll('.poll-input-row').length;
+        if (existing >= 6) { showCustomNotification('最多只能添加 6 个选项', 'info'); return; }
+        _addPollOptionEl(container, '');
+    }
+
+    function removePollOption(btn) {
+        const container = document.getElementById('poll-options-container');
+        const rows = container.querySelectorAll('.poll-input-row');
+        if (rows.length <= 2) { showCustomNotification('至少需要 2 个选项哦', 'info'); return; }
+        btn.closest('.poll-input-row').remove();
+        // 重新给选项编号
+        container.querySelectorAll('.poll-input-row').forEach((row, i) => {
+            const label = row.querySelector('span');
+            const input = row.querySelector('input');
+            if (label) label.textContent = String.fromCharCode(65 + i);
+            if (input) input.placeholder = '选项 ' + String.fromCharCode(65 + i);
+        });
+    }
+
+    function sendPoll() {
+        const question = (document.getElementById('poll-question-input').value || '').trim();
+        if (!question) { showCustomNotification('请先填写问题内容', 'error'); return; }
+        const optEls = document.getElementById('poll-options-container').querySelectorAll('.poll-opt-input');
+        const options = Array.from(optEls).map(el => (el.value || '').trim()).filter(v => v);
+        if (options.length < 2) { showCustomNotification('至少需要 2 个有效选项', 'error'); return; }
+
+        const pollId = 'poll-' + Date.now();
+        const poll = { id: pollId, ts: Date.now(), question, options, votes: new Array(options.length).fill(0), totalVotes: 0, answered: false };
+        polls.push(poll);
+        savePolls();
+
+        // 发到聊天气泡
+        const pollHtml = _buildPollBubbleHtml(poll);
+        appendMessage(true, pollHtml, currentQuote);
+        currentQuote = null; cancelQuote();
+        resetProactiveTimer();
+        closePollPage();
+        showCustomNotification('问卷已发送，等对方来投票 🗳️', 'success');
+
+        // 对方延迟 2~5 秒随机投票
+        const delay = 2000 + Math.random() * 3000;
+        setTimeout(() => { _botVotePoll(pollId); }, delay);
+    }
+
+    function _buildPollBubbleHtml(poll) {
+        const opts = poll.options.map((opt, i) => {
+            const count = poll.votes[i] || 0;
+            const pct = poll.totalVotes > 0 ? Math.round(count / poll.totalVotes * 100) : 0;
+            return `<div class="poll-opt${count > 0 ? ' voted' : ''}" id="${poll.id}-opt-${i}">
+                <div class="poll-opt-bar" style="width:${pct}%"></div>
+                <span class="poll-opt-text">${escapeHtml(opt)}</span>
+                <span class="poll-opt-count" id="${poll.id}-count-${i}" style="display:${count > 0 ? 'block' : 'none'}">${count}</span>
+            </div>`;
+        }).join('');
+        return `<div class="poll-bubble-card">
+            <div class="poll-bubble-label">📊 投票</div>
+            <div class="poll-bubble-question">${escapeHtml(poll.question)}</div>
+            ${opts}
+            <div class="poll-total" id="${poll.id}-total">${poll.totalVotes > 0 ? '共 ' + poll.totalVotes + ' 票' : '等待投票中…'}</div>
+        </div>`;
+    }
+
+    function _botVotePoll(pollId) {
+        const poll = polls.find(p => p.id === pollId);
+        if (!poll || poll.answered) return;
+
+        // 随机选一个选项
+        const chosenIdx = Math.floor(Math.random() * poll.options.length);
+        poll.votes[chosenIdx] = (poll.votes[chosenIdx] || 0) + 1;
+        poll.totalVotes = (poll.totalVotes || 0) + 1;
+        poll.answered = true;
+        savePolls();
+
+        // 更新聊天中的气泡
+        _updatePollBubble(poll, chosenIdx);
+
+        // 刷新历史列表（如果问卷页在显示）
+        const pp = document.getElementById('poll-page');
+        if (pp && pp.style.display === 'flex') renderPollHistory();
+
+        // 对方说一句话
+        const chosenText = poll.options[chosenIdx];
+        const otherName = config.otherName || '匿名者';
+        const reactions = [
+            `我选了「${chosenText}」～`,
+            `我的答案是「${chosenText}」哦 😊`,
+            `选了${chosenText}，猜到了吗？ 😏`,
+            `我点的「${chosenText}」~ 你呢？`,
+            `嗯我觉得${chosenText} 哈哈~`
+        ];
+        pendingReplies++;
+        updateChatTitle();
+        setTimeout(() => {
+            appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
+            finishReply();
+        }, 600 + Math.random() * 800);
+        sendSystemNotification(otherName, `在你的问卷中选了「${chosenText}」`);
+    }
+
+    function _updatePollBubble(poll, chosenIdx) {
+        poll.options.forEach((opt, i) => {
+            const count = poll.votes[i] || 0;
+            const pct = poll.totalVotes > 0 ? Math.round(count / poll.totalVotes * 100) : 0;
+            const optEl = document.getElementById(poll.id + '-opt-' + i);
+            const barEl = optEl ? optEl.querySelector('.poll-opt-bar') : null;
+            const countEl = document.getElementById(poll.id + '-count-' + i);
+            if (optEl && count > 0) {
+                optEl.classList.add('voted');
+                if (i === chosenIdx) optEl.style.borderColor = 'rgba(232,67,147,0.5)';
+            }
+            if (barEl) barEl.style.width = pct + '%';
+            if (countEl) { countEl.textContent = count; countEl.style.display = 'block'; if (i === chosenIdx) countEl.style.background = 'rgba(232,67,147,0.2)'; }
+        });
+        const totalEl = document.getElementById(poll.id + '-total');
+        if (totalEl) totalEl.textContent = '共 ' + poll.totalVotes + ' 票';
+    }
+
+    function renderPollHistory() {
+        const list = document.getElementById('poll-history-list');
+        const countEl = document.getElementById('poll-history-count');
+        if (!list) return;
+        if (countEl) countEl.textContent = polls.length > 0 ? '(' + polls.length + ')' : '';
+        if (polls.length === 0) {
+            list.innerHTML = '<div style="text-align:center; padding:28px 20px; color:#bbb; font-size:13px;">暂无历史问卷<br>创建一个试试吧！</div>';
+            return;
+        }
+        list.innerHTML = [...polls].reverse().map(p => {
+            const totalVotes = p.totalVotes || 0;
+            const optsHtml = p.options.map((opt, i) => {
+                const c = p.votes[i] || 0;
+                const pct = totalVotes > 0 ? Math.round(c / totalVotes * 100) : 0;
+                const isWinner = p.answered && c === Math.max(...p.votes);
+                return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:12px;">
+                    <span style="width:22px; height:22px; border-radius:50%; background:${c > 0 ? 'linear-gradient(135deg,#e84393,#7048e8)' : 'var(--light-gray)'}; color:${c > 0 ? '#fff' : '#bbb'}; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0;">${c}</span>
+                    <div style="flex:1; height:7px; background:var(--light-gray); border-radius:4px; overflow:hidden;"><div style="height:100%; width:${pct}%; background:${isWinner && c > 0 ? 'linear-gradient(90deg,#e84393,#7048e8)' : 'linear-gradient(90deg,#d0d0d0,#bbb)'}; border-radius:4px; transition:width 0.5s;"></div></div>
+                    <span style="color:#666; white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(opt)}</span>
+                    <span style="color:#aaa; font-size:11px; white-space:nowrap;">${pct}%</span>
+                </div>`;
+            }).join('');
+            return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:12px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:8px;">
+                    <div style="font-size:14px; font-weight:600; color:#111; flex:1; line-height:1.5;">${escapeHtml(p.question)}</div>
+                    <span style="font-size:11px; color:#aaa; white-space:nowrap; flex-shrink:0;">${formatMomentTime(p.ts)}</span>
+                </div>
+                ${optsHtml}
+                <div style="font-size:11px; color:${p.answered ? '#07C160' : '#aaa'}; text-align:right; margin-top:6px; font-weight:${p.answered ? '600' : '400'};">
+                    ${p.answered ? '✅ 共 ' + totalVotes + ' 票' : '⏳ 待投票'}
+                </div>
+            </div>`;
+        }).join('');
     }
 
 
