@@ -479,6 +479,7 @@
             <button class="nav-btn" onclick="togglePanel('panel-frequency')" style="color:#0084FF;">高频词</button>
             <button class="nav-btn" onclick="togglePanel('panel-doodle')" style="color:#7048e8;">涂鸦本</button>
             <button class="nav-btn" onclick="togglePanel('panel-track')" style="color:#16a085;">双方轨迹</button>
+            <button class="nav-btn" onclick="togglePanel('panel-games')" style="color:#e84393;">游戏记录</button>
             <button class="nav-btn" onclick="togglePanel('panel-voice')">语音库</button>
             <button class="nav-btn" onclick="togglePanel('panel-stickers')">表情</button>
             <button class="nav-btn" onclick="toggleMoments(true)" style="color: var(--wechat-green);">朋友圈</button>
@@ -652,6 +653,14 @@
         <div class="modern-card" id="call-stats-card" style="display:flex; justify-content:space-around; text-align:center; padding:16px 8px;"></div>
         <div id="call-history-list" style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px;"></div>
         <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearCallHistory()">🗑️ 清空通话记录</button>
+    </div>
+
+    <!-- 🌟 新增：小游戏记录面板（双方一起玩过的小游戏战绩都汇总在这里，不再刷屏聊天） -->
+    <div id="panel-games" class="panel">
+        <div class="panel-title">小游戏记录 <span style="font-size: 11px; color: #888; font-weight: normal; margin-left: 5px;">(你和对方玩过的小游戏都会记录在此)</span></div>
+        <div class="modern-card" id="game-stats-card" style="display:flex; justify-content:space-around; text-align:center; padding:16px 8px;"></div>
+        <div id="game-history-list" style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px;"></div>
+        <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearGameRecords()">🗑️ 清空游戏记录</button>
     </div>
 
     <div id="panel-data" class="panel">
@@ -1329,6 +1338,7 @@
     let checkinHistory = safeJsonParse(localStorage.getItem('checkinHistoryV1'), []); // 🌟 查岗记录
     let trackCards = safeJsonParse(localStorage.getItem('trackCardsV1'), []);        // 🌟 轨迹词卡（用户维护，供对方轨迹掉落）
     let trackRecords = safeJsonParse(localStorage.getItem('trackRecordsV1'), []);    // 🌟 双方轨迹记录
+    let gameRecords = safeJsonParse(localStorage.getItem('gameRecordsV1'), []);      // 🌟 小游戏战绩记录（跳一跳等，统一汇总到“游戏记录”面板，不进聊天）
     
     let moodData = safeJsonParse(localStorage.getItem('chatMoodDataV1'), {});
     let currentCalDate = new Date();
@@ -2254,6 +2264,99 @@
         if (confirm('确定要清空所有通话记录吗？此操作不可逆！')) {
             callHistory = []; saveCallHistory(); renderCallHistory();
             showCustomNotification('通话记录已清空', 'success');
+        }
+    }
+
+    // ================== 🕹️ 小游戏记录模块（双方一起玩过的小游戏战绩，统一汇总，不进聊天） ==================
+    function saveGameRecords() { try { localStorage.setItem('gameRecordsV1', JSON.stringify(gameRecords)); } catch (e) {} }
+
+    // 记录一局小游戏结果；gameName 默认情侣跳一跳，可扩展其他小游戏
+    function logGameRecord(myScore, otherScore, gameName) {
+        myScore = Math.max(0, parseInt(myScore) || 0);
+        otherScore = Math.max(0, parseInt(otherScore) || 0);
+        gameRecords.push({
+            id: generateMsgId(),
+            ts: Date.now(),
+            game: gameName || '情侣跳一跳',
+            myScore: myScore,
+            otherScore: otherScore,
+            total: myScore + otherScore
+        });
+        saveGameRecords();
+        const panel = document.getElementById('panel-games');
+        if (panel && panel.style.display === 'block') renderGameRecords();
+    }
+
+    function renderGameRecords() {
+        const list = document.getElementById('game-history-list');
+        const statsCard = document.getElementById('game-stats-card');
+        if (!list || !statsCard) return;
+
+        const totalGames = gameRecords.length;
+        const totalSteps = gameRecords.reduce((s, r) => s + (parseInt(r.total) || 0), 0);
+        const bestTotal = gameRecords.reduce((m, r) => Math.max(m, parseInt(r.total) || 0), 0);
+
+        statsCard.innerHTML = `
+            <div><div style="font-size:22px; font-weight:700; color:#111;">${totalGames}</div><div style="font-size:11px; color:#888; margin-top:2px;">总局数</div></div>
+            <div><div style="font-size:22px; font-weight:700; color:#e84393;">${totalSteps}</div><div style="font-size:11px; color:#888; margin-top:2px;">累计步数</div></div>
+            <div><div style="font-size:22px; font-weight:700; color:#7048e8;">${bestTotal}</div><div style="font-size:11px; color:#888; margin-top:2px;">最佳一局</div></div>
+        `;
+
+        if (totalGames === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:36px 20px; color:#999; font-size:14px;">🕹️ 暂无游戏记录<br><span style="font-size:12px; color:#bbb;">在聊天框里发起“情侣跳一跳”，一起玩完后战绩就会出现在这里</span></div>`;
+            return;
+        }
+
+        const myAvatar = config.myAvatar || defaultAvatar;
+        const otherAvatar = config.otherAvatar || defaultAvatar;
+        const myName = config.myName || '我';
+        const otherName = config.otherName || '对方';
+
+        list.innerHTML = [...gameRecords].reverse().map(rec => {
+            const my = parseInt(rec.myScore) || 0;
+            const ot = parseInt(rec.otherScore) || 0;
+            const total = parseInt(rec.total) || (my + ot);
+            let tag, tagColor;
+            if (total >= 20) { tag = '默契满分 💕'; tagColor = '#e84393'; }
+            else if (total >= 10) { tag = '配合不错 🎮'; tagColor = '#7048e8'; }
+            else { tag = '一起玩耍 🕹️'; tagColor = '#999'; }
+            return `
+                <div style="background:#fff; border:1px solid var(--border-color); border-radius:12px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                            <span style="font-size:18px;">🕹️</span>
+                            <span style="font-size:14px; font-weight:600; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(rec.game || '情侣跳一跳')}</span>
+                            <span style="font-size:11px; font-weight:700; color:#fff; background:${tagColor}; padding:2px 8px; border-radius:10px; white-space:nowrap;">${tag}</span>
+                        </div>
+                        <span style="font-size:11px; color:#aaa; white-space:nowrap; flex-shrink:0;">${formatMomentTime(rec.ts)}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; background:var(--light-gray); border-radius:10px; padding:10px 8px;">
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0;">
+                            <img src="${myAvatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; background:#eee;">
+                            <span style="font-size:11px; color:#888; max-width:72px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(myName)}</span>
+                            <span style="font-size:18px; font-weight:800; color:#e84393;">${my}</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                            <span style="font-size:11px; color:#bbb;">合计</span>
+                            <span style="font-size:22px; font-weight:800; color:#7048e8;">${total}</span>
+                            <span style="font-size:11px; color:#bbb;">步</span>
+                        </div>
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0;">
+                            <img src="${otherAvatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; background:#eee;">
+                            <span style="font-size:11px; color:#888; max-width:72px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(otherName)}</span>
+                            <span style="font-size:18px; font-weight:800; color:#9b6dff;">${ot}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function clearGameRecords() {
+        if (gameRecords.length === 0) { showCustomNotification('当前没有游戏记录', 'info'); return; }
+        if (confirm('确定要清空所有游戏记录吗？此操作不可逆！')) {
+            gameRecords = []; saveGameRecords(); renderGameRecords();
+            showCustomNotification('游戏记录已清空', 'success');
         }
     }
 
@@ -3665,6 +3768,7 @@
         if(id === 'panel-words') exitMultiSelectMode(); 
         if(id === 'panel-voice') renderVoiceUI();
         if(id === 'panel-calls') renderCallHistory();
+        if(id === 'panel-games') renderGameRecords();
         if(id === 'panel-checkin') renderCheckinHistory();
         if(id === 'panel-frequency') renderFrequencyPanel();
         if(id === 'panel-doodle') initDoodle();
@@ -3794,7 +3898,7 @@
     }
 
     function exportData() {
-        const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, callHistory: callHistory, checkinHistory: checkinHistory, trackCards: trackCards, trackRecords: trackRecords, timestamp: new Date().toISOString() };
+        const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, callHistory: callHistory, checkinHistory: checkinHistory, trackCards: trackCards, trackRecords: trackRecords, gameRecords: gameRecords, timestamp: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(fullData)], { type: "application/json" }); const url = URL.createObjectURL(blob);
         const a = document.createElement("a"); a.href = url; a.download = `private_space_backup_${new Date().getTime()}.json`; a.click(); URL.revokeObjectURL(url);
         showCustomNotification("数据已成功导出", "success");
@@ -3815,6 +3919,7 @@
                     localStorage.setItem('checkinHistoryV1', JSON.stringify(data.checkinHistory || []));
                     localStorage.setItem('trackCardsV1', JSON.stringify(data.trackCards || []));
                     localStorage.setItem('trackRecordsV1', JSON.stringify(data.trackRecords || []));
+                    localStorage.setItem('gameRecordsV1', JSON.stringify(data.gameRecords || []));
                     // 🌟 聊天记录写入大容量存储（IndexedDB），确保刷新后能读到导入的数据
                     if (!chatDB) await openChatDB();
                     await persistChat(data.chatHistory || []);
@@ -4609,7 +4714,7 @@
             shadow: 'rgba(0,0,0,0.28)'
         };
 
-        // 手感参数：偏微信跳一跳的“长按压缩、松手弹起、距离跟蓄力非线性增长”
+        // 手感参数：微信式跳一跳——长按线性蓄力，松手起跳，“按多久≈跳多远”，轻点只挪一小步
         const PLAT_H = 18 * DPR;
         const PLAT_W_MIN = 64 * DPR;
         const PLAT_W_MAX = 104 * DPR;
@@ -4617,8 +4722,10 @@
         const PLAT_GAP_MAX = 172 * DPR;
         const PLAYER_R = 15 * DPR;
         const GRAVITY = 0.56 * DPR;
-        const MAX_HOLD_MS = 1650;
-        const MIN_JUMP_RATIO = 0.012;
+        // —— 微信式控制器核心参数 ——
+        const MAX_HOLD_MS = 1100;   // 蓄满力所需的长按时长（约 1.1 秒蓄满，手感接近微信跳一跳）
+        const MIN_DIST = 70;        // 轻点（瞬间松手）跳出的最小距离（逻辑像素）——“按一下只是一小段距离”
+        const MAX_DIST = 330;       // 长按蓄满跳出的最大距离（逻辑像素），足够够到最远的台子
         const MAX_POWER = 100;
 
         let myScore = 0;
@@ -4648,43 +4755,29 @@
             return Math.max(0, Math.min(1, t));
         }
 
-        // 微信跳一跳式蓄力：短按前段增长很慢，避免轻点一下就飞很远；长按才逐渐拉开距离
-        function easePower(t) {
-            t = clamp01(t);
-            return Math.pow(t, 1.35);
+        // ===== 微信式蓄力：蓄力时长 → 目标距离（线性，可预测、可练习）=====
+        // 轻点 ≈ MIN_DIST 的小跳；按住越久线性变远，封顶 MAX_DIST。
+        function holdToDistance(heldMs) {
+            const t = clamp01((heldMs || 0) / MAX_HOLD_MS);
+            return MIN_DIST + t * (MAX_DIST - MIN_DIST);
         }
 
-        function chargeRatioFromHold(heldMs) {
-            if (heldMs <= 35) return MIN_JUMP_RATIO;
-            return Math.max(MIN_JUMP_RATIO, easePower(heldMs / MAX_HOLD_MS));
+        // 弹道落点水平距离（逻辑像素），与 launchJump 用同一套速度公式，保证“蓄多少=跳多远”
+        function arcDistanceLogical(tuned) {
+            tuned = clamp01(tuned);
+            const vx = 1.5 + tuned * 6.8;
+            const vy = 5.9 + tuned * 6.0;
+            return vx * (2 * vy / 0.56);
         }
 
-        function jumpOutputCurve(ratio) {
-            ratio = clamp01(ratio);
-            // 轻微提起中后段，保证长按仍能到达远台；前段仍保持克制
-            return Math.pow(ratio, 0.92);
-        }
-
-        function estimateDistanceForRatio(ratio) {
-            const tuned = jumpOutputCurve(ratio);
-            const vx = 1.5 + tuned * 6.0;
-            const vy = 5.9 + tuned * 5.4;
-            return (2 * vx * vy) / 0.56;
-        }
-
-        function ratioForDistance(dist) {
-            let bestRatio = 0.5;
-            let bestDiff = Infinity;
-            for (let i = 0; i <= 100; i++) {
-                const r = MIN_JUMP_RATIO + (1 - MIN_JUMP_RATIO) * (i / 100);
-                const d = estimateDistanceForRatio(r);
-                const diff = Math.abs(d - dist / DPR);
-                if (diff < bestDiff) {
-                    bestDiff = diff;
-                    bestRatio = r;
-                }
+        // 给定目标距离，二分反推弹道强度 tuned∈[0,1]
+        function distanceToTuned(distLogical) {
+            let lo = 0, hi = 1;
+            for (let i = 0; i < 24; i++) {
+                const mid = (lo + hi) / 2;
+                if (arcDistanceLogical(mid) < distLogical) lo = mid; else hi = mid;
             }
-            return bestRatio;
+            return clamp01((lo + hi) / 2);
         }
 
         function makePlatform(x, y, w, colorIdx) {
@@ -4725,7 +4818,7 @@
             const otherName = config.otherName || '对方';
             if (isMyTurn) {
                 if (turnEl) { turnEl.textContent = '轮到你跳：你跳一下，TA 再跳一下 🩷'; turnEl.style.color = '#FF69B4'; }
-                if (hintEl) hintEl.textContent = '像微信跳一跳一样：长按蓄力，松开跳跃 💕';
+                if (hintEl) hintEl.textContent = '像微信跳一跳：轻点小跳，按越久跳越远 💕';
                 if (powerBarFill) powerBarFill.style.background = 'linear-gradient(90deg,#e84393,#7048e8)';
             } else {
                 if (turnEl) { turnEl.textContent = `轮到 ${otherName} 跳：你们在一起往前走 💜`; turnEl.style.color = '#B39DDB'; }
@@ -4904,13 +4997,12 @@
             return false;
         }
 
-        function launchJump(rawRatio) {
+        function launchJump(tuned) {
             if (!player.onGround || gameOver) return;
-            const ratio = Math.max(MIN_JUMP_RATIO, Math.min(1, rawRatio));
-            const tuned = jumpOutputCurve(ratio);
-            // 重新标定后的微信式手感：短按只是轻轻挪动，长按才会明显飞远
-            player.vx = (1.5 + tuned * 6.0) * DPR;
-            player.vy = -(5.9 + tuned * 5.4) * DPR;
+            tuned = clamp01(tuned);
+            // 微信式手感：tuned 来自蓄力时长的线性映射，轻点 → 小跳，长按 → 远跳
+            player.vx = (1.5 + tuned * 6.8) * DPR;
+            player.vy = -(5.9 + tuned * 6.0) * DPR;
             player.onGround = false;
             player.jumping = true;
             squash = 1.08;
@@ -4919,23 +5011,23 @@
             vibrate(18);
         }
 
-        function estimateBotRatio() {
+        function estimateBotTuned() {
             const nextPlat = platforms[player.platIdx + 1];
             if (!nextPlat) return 0.5;
             const target = nextPlat.x + nextPlat.w * 0.5;
-            const dist = target - player.x;
-            let ratio = ratioForDistance(dist);
-            // 对方不是对手，是一起玩；大部分时候会配合跳到下一块，偶尔有一点点偏差
+            const dist = (target - player.x) / DPR;   // 换算成逻辑像素再反推
+            let tuned = distanceToTuned(dist);
+            // 对方不是对手，是一起玩；大多数时候会配合跳到下一块，偶尔有一点点偏差
             const mistake = Math.random() < 0.06;
-            ratio += mistake ? (Math.random() < 0.5 ? -0.12 : 0.12) : (Math.random() - 0.5) * 0.035;
-            return Math.max(MIN_JUMP_RATIO, Math.min(1, ratio));
+            tuned += mistake ? (Math.random() < 0.5 ? -0.1 : 0.1) : (Math.random() - 0.5) * 0.03;
+            return clamp01(tuned);
         }
 
         function scheduleBotJump() {
             clearTimeout(botJumpTimer);
             clearInterval(botChargeTimer);
-            const targetRatio = estimateBotRatio();
-            const chargeMs = 650 + targetRatio * 900 + Math.random() * 260;
+            const targetTuned = estimateBotTuned();
+            const chargeMs = 650 + targetTuned * 900 + Math.random() * 260;
             botJumpTimer = setTimeout(() => {
                 if (gameOver || isMyTurn || !player.onGround) return;
                 if (hintEl) hintEl.textContent = `${config.otherName || '对方'} 正在蓄力...`;
@@ -4943,14 +5035,14 @@
                 botChargeTimer = setInterval(() => {
                     if (gameOver || isMyTurn || !player.onGround) { clearInterval(botChargeTimer); return; }
                     const t = Math.min(1, (Date.now() - chargeStart) / chargeMs);
-                    power = Math.min(MAX_POWER, t * targetRatio * MAX_POWER);
-                    squash = 1 - Math.min(0.24, power / MAX_POWER * 0.24);
+                    power = Math.min(MAX_POWER, t * targetTuned * MAX_POWER);
+                    squash = 1 - Math.min(0.26, power / MAX_POWER * 0.26);
                     if (powerBarFill) powerBarFill.style.width = (power / MAX_POWER * 100) + '%';
                 }, 16);
                 setTimeout(() => {
                     clearInterval(botChargeTimer);
                     if (gameOver || isMyTurn || !player.onGround) return;
-                    launchJump(targetRatio);
+                    launchJump(targetTuned);
                 }, chargeMs);
             }, 700 + Math.random() * 700);
         }
@@ -4962,11 +5054,13 @@
 
             if (holding && player.onGround && isMyTurn) {
                 const held = Date.now() - holdStart;
-                power = Math.min(MAX_POWER, chargeRatioFromHold(held) * MAX_POWER);
-                squash = 1 - Math.min(0.24, power / MAX_POWER * 0.24);
+                // 线性蓄力进度（与起跳距离一一对应，所见即所得）
+                const charge = clamp01(held / MAX_HOLD_MS);
+                power = charge * MAX_POWER;
+                squash = 1 - charge * 0.26;   // 蓄力时小人线性压扁，像微信里那样越蓄越矮
                 const plat = platforms[player.platIdx];
-                if (plat) plat.sink = Math.min(4.5 * DPR, power / MAX_POWER * 4.5 * DPR);
-                if (powerBarFill) powerBarFill.style.width = (power / MAX_POWER * 100) + '%';
+                if (plat) plat.sink = Math.min(4.5 * DPR, charge * 4.5 * DPR);
+                if (powerBarFill) powerBarFill.style.width = (charge * 100) + '%';
             } else if (player.onGround) {
                 squash += (1 - squash) * 0.16;
             }
@@ -4994,8 +5088,10 @@
 
         function doJump(heldMs) {
             if (!player.onGround || gameOver || !isMyTurn) return;
-            const ratio = chargeRatioFromHold(heldMs || 0);
-            launchJump(ratio);
+            // 微信式：按住时长 → 目标距离（线性）→ 反推弹道强度，松手即跳
+            const dist = holdToDistance(heldMs || 0);
+            const tuned = distanceToTuned(dist);
+            launchJump(tuned);
         }
 
         function endJumpGame() {
@@ -5013,7 +5109,7 @@
             holdStart = Date.now();
             power = 0;
             vibrate(8);
-            if (hintEl) hintEl.textContent = '蓄力中... 松开就跳！';
+            if (hintEl) hintEl.textContent = '蓄力中…按越久跳越远，松开起跳！';
         }
         function onEnd(e) {
             e.preventDefault();
@@ -5087,15 +5183,16 @@
         if (winnerEl) winnerEl.textContent = winnerText;
         overlay.style.display = 'flex';
 
-        const resultHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:180px; max-width:250px;"><span style="font-size:28px;">🕹️</span><div><div style="font-size:13px; font-weight:700; color:#fff; margin-bottom:3px;">情侣跳一跳合作结果</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(config.myName||'我')} 贡献：${myScore} 步</div><div style="font-size:12px; color:rgba(255,255,255,0.9);">${escapeHtml(otherName)} 贡献：${otherScore} 步</div><div style="font-size:11px; color:rgba(255,255,255,0.7); margin-top:2px;">两个人合计 ${totalScore} 步 💕</div></div></div>`;
-        appendMessage(true, resultHtml);
+        // 🌟 改动：游戏结果不再发到聊天界面，而是写入“游戏记录”面板统一展示
+        logGameRecord(myScore, otherScore, '情侣跳一跳');
         resetProactiveTimer();
 
+        // 对方在聊天里只说一句“不带比分”的暖心话（具体战绩去“游戏记录”面板看），既保留陪伴感又不刷屏
         const reactions = totalScore >= 20
-            ? [`我们好厉害哦！合计 ${totalScore} 步！🥳`, '哇哦，我们配合太默契了💕', '太好玩了，再来一局继续一起跳？🎮']
+            ? ['刚刚和你一起玩跳一跳太开心啦，我们好默契～🥳', '哇，我们配合得太好了，下次再一起玩好不好💕', '一起跳的感觉真好，再来一局嘛🎮']
             : totalScore >= 10
-            ? ['还不错嘛，我们再一起努力一点！💪', '下次一定能一起跳得更远！', '继续加油，我们可以的 🤍']
-            : ['哈哈哈我们还有进步空间😂', '再来！这次我们一起跳更多步！', '下次我配合你好好跳 💕'];
+            ? ['刚才玩得好开心，下次我们一起跳得更远！💪', '和你一起玩跳一跳超有意思的～🤍', '陪你玩游戏的时间总是过得好快呀']
+            : ['哈哈我们还有进步空间，再来一局呀😂', '没关系啦，重在一起玩得开心嘛💕', '下次我好好配合你，一起加油🎮'];
         setTimeout(() => {
             appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
         }, 1500);
