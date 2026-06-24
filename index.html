@@ -4649,8 +4649,10 @@
         const inviteHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(232,67,147,0.3);"><span style="font-size:32px;">🕹️</span><div><div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:2px;">情侣跳一跳</div><div style="font-size:11px; color:rgba(255,255,255,0.85);">等待对方接受邀请...</div></div></div>`;
         appendMessage(true, inviteHtml);
         resetProactiveTimer();
-        // 对方 50% 接受，50% 拒绝
-        const willAccept = Math.random() >= 0.50;
+        // 对方接受邀请的概率（0.50 = 50%，可自行调整：0.3 更难约到，0.8 更容易）
+        const otherAcceptRate = 0.50;
+        // 命中概率 = otherAcceptRate，即有 (1 - otherAcceptRate) 的概率会被拒绝
+        const willAccept = Math.random() < otherAcceptRate;
         const responseDelay = 1500 + Math.random() * 2500;
         setTimeout(() => {
             if (willAccept) {
