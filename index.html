@@ -4649,8 +4649,8 @@
         const inviteHtml = `<div style="background:linear-gradient(135deg,#e84393,#7048e8); border-radius:14px; padding:12px 16px; display:inline-flex; align-items:center; gap:10px; min-width:160px; max-width:220px; box-shadow:0 4px 15px rgba(232,67,147,0.3);"><span style="font-size:32px;">🕹️</span><div><div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:2px;">情侣跳一跳</div><div style="font-size:11px; color:rgba(255,255,255,0.85);">等待对方接受邀请...</div></div></div>`;
         appendMessage(true, inviteHtml);
         resetProactiveTimer();
-        // 对方 90% 接受，10% 拒绝
-        const willAccept = Math.random() >= 0.10;
+        // 对方 50% 接受，50% 拒绝
+        const willAccept = Math.random() >= 0.50;
         const responseDelay = 1500 + Math.random() * 2500;
         setTimeout(() => {
             if (willAccept) {
@@ -5281,12 +5281,17 @@
         logGameRecord(myScore, otherScore, '情侣跳一跳');
         resetProactiveTimer();
 
-        // 🌟 改动（按需求）：
-        //   ① 游戏结果（比分）不在聊天界面展示——上面 logGameRecord 已把这局战绩写入「游戏记录」面板，
-        //      聊天里不再出现任何比分气泡。
-        //   ② 游戏结束后，对方不再主动发送任何「写死」的暖心台词。
-        //      若之后对方要说话，也只会由「主动发消息」系统从「字卡库」里随机掉落，这里不硬编码任何内容。
-        //   （这里只重置主动计时器，让对方按正常节奏、从字卡库里组织语言，而不是游戏一结束就刷屏。）
+        // 游戏结束后，对方延迟从字卡库随机发一条消息（不再发写死的暖心台词）
+        setTimeout(() => {
+            const txt = buildBotTextMessage();
+            if (txt !== null) {
+                pendingReplies++;
+                updateChatTitle();
+                appendMessage(false, txt);
+                sendSystemNotification(config.otherName || '匿名者', '给你发了一条新消息');
+                finishReply();
+            }
+        }, 2000 + Math.random() * 2000);
     }
 
 
@@ -5420,23 +5425,18 @@
         const pp = document.getElementById('poll-page');
         if (pp && pp.style.display === 'flex') renderPollHistory();
 
-        // 对方说一句话
-        const chosenText = poll.options[chosenIdx];
+        // 对方从字卡库随机发一条消息（不再说写死的选项文字）
         const otherName = config.otherName || '匿名者';
-        const reactions = [
-            `我选了「${chosenText}」～`,
-            `我的答案是「${chosenText}」哦 😊`,
-            `选了${chosenText}，猜到了吗？ 😏`,
-            `我点的「${chosenText}」~ 你呢？`,
-            `嗯我觉得${chosenText} 哈哈~`
-        ];
         pendingReplies++;
         updateChatTitle();
         setTimeout(() => {
-            appendMessage(false, escapeHtml(reactions[Math.floor(Math.random() * reactions.length)]));
+            const txt = buildBotTextMessage();
+            if (txt !== null) {
+                appendMessage(false, txt);
+            }
             finishReply();
         }, 600 + Math.random() * 800);
-        sendSystemNotification(otherName, `在你的问卷中选了「${chosenText}」`);
+        sendSystemNotification(otherName, '回答了你的问卷');
     }
 
     function _updatePollBubble(poll, chosenIdx) {
@@ -5454,7 +5454,7 @@
             if (countEl) { countEl.textContent = count; countEl.style.display = 'block'; if (i === chosenIdx) countEl.style.background = 'rgba(232,67,147,0.2)'; }
         });
         const totalEl = document.getElementById(poll.id + '-total');
-        if (totalEl) totalEl.textContent = '共 ' + poll.totalVotes + ' 票';
+        if (totalEl) totalEl.textContent = '已答完问卷 ✅';
     }
 
     function renderPollHistory() {
