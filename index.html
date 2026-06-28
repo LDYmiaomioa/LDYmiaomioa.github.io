@@ -1968,12 +1968,16 @@
     function startProactiveEngine() {
         if (proactiveEngineStarted) return;
         proactiveEngineStarted = true;
-        // 🌟 每秒轮询，不再限制"仅前台"：即使用户切到后台 / 不在本网站，只要脚本仍有机会运行，
-        //    到点也会发出主动消息（页面隐藏时通过系统通知推送，用户回到前台即可看到这条消息）。
+        // 🌟 登录时先标记一次活动，确保计时从打开页面那一刻开始，
+        //    避免"上次离开时间"触发登录即发消息的情况。
+        markUserActivity();
+        // 🌟 每秒轮询：只在保活状态下按频率触发主动消息；
+        //    保活由无声音频 + Service Worker 心跳维持，切后台后对方可在后台发消息
         setInterval(() => { checkProactiveTick(); }, 1000);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkProactiveTick(); });
         window.addEventListener('focus', checkProactiveTick);
-        checkProactiveTick(); // 启动时先查一次：若你已离开超过设定间隔，回来会很快收到消息
+        // 🌟 修改：启动时不再立即 checkProactiveTick()，避免用户刚登录就收到消息；
+        //    等轮询到下一个间隔周期后才会自然触发。
     }
 
     // 🌟 手动测试：立刻让对方发来一条消息（不受静默计时限制），用于确认功能是否正常
@@ -4041,6 +4045,12 @@
         const avatar = isSelf ? (config.myAvatar || defaultAvatar) : (config.otherAvatar || defaultAvatar);
         const name = isSelf ? config.myName : config.otherName; const quoteHtml = getQuoteHtml(quote);
         
+        // 🌟 新增：对方消息有 50% 概率在开头加一个小爱心提醒
+        let displayHtml = htmlContent;
+        if (!isSelf && !skipSave && Math.random() < 0.5) {
+            displayHtml = '<span style="color:#e84393; font-size:15px; margin-right:3px;">❤</span>' + htmlContent;
+        }
+        
         const replyBtn = `<div class="reply-btn" title="回复" onclick="setQuote('${escapeForJs(name)}', this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 0 1 5 5v2"></path><polyline points="7 6 3 10 7 14"></polyline></svg></div>`;
         const recallBtn = isSelf ? `<div class="reply-btn" title="撤回" onclick="recallMessage(this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></div>` : '';
         const actionHtml = `<div class="action-group">${recallBtn}${replyBtn}</div>`;
@@ -4050,7 +4060,7 @@
             ${isSelf?actionHtml:''}
             <div class="message-content">
                 <div class="nickname" style="text-align:${isSelf?'right':'left'}">${escapeHtml(name)}</div>
-                <div class="message ${isSelf?'bubble-self':'bubble-other'}">${quoteHtml}${htmlContent}</div>
+                <div class="message ${isSelf?'bubble-self':'bubble-other'}">${quoteHtml}${displayHtml}</div>
                 <div class="message-time">${timeStr}</div>
             </div>
             ${!isSelf?actionHtml:''}${isSelf?`<img class="avatar" src="${avatar}">`:''}
@@ -4518,7 +4528,8 @@
     let momentScrollDismissReady = false;
 
     function openMomentComment(id) {
-        document.getElementById('current-moment-id').value = id; document.getElementById('moment-comment-input-area').style.display = 'flex';
+        // 🌟 修复：统一存为字符串，避免 parseInt 大数精度丢失
+        document.getElementById('current-moment-id').value = String(id); document.getElementById('moment-comment-input-area').style.display = 'flex';
         const input = document.getElementById('moment-comment-input'); input.innerHTML = ''; input.focus(); activeInputTarget = input;
         momentScrollDismissReady = false;
         setTimeout(() => { momentScrollDismissReady = true; }, 400);
@@ -4552,13 +4563,18 @@
     })();
     
     function sendMomentComment() {
-        const id = parseInt(document.getElementById('current-moment-id').value); const input = document.getElementById('moment-comment-input'); const content = input.innerHTML.trim();
-        if (!content && !input.querySelector('img')) return; 
-        const m = moments.find(x => x.id === id);
+        // 🌟 修复：用字符串比较避免 parseInt 丢失大数精度
+        const idStr = document.getElementById('current-moment-id').value;
+        const input = document.getElementById('moment-comment-input');
+        const content = input.innerHTML.trim();
+        if (!content && !input.querySelector('img')) return;
+        const m = moments.find(x => String(x.id) === idStr);
         if(m) {
-            m.comments.push({ author: config.myName || "我", text: input.innerHTML }); localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
-            input.innerHTML = ''; document.getElementById('sticker-panel').style.display = 'none'; 
-            closeMomentComment(); renderMoments(); botReplyToMomentComment(id);
+            m.comments.push({ author: config.myName || "我", text: input.innerHTML });
+            localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
+            input.innerHTML = '';
+            document.getElementById('sticker-panel').style.display = 'none';
+            closeMomentComment(); renderMoments(); botReplyToMomentComment(idStr);
         }
     }
 
@@ -4566,7 +4582,8 @@
         if(wordCards.length === 0) return; const count = Math.floor(Math.random() * 6) + 5; let delay = 1500;
         for(let i=0; i<count; i++) {
             setTimeout(() => {
-                const m = moments.find(x => x.id === momentId);
+                // 🌟 修复：用字符串比较
+                const m = moments.find(x => String(x.id) === String(momentId));
                 if(m) {
                     let cText = "";
                     if(Math.random() < 0.3) { cText = escapeHtml(getPureEmoji()); } else { cText = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text); }
@@ -4596,7 +4613,7 @@
         moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
         el.innerHTML = ''; document.getElementById('sticker-panel').style.display = 'none'; closeMomentsPublish(); renderMoments(); 
         let delayHours = 10 + Math.random() * 14; let delayMs = delayHours * 60 * 60 * 1000; let postTime = Date.now() + delayMs; localStorage.setItem('pendingBotMomentV1', postTime);
-        if(wordCards.length > 0) botReplyToMomentComment(newMoment.id); showCustomNotification("发布成功", "success");
+        if(wordCards.length > 0) botReplyToMomentComment(String(newMoment.id)); showCustomNotification("发布成功", "success");
     }
 
     function triggerBotMoment(scheduledTs) {
@@ -5497,7 +5514,8 @@
 
     init();
     // 🌟 兜底：万一 init() 因任何异常没执行到引擎启动，4 秒后再确保启动一次。
-    //    startProactiveEngine 是幂等的（已启动则直接返回），且此时聊天记录已加载完，不会与渲染冲突。
+    //    startProactiveEngine 是幂等的（已启动则直接返回），且会在启动时 markUserActivity() 重置计时，
+    //    确保不会在登录/刷新后立即发消息，只有在保活状态下静默一段时间后才会触发。
     setTimeout(startProactiveEngine, 4000);
 </script>
 </body>
