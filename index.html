@@ -490,6 +490,43 @@
         .poll-opt-input:focus { border-color:var(--theme-blue-text); background:#fff; box-shadow:0 0 0 3px rgba(0,132,255,.1); }
         .del-opt-btn { width:28px; height:28px; background:rgba(255,59,48,0.08); border:none; border-radius:50%; color:#FF3B30; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.2s; }
         .del-opt-btn:active { background:#FF3B30; color:#fff; }
+
+        /* ====== 🕐 历史记录分割线 ====== */
+        .history-divider {
+            display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px 0; animation: fadeIn 0.4s ease;
+        }
+        .history-divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08), transparent); }
+        .history-divider-text {
+            font-size: 11px; color: #b0b0b0; white-space: nowrap; background: rgba(255,255,255,0.8);
+            padding: 4px 12px; border-radius: 20px; font-weight: 500; letter-spacing: 0.3px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* ====== ⏳ 历史加载动画 ====== */
+        #history-loading-indicator {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; padding: 32px 20px; width: 100%;
+        }
+        .history-loading-dots { display: flex; gap: 6px; }
+        .history-loading-dots span {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--theme-blue-text); opacity: 0.3;
+            animation: histLoadPulse 1.2s infinite ease-in-out;
+        }
+        .history-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .history-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes histLoadPulse { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); } 40% { opacity: 1; transform: scale(1.1); } }
+        .history-loading-text { font-size: 12px; color: #aaa; font-weight: 500; }
+
+        /* ====== 📅 新消息分割线（分隔历史与本次会话） ====== */
+        .session-start-divider {
+            display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px 0; animation: fadeIn 0.5s ease;
+        }
+        .session-start-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,132,255,0.2), transparent); }
+        .session-start-text {
+            font-size: 11px; color: var(--theme-blue-text); white-space: nowrap;
+            padding: 4px 14px; border-radius: 20px; font-weight: 600; letter-spacing: 0.3px;
+            background: rgba(0,132,255,0.08); border: 1px solid rgba(0,132,255,0.15);
+        }
     </style>
 </head>
 <body>
@@ -835,7 +872,15 @@
         <button class="action-btn" style="background:#FF3B30; margin-top:6px;" onclick="clearTrackRecords()">🗑️ 清空轨迹记录</button>
     </div>
 
-    <div class="message-area" id="message-area" onclick="closeAllPanels()"></div>
+    <div class="message-area" id="message-area" onclick="closeAllPanels()">
+        <!-- 🕐 历史记录加载中动画（init 完成后自动移除） -->
+        <div id="history-loading-indicator">
+            <div class="history-loading-dots">
+                <span></span><span></span><span></span>
+            </div>
+            <div class="history-loading-text">正在加载聊天记录...</div>
+        </div>
+    </div>
 
     <div class="quote-preview-bar" id="quote-preview-bar">
         <div id="quote-preview-content" style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1;"></div>
@@ -1703,29 +1748,67 @@
         });
     }
 
-    // 统一持久化：优先 IndexedDB；写成功则清掉旧的 localStorage 聊天键释放空间；否则回退 localStorage
+    // 统一持久化：双写策略 —— 同时写 IndexedDB 和 localStorage，防止任意一种失效丢数据
     async function persistChat(data) {
+        let idbOk = false;
         if (chatDB) {
-            const ok = await idbSetChat(data);
-            if (ok) { try { localStorage.removeItem('chatHistoryV1'); } catch (e) {} return true; }
+            try { idbOk = await idbSetChat(data); } catch(e) { idbOk = false; }
         }
-        try { localStorage.setItem('chatHistoryV1', JSON.stringify(data)); return true; }
-        catch (e) { notifyChatTooLarge(true); return false; }
+        // 同时写 localStorage（大数据只保最近 300 条作兜底快照）
+        try {
+            const json = JSON.stringify(data);
+            if (json.length < 4 * 1024 * 1024) {
+                localStorage.setItem('chatHistoryV1', json);
+                localStorage.removeItem('chatHistoryV1_truncated');
+            } else {
+                const snapshot = data.slice(-300);
+                localStorage.setItem('chatHistoryV1', JSON.stringify(snapshot));
+                localStorage.setItem('chatHistoryV1_truncated', '1');
+            }
+        } catch(e) {
+            if (!idbOk) { notifyChatTooLarge(true); return false; }
+        }
+        return true;
     }
 
-    // 初始化聊天存储：IndexedDB 优先，没有则迁移/读取旧的 localStorage 数据
+    // 初始化聊天存储：同时读取 IndexedDB 和 localStorage，取消息条数最多的那份
     async function initChatStorage() {
         await openChatDB();
-        let loaded = null;
-        if (chatDB) loaded = await idbGetChat();
-        if (loaded === null) {
-            try {
-                const ls = localStorage.getItem('chatHistoryV1');
-                if (ls) loaded = JSON.parse(ls);
-            } catch (e) { loaded = null; }
-            if (Array.isArray(loaded) && chatDB) { await idbSetChat(loaded); } // 迁移到 IndexedDB
+        let idbData = null;
+        let lsData = null;
+
+        if (chatDB) {
+            try { idbData = await idbGetChat(); } catch(e) { idbData = null; }
         }
-        chatHistory = Array.isArray(loaded) ? loaded : [];
+        try {
+            const ls = localStorage.getItem('chatHistoryV1');
+            if (ls) lsData = JSON.parse(ls);
+        } catch(e) { lsData = null; }
+
+        // 取条数最多的那份（更完整）
+        const idbLen = Array.isArray(idbData) ? idbData.length : -1;
+        const lsLen  = Array.isArray(lsData)  ? lsData.length  : -1;
+
+        if (idbLen >= lsLen && idbLen >= 0) {
+            chatHistory = idbData;
+            // 如果 localStorage 里的是截断版，同步完整数据过去
+            if (localStorage.getItem('chatHistoryV1_truncated') === '1') {
+                try {
+                    const json = JSON.stringify(idbData);
+                    if (json.length < 4 * 1024 * 1024) {
+                        localStorage.setItem('chatHistoryV1', json);
+                        localStorage.removeItem('chatHistoryV1_truncated');
+                    }
+                } catch(e) {}
+            }
+        } else if (lsLen > idbLen && lsLen >= 0) {
+            chatHistory = lsData;
+            // localStorage 里有更多数据，同步回 IndexedDB
+            if (chatDB) { try { await idbSetChat(lsData); } catch(e) {} }
+        } else {
+            chatHistory = [];
+        }
+
         chatStorageReady = true;
     }
 
@@ -1816,20 +1899,66 @@
     }
 
     function loadChatHistory() {
+        // 移除加载动画
+        const loadingEl = document.getElementById('history-loading-indicator');
+        if (loadingEl) loadingEl.remove();
+
+        if (chatHistory.length === 0) {
+            // 没有历史记录：插入欢迎提示
+            const welcomeHtml = `<div class="history-divider">
+                <div class="history-divider-line"></div>
+                <div class="history-divider-text">✨ 开始你们的第一次对话吧</div>
+                <div class="history-divider-line"></div>
+            </div>`;
+            messageArea.insertAdjacentHTML('beforeend', welcomeHtml);
+            return;
+        }
+
+        // 有历史记录：先渲染所有历史消息
         chatHistory.forEach(msg => {
             if (msg.type === 'system') { appendSystemMessage(msg.text, true, msg.id); } 
             else if (msg.type === 'message') { 
-                // 兼容老数据，如果没有 timestamp 则尝试从 msg.id 解析或使用当前时间
                 let ts = msg.timestamp || (msg.id ? parseInt(msg.id.split('-')[0]) : Date.now());
                 appendMessage(msg.isSelf, msg.htmlContent, msg.quote, true, msg.id, ts); 
             }
         });
+
+        // 在所有历史消息渲染完毕后，插入「以上是历史聊天记录」分割线
+        const count = chatHistory.length;
+        const dividerHtml = `<div class="history-divider" id="history-end-divider">
+            <div class="history-divider-line"></div>
+            <div class="history-divider-text">📖 以上是历史聊天记录（共 ${count} 条）</div>
+            <div class="history-divider-line"></div>
+        </div>`;
+        messageArea.insertAdjacentHTML('beforeend', dividerHtml);
+
+        // 插入「本次会话」开始分割线
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const sessionHtml = `<div class="session-start-divider">
+            <div class="session-start-line"></div>
+            <div class="session-start-text">本次登录 · ${hh}:${mm}</div>
+            <div class="session-start-line"></div>
+        </div>`;
+        messageArea.insertAdjacentHTML('beforeend', sessionHtml);
+
+        // 滚动到底部，让用户看到最新消息
+        setTimeout(() => { messageArea.scrollTop = messageArea.scrollHeight; }, 60);
     }
 
     function clearChatHistory() {
         if(confirm('确定要清空所有聊天记录吗？此操作不可逆！')) {
-            chatHistory = []; saveChatHistory(); messageArea.innerHTML = ''; closeAllPanels();
+            chatHistory = []; saveChatHistory(); messageArea.innerHTML = '';
             chatCapacityWarned = false; _saveCounter = 0; // 🌟 清空后重置容量提醒
+            // 清空后重新显示欢迎提示
+            const welcomeHtml = `<div class="history-divider">
+                <div class="history-divider-line"></div>
+                <div class="history-divider-text">✨ 聊天记录已清空，开始新的对话吧</div>
+                <div class="history-divider-line"></div>
+            </div>`;
+            messageArea.insertAdjacentHTML('beforeend', welcomeHtml);
+            closeAllPanels();
         }
     }
 
