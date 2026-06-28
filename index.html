@@ -1656,7 +1656,7 @@
     // ============ 🗄️ 大容量聊天存储（IndexedDB，localStorage 自动回退/迁移） ============
     // 说明：localStorage 单源约 5MB，两个人长期聊天 + 图片很容易写满导致存档报错。
     // 改用 IndexedDB（可达数百 MB ~ GB 级）作为聊天主存储，旧的 localStorage 数据会自动迁移过来。
-    const CHAT_DB_NAME = 'privateSpaceChatDB';
+    const CHAT_DB_NAME = 'xingxingfanChatDB';
     const CHAT_STORE = 'chatStore';
     const CHAT_KEY = 'chatHistoryV1';
     let chatDB = null;
@@ -4014,7 +4014,7 @@
     function exportData() {
         const fullData = { config: config, chatHistory: chatHistory, wordCards: wordCards, voiceCards: voiceCards, moments: moments, moodData: moodData, callHistory: callHistory, checkinHistory: checkinHistory, trackCards: trackCards, trackRecords: trackRecords, gameRecords: gameRecords, polls: polls, timestamp: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(fullData)], { type: "application/json" }); const url = URL.createObjectURL(blob);
-        const a = document.createElement("a"); a.href = url; a.download = `private_space_backup_${new Date().getTime()}.json`; a.click(); URL.revokeObjectURL(url);
+        const a = document.createElement("a"); a.href = url; a.download = `xingxingfan_backup_${new Date().getTime()}.json`; a.click(); URL.revokeObjectURL(url);
         showCustomNotification("数据已成功导出", "success");
     }
 
