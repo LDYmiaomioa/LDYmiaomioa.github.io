@@ -4057,10 +4057,13 @@
         const avatar = isSelf ? (config.myAvatar || defaultAvatar) : (config.otherAvatar || defaultAvatar);
         const name = isSelf ? config.myName : config.otherName; const quoteHtml = getQuoteHtml(quote);
         
-        // 🌟 新增：对方消息有 50% 概率在开头加一个小爱心提醒
-        let displayHtml = htmlContent;
+        // 🌟 小爱心逻辑：
+        // 仅在"新消息首次写入"时随机决定是否加爱心（skipSave=false 且 对方消息）。
+        // 决定后把带爱心的内容同时用于渲染 AND 持久化，
+        // 这样历史记录里本身就含有爱心，重新加载时直接渲染，爱心永久保留。
+        let finalHtml = htmlContent;
         if (!isSelf && !skipSave && Math.random() < 0.5) {
-            displayHtml = '<span style="color:#e84393; font-size:15px; margin-right:3px;">❤</span>' + htmlContent;
+            finalHtml = '<span style="color:#e84393; font-size:15px; margin-right:3px;">❤</span>' + htmlContent;
         }
         
         const replyBtn = `<div class="reply-btn" title="回复" onclick="setQuote('${escapeForJs(name)}', this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 0 1 5 5v2"></path><polyline points="7 6 3 10 7 14"></polyline></svg></div>`;
@@ -4072,7 +4075,7 @@
             ${isSelf?actionHtml:''}
             <div class="message-content">
                 <div class="nickname" style="text-align:${isSelf?'right':'left'}">${escapeHtml(name)}</div>
-                <div class="message ${isSelf?'bubble-self':'bubble-other'}">${quoteHtml}${displayHtml}</div>
+                <div class="message ${isSelf?'bubble-self':'bubble-other'}">${quoteHtml}${finalHtml}</div>
                 <div class="message-time">${timeStr}</div>
             </div>
             ${!isSelf?actionHtml:''}${isSelf?`<img class="avatar" src="${avatar}">`:''}
@@ -4080,7 +4083,8 @@
         
         messageArea.insertAdjacentHTML('beforeend', html); messageArea.scrollTop = messageArea.scrollHeight;
         if (!skipSave) {
-            chatHistory.push({ id: id, type: 'message', isSelf: isSelf, htmlContent: htmlContent, quote: quote, timestamp: ts }); saveChatHistory();
+            // 🌟 存入 finalHtml（已含爱心），而非原始 htmlContent，确保重新加载后爱心仍在
+            chatHistory.push({ id: id, type: 'message', isSelf: isSelf, htmlContent: finalHtml, quote: quote, timestamp: ts }); saveChatHistory();
             if (isSelf) markUserActivity(); // 🌟 你发出的任意消息都算一次主动操作，重置对方的静默计时
         }
     }
