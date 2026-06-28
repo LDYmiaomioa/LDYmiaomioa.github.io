@@ -333,7 +333,9 @@
            这里去掉 backdrop-filter，改用不透明纯色背景（视觉几乎一致），从根本上消除会产生残影的合成快照层。 */
         #moment-comment-input-area { 
             display:none; position:relative; width:100%; flex-shrink:0; z-index: 850; 
-            padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#F7F8FA; border-top:1px solid rgba(0,0,0,0.05); gap:10px; align-items:flex-end; box-sizing: border-box;
+            padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#F7F8FA; border-top:1px solid rgba(0,0,0,0.05); gap:8px; align-items:center; box-sizing: border-box;
+            /* 🌟 修复：align-items 改为 center 确保按钮在行中间对齐、始终可点击；
+               移除 flex-end 避免单行时按钮被推到底部而在部分机型上出现点击区域偏移 */
         }
         #moment-comment-input { flex:1; padding:10px 14px; border:none; border-radius:18px; background:#FFF; font-size:14px; outline:none; box-shadow: 0 1px 3px rgba(0,0,0,0.03); min-height: 38px; max-height: 80px; overflow-y:auto; word-break: break-word; -webkit-user-select: text; user-select: text;}
         #moment-comment-input:empty:before { content: attr(data-placeholder); color: #BBB; }
@@ -1048,13 +1050,23 @@
             <div id="moments-feed"></div>
         </div>
         <div id="moment-comment-input-area">
-            <div class="icon-btn" onclick="toggleStickerPanel('moment')" onmousedown="event.preventDefault()" title="插入表情" style="margin-bottom:0;">
+            <!-- 🌟 修复：评论区输入条重构，确保发送按钮在移动端能正常触发 -->
+            <div class="icon-btn" onclick="toggleStickerPanel('moment')" onmousedown="event.preventDefault()" title="插入表情" style="margin-bottom:0; flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
             </div>
             <input type="hidden" id="current-moment-id">
             <div id="moment-comment-input" class="chat-input-box" contenteditable="true" data-placeholder="回复..." style="min-height:36px; max-height:80px; margin-bottom:0;"></div>
-            <button class="send-btn-style" style="margin-bottom:0; border-radius:16px; padding:8px 14px;" onclick="sendMomentComment()">发送</button>
-            <button class="summon-btn-style" style="margin-bottom:0; border-radius:16px; padding:8px 12px; background:#E4E6EB; color:#555;" onclick="closeMomentComment()">取消</button>
+            <!-- 取消按钮 -->
+            <button class="summon-btn-style"
+                style="margin-bottom:0; border-radius:16px; padding:8px 12px; background:#E4E6EB; color:#555; flex-shrink:0;"
+                onmousedown="event.preventDefault()"
+                onclick="closeMomentComment()">取消</button>
+            <!-- 发送按钮：同时绑定 touchend 防止移动端键盘收起后 click 事件丢失 -->
+            <button class="send-btn-style"
+                style="margin-bottom:0; border-radius:16px; padding:8px 16px; flex-shrink:0;"
+                onmousedown="event.preventDefault()"
+                ontouchend="event.preventDefault(); sendMomentComment();"
+                onclick="sendMomentComment()">发送</button>
         </div>
     </div>
 
@@ -4528,11 +4540,18 @@
     let momentScrollDismissReady = false;
 
     function openMomentComment(id) {
-        // 🌟 修复：统一存为字符串，避免 parseInt 大数精度丢失
-        document.getElementById('current-moment-id').value = String(id); document.getElementById('moment-comment-input-area').style.display = 'flex';
-        const input = document.getElementById('moment-comment-input'); input.innerHTML = ''; input.focus(); activeInputTarget = input;
+        // 🌟 修复：先存 id（字符串），再显示输入条，再清空输入框并聚焦，顺序严格保证
+        const idStr = String(id);
+        document.getElementById('current-moment-id').value = idStr;
+        const bar = document.getElementById('moment-comment-input-area');
+        bar.style.display = 'flex';
+        const input = document.getElementById('moment-comment-input');
+        input.innerHTML = '';
+        // 延迟聚焦，给浏览器渲染一帧，避免 iOS 上 focus 触发的滚动把输入条收起
+        setTimeout(() => { input.focus(); }, 80);
+        activeInputTarget = input;
         momentScrollDismissReady = false;
-        setTimeout(() => { momentScrollDismissReady = true; }, 400);
+        setTimeout(() => { momentScrollDismissReady = true; }, 500);
     }
     
     function closeMomentComment() { 
@@ -4563,19 +4582,45 @@
     })();
     
     function sendMomentComment() {
-        // 🌟 修复：用字符串比较避免 parseInt 丢失大数精度
+        // 🌟 完整重写：防御性判断，确保评论一定能发出去
         const idStr = document.getElementById('current-moment-id').value;
         const input = document.getElementById('moment-comment-input');
-        const content = input.innerHTML.trim();
-        if (!content && !input.querySelector('img')) return;
-        const m = moments.find(x => String(x.id) === idStr);
-        if(m) {
-            m.comments.push({ author: config.myName || "我", text: input.innerHTML });
-            localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
-            input.innerHTML = '';
-            document.getElementById('sticker-panel').style.display = 'none';
-            closeMomentComment(); renderMoments(); botReplyToMomentComment(idStr);
+
+        // 1. 检测 id 是否有效
+        if (!idStr) {
+            showCustomNotification('评论目标丢失，请重新点击评论后再发送', 'error');
+            return;
         }
+
+        // 2. 用 innerText 检测文字内容（比 innerHTML.trim() 更准确），图片也单独检测
+        const hasText = (input.innerText || input.textContent || '').trim().length > 0;
+        const hasImg  = !!input.querySelector('img');
+        if (!hasText && !hasImg) {
+            showCustomNotification('请先输入评论内容', 'info');
+            return;
+        }
+
+        // 3. 找到对应的 moment（字符串比较，避免大数精度丢失）
+        const m = moments.find(x => String(x.id) === String(idStr));
+        if (!m) {
+            showCustomNotification('未找到对应动态，请刷新朋友圈后重试', 'error');
+            return;
+        }
+
+        // 4. 保存评论并更新 UI
+        const commentText = input.innerHTML;
+        m.comments.push({ author: config.myName || '我', text: commentText });
+        localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
+
+        // 5. 清理输入框并关闭评论栏
+        input.innerHTML = '';
+        document.getElementById('sticker-panel').style.display = 'none';
+        closeMomentComment();
+        renderMoments();
+        showCustomNotification('评论发送成功', 'success', 1800);
+
+        // 6. 触发对方回复
+        botReplyToMomentComment(idStr);
     }
 
     function botReplyToMomentComment(momentId) {
