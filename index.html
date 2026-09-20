@@ -67,9 +67,25 @@
         .nav-btn.active { background-color: #FFF; color: var(--theme-blue-text); box-shadow: 0 2px 10px rgba(0,0,0,0.05); font-weight: 600; }
 
         /* ====== 聊天区 ====== */
-        .message-area { flex: 1 1 auto; min-height: 0; padding: 20px 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        /* ⚡ 性能：
+           1) scroll-behavior 由 smooth 改为 auto —— 聊天条数多时，"平滑滚到底部"要逐帧走完整个列表，
+              键盘弹起时的自动滚动也会被拖慢；直接跳转反而更跟手。
+           2) overflow-anchor: none —— 输入框变高会引起滚动锚定重算，条数多时很贵。
+           3) contain —— 消息区内部的变化不再往外传导，输入框长高时不用重排整页。 */
+        .message-area { 
+            flex: 1 1 auto; min-height: 0; padding: 20px 15px; overflow-y: auto; display: flex; 
+            flex-direction: column; gap: 20px; scroll-behavior: auto; overflow-anchor: none;
+            -webkit-overflow-scrolling: touch; contain: layout style;
+        }
         
-        .message-wrapper { display: flex; gap: 10px; width: 100%; animation: fadeIn 0.3s ease-out; align-items: flex-start; }
+        /* ⚡ 性能：淡入动画只给"新来的那一条"，历史记录批量渲染时不再逐条跑动画 */
+        .message-wrapper { display: flex; gap: 10px; width: 100%; align-items: flex-start; }
+        .message-wrapper.msg-enter { animation: fadeIn 0.3s ease-out; }
+
+        /* ⚡ 性能：消息条数很多时（默认 >250 条）启用"屏幕外不渲染"，
+           屏幕外的气泡不参与布局和绘制，打字时每次重排只算可见的十几条。 */
+        .message-area.vlist .message-wrapper { content-visibility: auto; contain-intrinsic-size: auto 72px; }
+        .message-area.vlist .system-message-container { content-visibility: auto; contain-intrinsic-size: auto 34px; }
         .message-wrapper.other { flex-direction: row; }
         .message-wrapper.self { flex-direction: row; justify-content: flex-end; }
 
@@ -142,33 +158,37 @@
         .red-packet-card.claimed .red-packet-icon, .red-packet-card.returned .red-packet-icon { opacity: .72; }
         .red-packet-card.claimed .red-packet-title, .red-packet-card.returned .red-packet-title { color: rgba(255,255,255,.92) !important; }
         .red-packet-card.claimed .red-packet-status, .red-packet-card.returned .red-packet-status { color: rgba(255,255,255,.95) !important; }
-        @keyframes pulseMic { 0% { transform: scale(1); opacity: 1;} 50% { transform: scale(1.15); opacity: 0.7;} 100% { transform: scale(1); opacity: 1;} }
 
         /* ====== 底部输入区 ====== */
+        /* ⚡ 性能：去掉 backdrop-filter（每敲一个字都会让整条输入栏重新做一次毛玻璃采样，
+           这是低端安卓上"字慢半拍"的主因）。底色本来就接近不透明，改成实色后观感几乎一致。
+           contain 把输入栏的内部布局与外部隔离，输入框变高时不再牵动整页重排。 */
         .input-area { 
             padding: 0; display: flex; flex-direction: column; gap: 0; align-items: stretch; 
-            background-color: rgba(248, 248, 248, 0.95); backdrop-filter: blur(15px); 
+            background-color: #F7F7F7; 
             border-top: 1px solid rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; 
             z-index: 600; position: relative; flex-shrink: 0;
+            contain: layout style;
         }
         
         .icon-btn { 
             display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; 
             color: #555; cursor: pointer; flex-shrink: 0; transition: color 0.2s, transform 0.1s; 
-            margin-bottom: 4px; border-radius: 50%;
+            margin-bottom: 4px; border-radius: 50%; touch-action: manipulation;
         }
         .icon-btn:active { color: var(--theme-blue-text); transform: scale(0.95); background: rgba(0,0,0,0.04);}
         .icon-btn svg { width: 20px; height: 20px; stroke-width: 1.8; }
-        .recording-active { color: #FF3B30 !important; animation: pulseMic 1.5s infinite; }
 
+        /* ⚡ 性能：去掉 focus 时的 box-shadow 过渡（聚焦瞬间会触发整条输入栏重绘，键盘弹起更慢）；
+           touch-action: manipulation 去掉浏览器等待"双击缩放"的判定延迟，点一下就能立刻唤起键盘。 */
         .chat-input-box { 
             flex: 1 1 auto; min-width: 0; padding: 8px 12px; border: none; border-radius: 18px; 
             outline: none; background: #FFF; font-size: 15px; color: #333; 
             box-shadow: 0 1px 2px rgba(0,0,0,0.03); min-height: 36px; max-height: 160px; 
-            overflow-y: auto; word-break: break-word; line-height: 1.4; transition: box-shadow 0.2s;
+            overflow-y: auto; word-break: break-word; line-height: 1.4;
             -webkit-user-select: text; user-select: text;
+            touch-action: manipulation; overscroll-behavior: contain;
         }
-        .chat-input-box:focus { box-shadow: 0 2px 6px rgba(0,132,255,0.1); }
         .chat-input-box:empty:before { content: attr(data-placeholder); color: #BBB; pointer-events: none; display: block; }
         .chat-input-box img { max-width: 60px; max-height: 60px; border-radius: 6px; vertical-align: middle; margin: 2px; border: 1px solid rgba(0,0,0,0.05); }
         
@@ -176,6 +196,7 @@
             padding: 8px 10px; background-color: #E4E6EB; color: #4b4f56; border: none; 
             border-radius: 16px; cursor: pointer; font-size: 13px; font-weight: 600; flex-shrink: 0; 
             transition: transform 0.1s; white-space: nowrap; margin-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            touch-action: manipulation;
         }
         .summon-btn-style:active { transform: scale(0.95); background-color: #D8DADF; }
 
@@ -183,6 +204,7 @@
             padding: 8px 14px; background-color: var(--wechat-green); color: white; border: none; 
             border-radius: 16px; cursor: pointer; font-size: 13px; font-weight: 600; flex-shrink: 0; 
             transition: transform 0.1s; white-space: nowrap; margin-bottom: 4px; box-shadow: 0 2px 6px rgba(7, 193, 96, 0.2);
+            touch-action: manipulation;
         }
         .send-btn-style:active { transform: scale(0.95); }
 
@@ -933,13 +955,6 @@
         </div>
         <!-- 底部图标+输入框行 -->
         <div style="display:flex; align-items:flex-end; gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); width:100%; box-sizing:border-box;">
-            <div class="icon-btn" id="mic-icon" onclick="toggleVoiceRecord()" title="点击录制/发送语音">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="22"></line>
-                </svg>
-            </div>
             <div class="icon-btn" onclick="toggleStickerPanel('chat')" onmousedown="event.preventDefault()" title="插入表情与字卡">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
             </div>
@@ -1555,12 +1570,6 @@
     let currentCall = null; // 🌟 当前通话状态 { direction:'incoming'|'outgoing', connected:bool }
     let activeInputTarget = chatInput;
 
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
-    let recordStartTime = 0;
-    let recordTimer = null;
-
     let globalAudio = new Audio();
     let playingBubble = null;
 
@@ -1591,12 +1600,31 @@
         }
     }, 25000);
 
-    // 用户首次点击屏幕时启动保活音频（必须由用户手势触发，否则浏览器会拒绝）
-    document.body.addEventListener('click', () => {
-        if (keepAliveAudio.paused) {
-            keepAliveAudio.play().catch(() => {});
-        }
-    }, { once: true });
+    // ⚡ 性能：原来保活音频和通知权限都绑在“首次点击”上。
+    //    如果你进来第一下就是点输入框，浏览器会先弹系统权限框、再去开键盘，
+    //    键盘就显得特别慢。现在改成：先把这一帧让给键盘，延迟一拍再做这些副作用。
+    //    （浏览器的“用户手势”授权有 5 秒有效期，延迟 400ms 不影响播放和权限申请）
+    let _firstGestureDone = false;
+    function onFirstGesture(e) {
+        if (_firstGestureDone) return;
+        const inInputArea = e && e.target && e.target.closest && e.target.closest('.input-area');
+        _firstGestureDone = true;
+        document.body.removeEventListener('click', onFirstGesture);
+        setTimeout(() => {
+            if (keepAliveAudio.paused) keepAliveAudio.play().catch(() => {});
+            // 点的是输入框时不弹权限框，留到下一次点别处再请求，避免挡住键盘
+            if (inInputArea) {
+                document.body.addEventListener('click', function reArm(ev) {
+                    if (ev.target && ev.target.closest && ev.target.closest('.input-area')) return;
+                    document.body.removeEventListener('click', reArm);
+                    setTimeout(requestNotificationPermission, 300);
+                });
+            } else {
+                requestNotificationPermission();
+            }
+        }, 400);
+    }
+    document.body.addEventListener('click', onFirstGesture);
 
     // 每次切到后台时立刻确认保活音频在运行
     document.addEventListener('visibilitychange', () => {
@@ -1654,7 +1682,7 @@
             Notification.requestPermission().catch(e => console.log("静默请求权限被拦截:", e));
         }
     }
-    document.body.addEventListener('click', requestNotificationPermission, { once: true });
+    // （首次点击的权限申请已统一放到上方的 onFirstGesture 里延迟执行）
 
     function sendSystemNotification(title, bodyText) {
         // 前台时显示内部弹窗
@@ -1812,11 +1840,44 @@
         chatStorageReady = true;
     }
 
-    function saveChatHistory() {
-        // 内存中的 chatHistory 始终是最新的（渲染只读它），所以即便持久化偶发失败，本次聊天也不会出 bug
+    // ⚡ 性能核心修复：原来每来一条消息都会立刻 JSON.stringify 整个聊天记录并同步写 localStorage。
+    //    聊天上千条、里面还有图片 base64 时，这一下就是几百毫秒的主线程卡死——
+    //    而对方的自动回复往往正好在你打字时落地，于是表现成"字要等一下才蹦出来"。
+    //    改为：内存立即更新（渲染只读内存，不影响任何功能），磁盘写入合并后在空闲时执行，
+    //    并在切后台 / 关页面时强制落盘，保证一条都不会丢。
+    const _idleRun = window.requestIdleCallback || function (cb) { return setTimeout(cb, 1); };
+    let _persistTimer = null;      // 空闲防抖定时器
+    let _persistMaxTimer = null;   // 最长等待定时器（持续聊天也保证 5 秒内落盘一次）
+    let _persistDirty = false;
+
+    function flushChatHistory() {
+        if (_persistTimer) { clearTimeout(_persistTimer); _persistTimer = null; }
+        if (_persistMaxTimer) { clearTimeout(_persistMaxTimer); _persistMaxTimer = null; }
+        if (!_persistDirty) return;
+        _persistDirty = false;
         persistChat(chatHistory);
         checkChatCapacity();
     }
+
+    function saveChatHistory() {
+        _persistDirty = true;
+        if (_persistTimer) clearTimeout(_persistTimer);
+        _persistTimer = setTimeout(() => { _idleRun(flushChatHistory, { timeout: 1500 }); }, 900);
+        if (!_persistMaxTimer) _persistMaxTimer = setTimeout(flushChatHistory, 5000);
+    }
+
+    // 导入备份 / 即将刷新页面时调用：丢掉还没落盘的旧数据，
+    // 以免它盖掉刚导入的内容
+    function cancelPendingChatSave() {
+        if (_persistTimer) { clearTimeout(_persistTimer); _persistTimer = null; }
+        if (_persistMaxTimer) { clearTimeout(_persistMaxTimer); _persistMaxTimer = null; }
+        _persistDirty = false;
+    }
+
+    // 切后台、锁屏、关闭页面时立刻落盘，避免防抖窗口内的消息丢失
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flushChatHistory(); });
+    window.addEventListener('pagehide', flushChatHistory);
+    window.addEventListener('beforeunload', flushChatHistory);
 
     // ============ 📦 聊天容量监测与提醒 ============
     const CHAT_WARN_MSG_COUNT = 1500;          // 消息条数超过该值 → 弹窗提醒保存
@@ -1898,6 +1959,28 @@
         return `${d.getFullYear()}年${month}月${day}日 ${hh}:${mm}`;
     }
 
+    // ⚡ 性能：滑到底部的统一入口。
+    //    原来每插一条消息就读一次 scrollHeight，而读 scrollHeight 会强制浏览器立刻算一遍整个列表的布局；
+    //    现在改成每帧最多算一次，连续来好几条消息也只付一次代价。
+    let _scrollPending = false;
+    function scrollChatToBottom() {
+        if (_scrollPending) return;
+        _scrollPending = true;
+        requestAnimationFrame(() => {
+            _scrollPending = false;
+            messageArea.scrollTop = messageArea.scrollHeight;
+        });
+    }
+
+    // ⚡ 性能：消息条数超过阀值时，给消息区挂上 vlist，
+    //    让屏幕外的气泡不参与布局和绘制（CSS 里的 content-visibility）。
+    //    条数不多时不开，保证滚动条长度完全精确。
+    const VLIST_THRESHOLD = 250;
+    function updateVirtualListMode() {
+        const on = messageArea.childElementCount > VLIST_THRESHOLD;
+        messageArea.classList.toggle('vlist', on);
+    }
+
     function loadChatHistory() {
         // 移除加载动画
         const loadingEl = document.getElementById('history-loading-indicator');
@@ -1914,14 +1997,21 @@
             return;
         }
 
-        // 有历史记录：先渲染所有历史消息
-        chatHistory.forEach(msg => {
-            if (msg.type === 'system') { appendSystemMessage(msg.text, true, msg.id); } 
-            else if (msg.type === 'message') { 
-                let ts = msg.timestamp || (msg.id ? parseInt(msg.id.split('-')[0]) : Date.now());
-                appendMessage(msg.isSelf, msg.htmlContent, msg.quote, true, msg.id, ts); 
+        // ⚡ 性能：历史消息先全部拼成一个字符串，最后一次性插入。
+        //    原来是一条一条 insertAdjacentHTML 并读 scrollHeight，
+        //    1000 条就是 1000 次强制同步重排，开页要卡好几秒。
+        const parts = [];
+        for (let i = 0; i < chatHistory.length; i++) {
+            const msg = chatHistory[i];
+            if (!msg) continue;
+            if (msg.type === 'system') {
+                parts.push(buildSystemMessageHtml(msg.text, msg.id));
+            } else if (msg.type === 'message') {
+                const ts = msg.timestamp || (msg.id ? parseInt(msg.id.split('-')[0]) : Date.now());
+                parts.push(buildMessageHtml(msg.isSelf, msg.htmlContent, msg.quote, msg.id, ts, false));
             }
-        });
+        }
+        messageArea.insertAdjacentHTML('beforeend', parts.join(''));
 
         // 在所有历史消息渲染完毕后，插入「以上是历史聊天记录」分割线
         const count = chatHistory.length;
@@ -1944,7 +2034,12 @@
         messageArea.insertAdjacentHTML('beforeend', sessionHtml);
 
         // 滚动到底部，让用户看到最新消息
-        setTimeout(() => { messageArea.scrollTop = messageArea.scrollHeight; }, 60);
+        // ⚡ 开启「屏幕外不渲染」后，未渲染部分的高度是估算值，所以多滚几次让它收敛到真正的底部
+        updateVirtualListMode();
+        const toBottom = () => { messageArea.scrollTop = messageArea.scrollHeight; };
+        requestAnimationFrame(() => { toBottom(); requestAnimationFrame(toBottom); });
+        setTimeout(toBottom, 120);
+        setTimeout(toBottom, 400);
     }
 
     function clearChatHistory() {
@@ -2071,10 +2166,15 @@
         }, ms);
     }
 
+    function buildSystemMessageHtml(text, id) {
+        return `<div class="system-message-container" data-id="${id}"><div class="system-message-text">${text}</div></div>`;
+    }
+
     function appendSystemMessage(text, skipSave = false, msgId = null) {
         const id = msgId || generateMsgId();
-        const html = `<div class="system-message-container" data-id="${id}"><div class="system-message-text">${text}</div></div>`;
-        messageArea.insertAdjacentHTML('beforeend', html); messageArea.scrollTop = messageArea.scrollHeight;
+        messageArea.insertAdjacentHTML('beforeend', buildSystemMessageHtml(text, id));
+        updateVirtualListMode();
+        scrollChatToBottom();
         if (!skipSave) { chatHistory.push({ id: id, type: 'system', text: text }); saveChatHistory(); }
     }
 
@@ -2150,43 +2250,8 @@
         globalAudio.play().catch(e => { playingBubble.classList.remove('playing'); playingBubble = null; });
     };
 
-    async function toggleVoiceRecord() {
-        const micIcon = document.getElementById('mic-icon'); const chatInputBox = document.getElementById('chat-input');
-        if (isRecording && mediaRecorder) {
-            mediaRecorder.stop(); isRecording = false; micIcon.classList.remove('recording-active');
-            clearInterval(recordTimer); chatInputBox.contentEditable = "true"; chatInputBox.innerHTML = ''; return;
-        } 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            showCustomNotification("当前环境不支持录音功能。", "error"); return;
-        }
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream); audioChunks = []; recordStartTime = Date.now();
-            mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                let dur = Math.max(1, Math.round((Date.now() - recordStartTime)/1000));
-                const mimeType = mediaRecorder.mimeType || 'audio/webm';
-                const audioBlob = new Blob(audioChunks, { type: mimeType }); audioChunks = [];
-                const reader = new FileReader(); reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => {
-                    const base64data = reader.result; let bubbleWidth = 65 + Math.min(dur, 60) * 2;
-                    const htmlContent = `
-                        <div class="wechat-voice-bubble" style="width:${bubbleWidth}px" onclick="playWeChatVoice(this, '${base64data}')">
-                            <svg class="voice-icon" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                            <span class="voice-dur">${dur}"</span>
-                        </div>`;
-                    appendMessage(true, htmlContent, currentQuote);
-                    currentQuote = null; cancelQuote(); closeAllPanels();
-                    triggerAutoReply(htmlContent); resetProactiveTimer();
-                };
-                stream.getTracks().forEach(track => track.stop());
-            };
-            mediaRecorder.start(); isRecording = true; micIcon.classList.add('recording-active');
-            chatInputBox.contentEditable = "false";
-            chatInputBox.innerHTML = `<div style="color:#FF3B30; display:flex; align-items:center; justify-content:center; width:100%; font-size:14px; font-weight:600;">🔴 正在录音... (点击发送)</div>`;
-            recordTimer = setInterval(() => {}, 1000); 
-        } catch (err) { showCustomNotification("录音失败：" + err.message, "error"); }
-    }
+    // 🗑️ 语音输入（点击麦克风录音并发送）功能已按需求移除。
+    //    历史记录里已存在的语音气泡仍可正常点击播放（playWeChatVoice 保留）。
 
     // ===== 来电铃声（Base64 短音频，Web Audio API 合成铃声）=====
     let incomingRingtoneInterval = null;
@@ -4009,7 +4074,11 @@
             document.querySelectorAll('.panel').forEach(p => { if (p.style.display === 'block') p.style.top = headerH + 'px'; });
         }
         
-        if(id === 'panel-words') exitMultiSelectMode(); 
+        if(id === 'panel-words') {
+            exitMultiSelectMode();
+            const wp = document.getElementById('panel-words');
+            if (wp && wp.style.display === 'block') renderWordUI();
+        }
         if(id === 'panel-voice') renderVoiceUI();
         if(id === 'panel-calls') renderCallHistory();
         if(id === 'panel-checkin') renderCheckinHistory();
@@ -4165,6 +4234,8 @@
                     localStorage.setItem('gameRecordsV1', JSON.stringify(data.gameRecords || [])); localStorage.setItem('pollsV1', JSON.stringify(data.polls || []));
                     // 🌟 聊天记录写入大容量存储（IndexedDB），确保刷新后能读到导入的数据
                     if (!chatDB) await openChatDB();
+                    // ⚡ 先取消掉防抖队列里的旧聊天记录，否则刷新前它可能把刚导入的数据覆盖掉
+                    cancelPendingChatSave();
                     await persistChat(data.chatHistory || []);
                     showCustomNotification("导入成功！页面即将刷新...", "success"); setTimeout(() => location.reload(), 1500);
                 } else { showCustomNotification("文件格式不正确，导入失败。", "error"); }
@@ -4188,10 +4259,32 @@
     }
 
     // 🌟 修改：appendMessage 支持时间戳显示
+    // ⚡ 只负责"拼 HTML 字符串"，不碰 DOM。历史记录因此可以一次性拼好、一次性插入，
+    //    不用像以前那样一条一条 insertAdjacentHTML + 读 scrollHeight（每条都强制同步重排一次）。
+    function buildMessageHtml(isSelf, finalHtml, quote, id, ts, isNew) {
+        const timeStr = formatTime(ts);
+        const avatar = isSelf ? (config.myAvatar || defaultAvatar) : (config.otherAvatar || defaultAvatar);
+        const name = isSelf ? config.myName : config.otherName; const quoteHtml = getQuoteHtml(quote);
+
+        const replyBtn = `<div class="reply-btn" title="回复" onclick="setQuote('${escapeForJs(name)}', this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 0 1 5 5v2"></path><polyline points="7 6 3 10 7 14"></polyline></svg></div>`;
+        const recallBtn = isSelf ? `<div class="reply-btn" title="撤回" onclick="recallMessage(this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></div>` : '';
+        const actionHtml = `<div class="action-group">${recallBtn}${replyBtn}</div>`;
+
+        return `<div class="message-wrapper ${isSelf?'self':'other'}${isNew?' msg-enter':''}" data-id="${id}">
+            ${!isSelf?`<img class="avatar" src="${avatar}" loading="lazy" decoding="async">`:''}
+            ${isSelf?actionHtml:''}
+            <div class="message-content">
+                <div class="nickname" style="text-align:${isSelf?'right':'left'}">${escapeHtml(name)}</div>
+                <div class="message ${isSelf?'bubble-self':'bubble-other'}">${quoteHtml}${finalHtml}</div>
+                <div class="message-time">${timeStr}</div>
+            </div>
+            ${!isSelf?actionHtml:''}${isSelf?`<img class="avatar" src="${avatar}" loading="lazy" decoding="async">`:''}
+        </div>`;
+    }
+
     function appendMessage(isSelf, htmlContent, quote = null, skipSave = false, msgId = null, timestamp = null) {
         const id = msgId || generateMsgId();
         const ts = timestamp || (msgId ? parseInt(msgId.split('-')[0]) : Date.now());
-        const timeStr = formatTime(ts);
         const avatar = isSelf ? (config.myAvatar || defaultAvatar) : (config.otherAvatar || defaultAvatar);
         const name = isSelf ? config.myName : config.otherName; const quoteHtml = getQuoteHtml(quote);
         
@@ -4203,23 +4296,10 @@
         if (!isSelf && !skipSave && Math.random() < 0.5) {
             finalHtml = '<span style="color:#e84393; font-size:15px; margin-right:3px;">❤</span>' + htmlContent;
         }
-        
-        const replyBtn = `<div class="reply-btn" title="回复" onclick="setQuote('${escapeForJs(name)}', this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 0 1 5 5v2"></path><polyline points="7 6 3 10 7 14"></polyline></svg></div>`;
-        const recallBtn = isSelf ? `<div class="reply-btn" title="撤回" onclick="recallMessage(this)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></div>` : '';
-        const actionHtml = `<div class="action-group">${recallBtn}${replyBtn}</div>`;
-        
-        const html = `<div class="message-wrapper ${isSelf?'self':'other'}" data-id="${id}">
-            ${!isSelf?`<img class="avatar" src="${avatar}">`:''}
-            ${isSelf?actionHtml:''}
-            <div class="message-content">
-                <div class="nickname" style="text-align:${isSelf?'right':'left'}">${escapeHtml(name)}</div>
-                <div class="message ${isSelf?'bubble-self':'bubble-other'}">${quoteHtml}${finalHtml}</div>
-                <div class="message-time">${timeStr}</div>
-            </div>
-            ${!isSelf?actionHtml:''}${isSelf?`<img class="avatar" src="${avatar}">`:''}
-        </div>`;
-        
-        messageArea.insertAdjacentHTML('beforeend', html); messageArea.scrollTop = messageArea.scrollHeight;
+
+        messageArea.insertAdjacentHTML('beforeend', buildMessageHtml(isSelf, finalHtml, quote, id, ts, !skipSave));
+        updateVirtualListMode();
+        scrollChatToBottom();
         if (!skipSave) {
             // 🌟 存入 finalHtml（已含爱心），而非原始 htmlContent，确保重新加载后爱心仍在
             chatHistory.push({ id: id, type: 'message', isSelf: isSelf, htmlContent: finalHtml, quote: quote, timestamp: ts }); saveChatHistory();
@@ -4230,9 +4310,18 @@
     function sendMessage() {
         const t = chatInput.innerHTML;
         if (chatInput.innerText.trim() === '' && !chatInput.querySelector('img') && !chatInput.querySelector('.wechat-voice-bubble')) return;
+        // ⚡ 记住发送前输入框是不是聚焦的：清空 innerHTML 会把光标弄丢，
+        //    部分安卓浏览器会顺手收起键盘，于是你得再点一次输入框、再等一次键盘动画。
+        const hadFocus = (document.activeElement === chatInput);
         appendMessage(true, t, currentQuote); currentQuote = null; chatInput.innerHTML = '';
         if (chatInput.textContent.trim() === '' && !chatInput.querySelector('img')) { chatInput.innerHTML = ''; }
         closeAllPanels(); cancelQuote(); triggerAutoReply(t); resetProactiveTimer(); 
+        if (hadFocus) {
+            chatInput.focus();
+            const sel = window.getSelection(); const r = document.createRange();
+            r.selectNodeContents(chatInput); r.collapse(false);
+            sel.removeAllRanges(); sel.addRange(r);
+        }
         // 🌟 你发消息后，对方有 pokeChance% 概率顺手戳你一下（需开启「允许对方戳戳」）
         if (config.allowBotPat && Math.random() * 100 < (config.pokeChance || 0)) {
             setTimeout(() => triggerBotPat(), 600 + Math.random() * 1200);
@@ -4358,7 +4447,16 @@
 
     function enterMultiSelectMode(index) { isMultiSelectMode = true; selectedWordIndices.clear(); selectedWordIndices.add(index); document.getElementById('batch-action-bar').style.display = 'flex'; renderWordUI(); }
     function toggleSelectWord(index) { if (!isMultiSelectMode) return; if (selectedWordIndices.has(index)) { selectedWordIndices.delete(index); } else { selectedWordIndices.add(index); } renderWordUI(); }
-    function exitMultiSelectMode() { isMultiSelectMode = false; selectedWordIndices.clear(); document.getElementById('batch-action-bar').style.display = 'none'; renderWordUI(); }
+    // ⚡ 性能：closeAllPanels() 会调用本函数，而它每次都会重建整个字卡列表
+    //    （发消息、点一下聊天区都会触发；字卡几百条时非常贵）。
+    //    不在多选状态时直接返回，不做任何重绘。
+    function exitMultiSelectMode() {
+        const bar = document.getElementById('batch-action-bar');
+        if (!isMultiSelectMode) { if (bar && bar.style.display !== 'none') bar.style.display = 'none'; return; }
+        isMultiSelectMode = false; selectedWordIndices.clear();
+        if (bar) bar.style.display = 'none';
+        renderWordUI();
+    }
 
     function batchDeleteWords() {
         if(selectedWordIndices.size === 0) return; if(!confirm(`确定删除已选的 ${selectedWordIndices.size} 个字卡吗？`)) return;
