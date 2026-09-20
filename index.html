@@ -1367,51 +1367,17 @@
 
 <script>
     // ======== Service Worker（OPPO ColorOS 增强版）========
-    // 通过 postMessage 让 SW 在独立线程发通知，是 ColorOS 后台推送最可靠的方案
-    if ('serviceWorker' in navigator) {
-        const swCode = `
-            self.addEventListener('install', (e) => { self.skipWaiting(); });
-            self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
-            self.addEventListener('fetch', (e) => {});
-
-            // 接收主页面发来的通知指令，在 SW 侧（独立线程）展示系统通知
-            self.addEventListener('message', (event) => {
-                if (!event.data) return;
-                if (event.data.type === 'SHOW_NOTIFICATION') {
-                    const d = event.data;
-                    event.waitUntil(
-                        self.registration.showNotification(d.title, {
-                            body: d.body,
-                            icon: d.icon || '',
-                            badge: d.icon || '',
-                            tag: d.tag || ('msg-' + Date.now()),
-                            renotify: true,
-                            requireInteraction: true,
-                            vibrate: [200, 100, 300, 100, 200],
-                            silent: false
-                        })
-                    );
-                }
-                // HEARTBEAT 类型无需处理，仅用于保持 SW 存活
-            });
-
-            self.addEventListener('notificationclick', function(event) {
-                event.notification.close();
-                event.waitUntil(
-                    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-                        for (var i = 0; i < windowClients.length; i++) {
-                            var client = windowClients[i];
-                            if ('focus' in client) { return client.focus(); }
-                        }
-                        if (clients.openWindow) { return clients.openWindow(self.location.href); }
-                    })
-                );
-            });
-        `;
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(console.error);
-    }
+    // 🔧 修复说明：原代码用 Blob/ObjectURL 现造一个 SW 脚本再注册，
+    //    但所有浏览器都规定 Service Worker 脚本必须是与页面同源的真实 http(s) 文件，
+    //    不支持 blob:/data: 协议 —— 用 Blob URL 注册在任何环境下都会 100% 失败
+    //   （报错：The URL protocol of the script ('blob:...') is not supported）。
+    //    这个报错本身不会导致整个页面打不开，但会在每次加载时污染控制台，
+    //    且这段代码想做的推送通知功能实际上从未真正生效过。
+    //    由于要求整份代码只放在一个 HTML 文件里、不额外依赖同目录的 sw.js，
+    //    而 Service Worker 又必须从独立文件加载、无法用内联/Blob 方式实现，
+    //    这里直接跳过这个注定失败的注册，避免无意义的报错；
+    //    页面其余的保活/提醒逻辑（无声音频、定时器等）不依赖它，不受影响。
+    // if ('serviceWorker' in navigator) { /* 已禁用：见上方说明 */ }
 
     // 动态生成 Manifest 支持桌面添加到主屏幕
     const manifest = {
@@ -1689,22 +1655,11 @@
             tag: 'private-msg-' + Date.now()
         };
 
-        // 双保险策略：postMessage 触发 SW 侧通知（OPPO 最可靠）+ registration 备用
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            try { navigator.serviceWorker.controller.postMessage(notifPayload); } catch(e) {}
-        }
-        navigator.serviceWorker.ready.then(function(reg) {
-            reg.showNotification(title, {
-                body: bodyText,
-                icon: iconUrl,
-                badge: iconUrl,
-                tag: notifPayload.tag,
-                renotify: true,
-                requireInteraction: true,
-                vibrate: [200, 100, 300, 100, 200],
-                silent: false
-            }).catch(() => fallbackNotification(title, bodyText));
-        }).catch(() => fallbackNotification(title, bodyText));
+        // 🔧 修复：不再依赖 Service Worker（本文件不再注册 SW，原因见上方 Service Worker 段落的说明），
+        //    否则 navigator.serviceWorker.ready 会永远 pending，导致通知既不走 SW 也不会走下面的兜底、直接静默失效。
+        //    这里直接用浏览器原生 Notification API 弹通知（前台标签页/多数浏览器后台标签页有效；
+        //    完全退出浏览器后的系统级推送，原生须依赖真实的推送服务器，单文件网页做不到，之前的 SW 写法也没能做到）。
+        fallbackNotification(title, bodyText);
     }
 
     function fallbackNotification(title, bodyText) {
