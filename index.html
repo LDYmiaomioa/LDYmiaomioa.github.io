@@ -86,8 +86,8 @@
 
         /* ⚡ 性能：消息条数很多时（默认 >250 条）启用"屏幕外不渲染"，
            屏幕外的气泡不参与布局和绘制，打字时每次重排只算可见的十几条。 */
-        .message-area.vlist .message-wrapper { content-visibility: auto; contain-intrinsic-size: auto 72px; }
-        .message-area.vlist .system-message-container { content-visibility: auto; contain-intrinsic-size: auto 34px; }
+        /* 已移除 content-visibility：它让屏幕外的气泡用估算高度(72px)占位，往上翻旧消息时气泡变成真实高度，
+           整个列表就会突然"跳"一下。现在所有气泡高度始终真实，往上滑是连续平滑的。 */
         .message-wrapper.other { flex-direction: row; }
         .message-wrapper.self { flex-direction: row; justify-content: flex-end; }
 
@@ -323,7 +323,7 @@
         .moments-my-name { color: #FFF; font-weight: 600; font-size: 18px; text-shadow: 0 2px 8px rgba(0,0,0,0.5); padding-bottom: 8px;}
         .moments-my-avatar { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; background: #FFF; box-shadow: 0 4px 12px rgba(0,0,0,0.08);}
         
-        .moment-item { display: flex; gap: 10px; padding: 18px; border-bottom: 1px solid rgba(0,0,0,0.03); content-visibility: auto; contain-intrinsic-size: auto 140px; }
+        .moment-item { display: flex; gap: 10px; padding: 18px; border-bottom: 1px solid rgba(0,0,0,0.03); }
         .moment-item-avatar { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #EEE; }
         .moment-item-content { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
         .moment-name { font-weight: 600; color: #576b95; font-size: 15px; }
@@ -1656,57 +1656,80 @@
         togglePanel('panel-data');
     }
 
-    // ================== 🎚️ 聊天区滚动手感（想调快慢就改下面 4 个数字）==================
-    //  原来手指一甩，浏览器的惯性滚动会一口气滑过几十上百条消息，很难停在想要的位置。
-    //  手指拖动距离、松手后的惯性、鼠标滚轮都按比例缩小，想再慢/快只改下面的数字。
+    // ================== 🎚️ 聊天区滚动手感（想调快慢/软硬就改下面几个数字）==================
+    //  触摸和滚轮的滚动都由这里接管：手指/滚轮只决定"目标位置"，
+    //  每一帧让列表平缓地向目标靠拢（指数缓动），所以不会出现"一跳一跳"的台阶感。
     (function setupChatScrollFeel() {
         const el = messageArea;
         if (!el) return;
-        const DRAG_GAIN  = 0.4;   // 手指拖动：手指移动 100 像素，列表只滚 40 像素（1 = 1:1 跟手）
-        const FLING_GAIN = 0.2;   // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
-        const FLING_MAX  = 0.64;  // 惯性初速度上限（像素/毫秒），防止用力一甩飞出去
-        const FLING_TAU  = 260;   // 惯性衰减时间（毫秒）：越小停得越快
-        const WHEEL_GAIN = 0.14; // 鼠标滚轮每格滚动距离的缩放比例
-        let rafId = 0, vel = 0, lastT = 0, tracking = false, startY = 0, startTop = 0, samples = [];
-        function stop() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } vel = 0; }
-        function step(t) {
-            const dt = Math.max(0, Math.min(t - lastT, 32)); lastT = t;
-            el.scrollTop += vel * dt;
-            vel *= Math.exp(-dt / FLING_TAU);
-            const max = el.scrollHeight - el.clientHeight;
-            if (Math.abs(vel) < 0.03 || (vel < 0 && el.scrollTop <= 0) || (vel > 0 && el.scrollTop >= max - 1)) { rafId = 0; vel = 0; return; }
-            rafId = requestAnimationFrame(step);
+        const DRAG_GAIN   = 0.4;   // 手指拖动：手指移动 100 像素，列表滚 40 像素（1 = 1:1 跟手）
+        const FLING_GAIN  = 0.2;   // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
+        const FLING_MAX   = 0.64;  // 惯性初速度上限（像素/毫秒）
+        const FLING_TAU   = 260;   // 惯性衰减时间（毫秒）：越小停得越快
+        const WHEEL_GAIN  = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
+        const SMOOTH_TAU  = 70;    // 平滑时间（毫秒）：越大越柔、越有"拖尾"；越小越跟手（20~120 之间调）
+        let rafId = 0, cur = 0, target = 0, vel = 0, lastT = 0, lastSet = 0;
+        let dragging = false, startY = 0, startTop = 0, samples = [];
+        const maxTop = () => Math.max(0, el.scrollHeight - el.clientHeight);
+        const clamp = v => Math.max(0, Math.min(maxTop(), v));
+        function sync() { cur = target = el.scrollTop; lastSet = cur; }
+        function stopAll() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } vel = 0; }
+        function kick() { if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(frame); } }
+        function frame(t) {
+            rafId = 0;
+            const dt = Math.max(1, Math.min(t - lastT, 40)); lastT = t;
+            // 别的代码（比如新消息自动滚到底）动了列表：放弃惯性，以当前位置为准
+            if (Math.abs(el.scrollTop - lastSet) > 1.5) { sync(); vel = 0; if (!dragging) return; }
+            const max = maxTop();
+            if (!dragging && vel !== 0) {
+                target += vel * dt; vel *= Math.exp(-dt / FLING_TAU);
+                if (Math.abs(vel) < 0.02) vel = 0;
+            }
+            if (target < 0) { target = 0; vel = 0; } else if (target > max) { target = max; vel = 0; }
+            cur += (target - cur) * (1 - Math.exp(-dt / SMOOTH_TAU));
+            if (Math.abs(target - cur) < 0.25) cur = target;
+            el.scrollTop = cur; lastSet = el.scrollTop;
+            if (dragging || vel !== 0 || cur !== target) rafId = requestAnimationFrame(frame);
         }
         el.addEventListener('touchstart', e => {
-            if (e.touches.length !== 1) { tracking = false; return; }
-            stop(); tracking = true;
-            startY = e.touches[0].clientY; startTop = el.scrollTop;
+            if (e.touches.length !== 1) { dragging = false; return; }
+            stopAll(); sync(); dragging = true;
+            startY = e.touches[0].clientY; startTop = cur;
             samples = [{ t: e.timeStamp, y: startY }];
+            kick();
         }, { passive: true });
         el.addEventListener('touchmove', e => {
-            if (!tracking || e.touches.length !== 1) return;
+            if (!dragging || e.touches.length !== 1) return;
             const y = e.touches[0].clientY;
-            el.scrollTop = startTop + (startY - y) * DRAG_GAIN;
+            target = clamp(startTop + (startY - y) * DRAG_GAIN);
             samples.push({ t: e.timeStamp, y });
             while (samples.length > 2 && e.timeStamp - samples[0].t > 100) samples.shift();
+            kick();
         }, { passive: true });
-        el.addEventListener('touchend', e => {
-            if (!tracking) return; tracking = false;
-            const n = samples.length; if (n < 2) return;
-            const a = samples[0], b = samples[n - 1], span = b.t - a.t;
-            if (span <= 0 || e.timeStamp - b.t > 80) return;       // 停住再松手 = 不惯性
-            let v = ((a.y - b.y) / span) * FLING_GAIN;
-            v = Math.max(-FLING_MAX, Math.min(FLING_MAX, v));
-            if (Math.abs(v) < 0.05) return;
-            vel = v; lastT = performance.now(); rafId = requestAnimationFrame(step);
-        }, { passive: true });
-        el.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        function release(e, allowFling) {
+            if (!dragging) return; dragging = false;
+            const n = samples.length;
+            if (allowFling && n >= 2) {
+                const a = samples[0], b = samples[n - 1], span = b.t - a.t;
+                if (span > 0 && e.timeStamp - b.t <= 80) {            // 停住再松手 = 不惯性
+                    let v = ((a.y - b.y) / span) * FLING_GAIN;
+                    v = Math.max(-FLING_MAX, Math.min(FLING_MAX, v));
+                    if (Math.abs(v) >= 0.04) vel = v;
+                }
+            }
+            kick();
+        }
+        el.addEventListener('touchend', e => release(e, true), { passive: true });
+        el.addEventListener('touchcancel', e => release(e, false), { passive: true });
         el.addEventListener('wheel', e => {
             if (e.ctrlKey) return;
             let dy = e.deltaY;
             if (e.deltaMode === 1) dy *= 16; else if (e.deltaMode === 2) dy *= el.clientHeight;
             if (e.deltaMode === 0 && Math.abs(dy) < 40) return;     // 触控板的细小连续滚动保持原样
-            e.preventDefault(); stop(); el.scrollTop += dy * WHEEL_GAIN;
+            e.preventDefault();
+            if (!rafId) sync();
+            vel = 0; target = clamp(target + dy * WHEEL_GAIN);
+            kick();
         }, { passive: false });
     })();
 
