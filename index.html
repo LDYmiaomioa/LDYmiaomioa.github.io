@@ -1688,13 +1688,18 @@
         const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
         const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 20;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
-        const FOLLOW_GLIDE = 32;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
-        let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0;
+        const FOLLOW_DRAG  = 24;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
+        const FOLLOW_GLIDE = 38;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
+        let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0, maxCache = 0, maxAt = -1e9;
         let dragging = false, startY = 0, startTop = 0, samples = [];
-        const maxTop = () => Math.max(0, el.scrollHeight - el.clientHeight);
+        // 最大可滚动距离：每 150ms 才重新量一次，避免每帧都触发布局计算（滚动中最容易造成掉帧）
+        const maxTop = (force) => {
+            const n = performance.now();
+            if (force || n - maxAt > 150) { maxCache = Math.max(0, el.scrollHeight - el.clientHeight); maxAt = n; }
+            return maxCache;
+        };
         const clamp = v => Math.max(0, Math.min(maxTop(), v));
-        function sync() { cur = target = el.scrollTop; lastSet = cur; fv = 0; }
+        function sync() { cur = target = el.scrollTop; lastSet = cur; fv = 0; maxTop(true); }
         function stopAll() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } gv = 0; fv = 0; }
         function kick() { if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(frame); } }
         function frame(t) {
@@ -1713,7 +1718,7 @@
             const tmp = (fv + w * x) * dt;
             cur = target + (x + tmp) * e; fv = (fv - w * tmp) * e;
             if (Math.abs(target - cur) < 0.2 && Math.abs(fv) < 0.01) { cur = target; fv = 0; }
-            el.scrollTop = cur; lastSet = el.scrollTop;
+            el.scrollTop = cur; lastSet = cur;
             if (dragging || gv !== 0 || cur !== target) rafId = requestAnimationFrame(frame);
         }
         // 用最近 ~100ms 的触点做最小二乘，估计手指速度（比首尾两点更稳）
