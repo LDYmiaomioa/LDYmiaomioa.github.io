@@ -1685,11 +1685,11 @@
         const el = messageArea;
         if (!el) return;
         const DRAG_GAIN    = 0.4;   // 手指拖动：手指移动 100 像素，列表滚 40 像素（1 = 1:1 跟手）
-        const GLIDE_MAX    = 0.7;   // 松手后滑行的最大初速度（像素/毫秒）
-        const GLIDE_TAU    = 200;   // 松手后滑行的衰减时间（毫秒）：越大滑得越远越久
+        const GLIDE_MAX    = 0.8;   // 松手后滑行的最大初速度（像素/毫秒）
+        const GLIDE_TAU    = 320;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 28;    // 拖动时的追随时间（毫秒）：越小越跟手，越大越柔
-        const FOLLOW_GLIDE = 45;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
+        const FOLLOW_DRAG  = 20;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
+        const FOLLOW_GLIDE = 32;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
         let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0;
         let dragging = false, startY = 0, startTop = 0, samples = [];
         const maxTop = () => Math.max(0, el.scrollHeight - el.clientHeight);
@@ -1705,7 +1705,7 @@
             const max = maxTop();
             if (!dragging && gv !== 0) {                       // 松手后的滑行：目标匀减速前进
                 target += gv * dt; gv *= Math.exp(-dt / GLIDE_TAU);
-                if (Math.abs(gv) < 0.02) gv = 0;
+                if (Math.abs(gv) < 0.006) gv = 0;
             }
             if (target < 0) { target = 0; gv = 0; } else if (target > max) { target = max; gv = 0; }
             // 临界阻尼追随（解析解，任意帧率都稳定、速度连续）
@@ -1743,7 +1743,7 @@
             if (!dragging) return; dragging = false;
             if (allowGlide && samples.length >= 2 && e.timeStamp - samples[samples.length - 1].t <= 80) {   // 停住再松手 = 不滑行
                 const v = -fingerVelocity() * DRAG_GAIN;      // 与拖动时列表的速度一致 → 速度连续、不急刹
-                gv = Math.abs(v) >= 0.04 ? Math.max(-GLIDE_MAX, Math.min(GLIDE_MAX, v)) : 0;
+                gv = Math.abs(v) >= 0.03 ? Math.max(-GLIDE_MAX, Math.min(GLIDE_MAX, v)) : 0;
             }
             kick();
         }
