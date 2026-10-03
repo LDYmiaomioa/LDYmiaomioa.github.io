@@ -1685,8 +1685,8 @@
         const el = messageArea;
         if (!el) return;
         const DRAG_GAIN    = 0.4;   // 手指拖动：手指移动 100 像素，列表滚 40 像素（1 = 1:1 跟手）
-        const GLIDE_MAX    = 0.8;   // 松手后滑行的最大初速度（像素/毫秒）
-        const GLIDE_TAU    = 320;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久
+        const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
+        const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
         const FOLLOW_DRAG  = 20;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
         const FOLLOW_GLIDE = 32;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
