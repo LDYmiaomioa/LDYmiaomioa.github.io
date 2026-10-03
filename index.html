@@ -174,6 +174,7 @@
             overflow-y: auto; word-break: break-word; line-height: 1.4;
             -webkit-user-select: text; user-select: text;
             touch-action: manipulation; overscroll-behavior: contain;
+            contain: layout style; -webkit-tap-highlight-color: transparent;
         }
         .chat-input-box:empty:before { content: attr(data-placeholder); color: #BBB; pointer-events: none; display: block; }
         .chat-input-box img { max-width: 60px; max-height: 60px; border-radius: 6px; vertical-align: middle; margin: 2px; border: 1px solid rgba(0,0,0,0.05); }
@@ -309,8 +310,8 @@
            现在把"可滚动区域"单独拆成 #moments-scroll-wrapper，#moments-page 本身不再滚动、也不再用 transform，
            评论输入框改为普通流中的 flex 子项，天然贴在底部，和主聊天页的 header/message-area/input-area 结构保持一致。 */
         #moments-page { display: none; position: absolute; inset: 0; background: #FFF; z-index: 800; flex-direction: column; animation: fadeIn 0.3s ease; }
-        #moments-scroll-wrapper { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .moments-header { display: flex; justify-content: space-between; align-items: center; padding: calc(15px + env(safe-area-inset-top)) 20px 15px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(0,0,0,0.03);}
+        #moments-scroll-wrapper { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; contain: layout style; overflow-anchor: none; }
+        .moments-header { display: flex; justify-content: space-between; align-items: center; padding: calc(15px + env(safe-area-inset-top)) 20px 15px; background: rgba(255, 255, 255, 0.98); position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(0,0,0,0.03);}
         .moments-header-icon { font-size: 15px; cursor: pointer; padding: 6px; font-weight: 600; color: #111; display:flex; align-items:center; gap:4px;}
         .moments-header-icon svg { width: 18px; height: 18px; }
         
@@ -321,7 +322,7 @@
         .moments-my-name { color: #FFF; font-weight: 600; font-size: 18px; text-shadow: 0 2px 8px rgba(0,0,0,0.5); padding-bottom: 8px;}
         .moments-my-avatar { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; background: #FFF; box-shadow: 0 4px 12px rgba(0,0,0,0.08);}
         
-        .moment-item { display: flex; gap: 10px; padding: 18px; border-bottom: 1px solid rgba(0,0,0,0.03); }
+        .moment-item { display: flex; gap: 10px; padding: 18px; border-bottom: 1px solid rgba(0,0,0,0.03); content-visibility: auto; contain-intrinsic-size: auto 140px; }
         .moment-item-avatar { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #EEE; }
         .moment-item-content { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
         .moment-name { font-weight: 600; color: #576b95; font-size: 15px; }
@@ -353,7 +354,7 @@
         
         #moments-publish-page { display: none; position: absolute; inset: 0; background: #FFF; z-index: 900; flex-direction: column; animation: fadeIn 0.2s ease; }
         .publish-header { display: flex; justify-content: space-between; align-items: center; padding: calc(15px + env(safe-area-inset-top)) 20px 15px; background: rgba(255,255,255,0.95); border-bottom: 1px solid rgba(0,0,0,0.03); }
-        .publish-textarea { width: 100%; border: none; outline: none; font-size: 16px; resize: none; min-height: 120px; padding: 20px; font-family: inherit; line-height: 1.5; -webkit-user-select: text; user-select: text;}
+        .publish-textarea { width: 100%; border: none; outline: none; font-size: 16px; resize: none; min-height: 120px; padding: 20px; font-family: inherit; line-height: 1.5; -webkit-user-select: text; user-select: text; contain: layout style;}
         .publish-textarea:empty:before { content: attr(data-placeholder); color: #BBB; }
         .publish-textarea img { max-height: 80px; max-width: 80px; border-radius: 8px; vertical-align: middle; margin: 4px; border: 1px solid rgba(0,0,0,0.05);}
         
@@ -434,7 +435,7 @@
 
         /* ====== 📊 问卷单独页面 ====== */
         #poll-page { display:none; position:absolute; inset:0; background:#FFF; z-index:800; flex-direction:column; animation:fadeIn 0.3s ease; }
-        .poll-page-header { display:flex; justify-content:space-between; align-items:center; padding:calc(15px + env(safe-area-inset-top)) 20px 15px; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-bottom:1px solid rgba(0,0,0,0.03); flex-shrink:0; }
+        .poll-page-header { display:flex; justify-content:space-between; align-items:center; padding:calc(15px + env(safe-area-inset-top)) 20px 15px; background:rgba(255,255,255,0.98); border-bottom:1px solid rgba(0,0,0,0.03); flex-shrink:0; }
         #poll-page-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
 
         /* 聊天里的问卷气泡 */
@@ -725,7 +726,7 @@
         
         <ul id="word-list" style="list-style:none; padding:0; padding-bottom: 60px;"></ul>
         
-        <div id="batch-action-bar" style="display:none; position:sticky; bottom:0; background:rgba(255,255,255,0.95); backdrop-filter:blur(15px); padding:12px; border-top:1px solid #eee; z-index:100; justify-content:space-between; align-items:center; box-shadow:0 -5px 20px rgba(0,0,0,0.06); border-radius: 12px 12px 0 0; margin: 0 -15px -15px -15px;">
+        <div id="batch-action-bar" style="display:none; position:sticky; bottom:0; background:rgba(255,255,255,0.98); padding:12px; border-top:1px solid #eee; z-index:100; justify-content:space-between; align-items:center; box-shadow:0 -5px 20px rgba(0,0,0,0.06); border-radius: 12px 12px 0 0; margin: 0 -15px -15px -15px;">
             <span style="font-size:13px; font-weight:600; color:#333;">已选 <span id="batch-selected-count" style="color:var(--theme-blue-text); font-size:15px;">1</span> 项</span>
             <div style="display:flex; gap:8px;">
                 <button class="summon-btn-style" style="margin:0; padding:8px 14px; font-size:12px;" onclick="exitMultiSelectMode()">取消</button>
@@ -872,7 +873,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </div>
             <input type="file" id="chat-image-upload" accept="image/*" multiple style="display:none;">
-            <div id="chat-input" class="chat-input-box" contenteditable="true" data-placeholder="发消息..."></div>
+            <div id="chat-input" class="chat-input-box" contenteditable="true" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" data-placeholder="发消息..."></div>
             <button class="send-btn-style" onmousedown="event.preventDefault()" onclick="sendMessage()">发送</button>
         </div>
     </div>
@@ -1026,7 +1027,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
             </div>
             <input type="hidden" id="current-moment-id">
-            <div id="moment-comment-input" class="chat-input-box" contenteditable="true" data-placeholder="回复..." style="min-height:36px; max-height:80px; margin-bottom:0;"></div>
+            <div id="moment-comment-input" class="chat-input-box" contenteditable="true" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" data-placeholder="回复..." style="min-height:36px; max-height:80px; margin-bottom:0;"></div>
             <!-- 取消按钮 -->
             <button class="summon-btn-style"
                 style="margin-bottom:0; border-radius:16px; padding:8px 12px; background:#E4E6EB; color:#555; flex-shrink:0;"
@@ -1046,7 +1047,7 @@
             <span style="font-size:15px; cursor:pointer; color:#111; font-weight:500;" onclick="closeMomentsPublish()">取消</span>
             <button class="send-btn-style" style="padding: 8px 20px; font-weight:600; margin:0;" onclick="postMyMoment()">发表</button>
         </div>
-        <div id="moment-input-text" class="publish-textarea" contenteditable="true" data-placeholder="这一刻的想法..."></div>
+        <div id="moment-input-text" class="publish-textarea" contenteditable="true" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" data-placeholder="这一刻的想法..."></div>
         <div class="publish-toolbar">
             <label for="moment-publish-upload" class="publish-tool-icon" title="上传相册照片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></label>
             <input type="file" id="moment-publish-upload" accept="image/*" multiple style="display:none;" onchange="handlePublishImg(this)">
@@ -1900,8 +1901,8 @@
         if (!config.allowProactive) return false;
         const callEl = document.getElementById('video-call-overlay');
         const momentsEl = document.getElementById('moments-page');
-        const callHidden = !callEl || getComputedStyle(callEl).display === 'none';
-        const momentsHidden = !momentsEl || getComputedStyle(momentsEl).display === 'none';
+        const callHidden = !callEl || callEl.style.display !== 'flex';
+        const momentsHidden = !momentsEl || momentsEl.style.display !== 'flex';
         return callHidden && momentsHidden;
     }
 
