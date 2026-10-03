@@ -1704,8 +1704,8 @@
         const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
         const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 29;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
-        const FOLLOW_GLIDE = 46;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
+        const FOLLOW_DRAG  = 10;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
+        const FOLLOW_GLIDE = 20;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
         let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0, maxCache = 0, maxAt = -1e9;
         let dragging = false, startY = 0, startTop = 0, samples = [];
         // 最大可滚动距离：每 150ms 才重新量一次，避免每帧都触发布局计算（滚动中最容易造成掉帧）
