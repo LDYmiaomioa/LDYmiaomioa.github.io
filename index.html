@@ -349,6 +349,10 @@
         .mm-comments { margin-top: 12px; background: #F3F3F3; border-radius: 14px; padding: 14px 16px; font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; gap: 8px; }
         .mm-cn { font-weight: 700; color: #222; }
         .mm-ct { color: #555; word-break: break-word; }
+        .mm-c.tap { cursor: pointer; border-radius: 8px; margin: -2px -6px; padding: 2px 6px; -webkit-tap-highlight-color: rgba(0,0,0,0.06); }
+        .mm-c.tap:active { background: rgba(0,0,0,0.05); }
+        .mm-rt { color: #9A9A9A; margin: 0 4px; font-size: 13.5px; }
+        .mm-likebar + .mm-likebar { margin-top: 8px; }
         .mm-c img { display: inline-block; width: 86px; height: 86px; object-fit: cover; border-radius: 12px; vertical-align: middle; margin: 4px 2px; background: #FFF; }
 
         /* 🌟 修复③：评论输入条原先使用 backdrop-filter:blur(15px)。
@@ -1700,8 +1704,8 @@
         const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
         const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 25;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
-        const FOLLOW_GLIDE = 40;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
+        const FOLLOW_DRAG  = 26;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
+        const FOLLOW_GLIDE = 42;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
         let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0, maxCache = 0, maxAt = -1e9;
         let dragging = false, startY = 0, startTop = 0, samples = [];
         // 最大可滚动距离：每 150ms 才重新量一次，避免每帧都触发布局计算（滚动中最容易造成掉帧）
@@ -4353,11 +4357,12 @@
     function startMomentsEngine() {
         scheduleBotDailyMoments();
         checkScheduledMoments();
+        checkPendingMomentReacts();
         if (momentsEngineStarted) return;
         momentsEngineStarted = true;
-        setInterval(() => { scheduleBotDailyMoments(); checkScheduledMoments(); }, 60000);
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { scheduleBotDailyMoments(); checkScheduledMoments(); } });
-        window.addEventListener('focus', () => { scheduleBotDailyMoments(); checkScheduledMoments(); });
+        setInterval(() => { scheduleBotDailyMoments(); checkScheduledMoments(); checkPendingMomentReacts(); }, 60000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { scheduleBotDailyMoments(); checkScheduledMoments(); checkPendingMomentReacts(); } });
+        window.addEventListener('focus', () => { scheduleBotDailyMoments(); checkScheduledMoments(); checkPendingMomentReacts(); });
     }
 
     function toggleMoments(show) {
@@ -4396,7 +4401,16 @@
         const likeNames = likes.map(k => k === 'me' ? (config.myName || '我') : (config.otherName || '匿名者'));
         const gridHtml = imgs.length ? `<div class="mm-grid${imgs.length === 1 ? ' one' : ''}">${imgs.map(s => `<img src="${String(s).replace(/"/g, '&quot;')}" decoding="async" loading="lazy">`).join('')}</div>` : '';
         const likeBar = likeNames.length ? `<div class="mm-likebar">${MM_ICON.heart}<span><b style="font-weight:600;">${likeNames.map(escapeHtml).join('、')}</b> 觉得很赞</span></div>` : '';
-        const cList = (m.comments || []).map(c => `<div class="mm-c"><span class="mm-cn">${escapeHtml(c.author)}：</span><span class="mm-ct">${c.text}</span></div>`).join('');
+        const otherName = config.otherName || '匿名者';
+        const favBar = (isSelf && m.otherFav) ? `<div class="mm-likebar">${MM_ICON.star}<span><b style="font-weight:600;">${escapeHtml(otherName)}</b> 收藏了这条动态</span></div>` : '';
+        const idForCmt = String(m.id).replace(/[^0-9A-Za-z_-]/g, '');
+        const cList = (m.comments || []).map((c, ci) => {
+            let body = c.text || '', to = c.replyTo || '';
+            if (!to) { const mm = /^回复 ([^:：<]{1,20}?)[:：]\s*/.exec(body); if (mm) { to = mm[1]; body = body.slice(mm[0].length); } }   // 兼容旧的"回复 xx: 内容"写法
+            const head = `<span class="mm-cn">${escapeHtml(c.author)}</span>` + (to ? `<span class="mm-rt">回复</span><span class="mm-cn">${escapeHtml(to)}</span>` : '') + `<span class="mm-cn">：</span>`;
+            const tappable = c.author === otherName;      // 点对方的评论 → 回复这一条
+            return `<div class="mm-c${tappable ? ' tap' : ''}"${tappable ? ` onclick="replyMomentComment('${idForCmt}', ${ci})"` : ''}>${head}<span class="mm-ct">${body}</span></div>`;
+        }).join('');
         const commentsHtml = cList ? `<div class="mm-comments">${cList}</div>` : '';
         const id = String(m.id).replace(/[^0-9A-Za-z_-]/g, '');
         return `<div class="mm-card" data-id="${id}">
@@ -4408,13 +4422,29 @@
                 <div class="mm-act" onclick="openMomentSticker('${id}')">${MM_ICON.smile}<span>贴纸</span></div>
                 <div class="mm-act${m.fav ? ' faved' : ''}" onclick="toggleMomentFav('${id}')">${MM_ICON.star}<span>收藏</span></div>
             </div>
-            ${likeBar}${commentsHtml}
+            ${likeBar}${favBar}${commentsHtml}
         </div>`;
     }
     function refreshMomentCard(id) {
         const m = moments.find(x => String(x.id) === String(id)); if (!m) return;
         const old = document.querySelector('#moments-feed .mm-card[data-id="' + String(id) + '"]'); if (!old) return;
         old.outerHTML = momentCardHtml(m);
+    }
+    let _reactTimer = 0;
+    function checkPendingMomentReacts() {
+        const now = Date.now(); let changed = false, next = Infinity;
+        moments.forEach(m => {
+            const r = m.pendingReact; if (!r) return;
+            if (r.at > now) { next = Math.min(next, r.at); return; }
+            delete m.pendingReact; changed = true;
+            if (r.type === 'like') { m.likes = Array.isArray(m.likes) ? m.likes : []; if (!m.likes.includes('other')) m.likes.push('other'); }
+            else { m.otherFav = true; }
+            sendSystemNotification(config.otherName || '匿名者', r.type === 'like' ? '赞了你的动态' : '收藏了你的动态');
+            if (document.getElementById('moments-page').style.display === 'flex') refreshMomentCard(m.id);
+        });
+        if (changed) saveMoments();
+        clearTimeout(_reactTimer);
+        if (next < Infinity) _reactTimer = setTimeout(checkPendingMomentReacts, Math.min(600000, Math.max(500, next - Date.now() + 300)));
     }
     function saveMoments() { try { localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); } catch (e) { console.warn('朋友圈保存失败', e); } }
     function toggleMomentLike(id) {
@@ -4447,9 +4477,17 @@
     //    若不加保护，这次程序性滚动会把刚弹出的输入条立刻又收起。给一个 ~400ms 的缓冲窗口即可避开。
     let momentScrollDismissReady = false;
 
-    function openMomentComment(id) {
+    let momentReplyTo = '';   // 正在回复的对象（空 = 普通评论）
+    function replyMomentComment(id, ci) {
+        const m = moments.find(x => String(x.id) === String(id)); if (!m) return;
+        const c = (m.comments || [])[ci]; if (!c) return;
+        openMomentComment(id, c.author);
+    }
+    function openMomentComment(id, replyTo) {
         // 🌟 修复：先存 id（字符串），再显示输入条，再清空输入框并聚焦，顺序严格保证
         const idStr = String(id);
+        momentReplyTo = (typeof replyTo === 'string') ? replyTo : '';
+        document.getElementById('moment-comment-input').setAttribute('data-placeholder', momentReplyTo ? ('回复 ' + momentReplyTo + '：') : '回复...');
         document.getElementById('current-moment-id').value = idStr;
         const bar = document.getElementById('moment-comment-input-area');
         bar.style.display = 'flex';
@@ -4463,6 +4501,7 @@
     }
     
     function closeMomentComment() { 
+        momentReplyTo = '';
         const bar = document.getElementById('moment-comment-input-area');
         const input = document.getElementById('moment-comment-input');
         // 🌟 修复③：先让输入框失焦，主动收起软键盘——这是"焦点残留"的根源。
@@ -4517,7 +4556,9 @@
 
         // 4. 保存评论并更新 UI
         const commentText = input.innerHTML;
-        m.comments.push({ author: config.myName || '我', text: commentText });
+        const cmt = { author: config.myName || '我', text: commentText };
+        if (momentReplyTo) cmt.replyTo = momentReplyTo;
+        m.comments.push(cmt);
         localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
 
         // 5. 清理输入框并关闭评论栏
@@ -4562,10 +4603,15 @@
         const el = document.getElementById('moment-input-text'); const text = el.innerHTML.trim();
         if (el.innerText.trim() === '' && !el.querySelector('img')) return;
         const newMoment = { id: Date.now(), isSelf: true, text: text, img: null, comments: [], timestamp: Date.now() };
+        // 💗 对方有 50% 的概率点赞或收藏（二选一），20 秒~3 分钟后"看到"并操作；记在动态上，刷新/离开页面后也会补上
+        if (Math.random() < 0.5) {
+            const wait = 20000 + Math.random() * 160000;
+            newMoment.pendingReact = { at: Date.now() + wait, type: Math.random() < 0.5 ? 'like' : 'fav' };
+        }
         moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
         el.innerHTML = ''; document.getElementById('sticker-panel').style.display = 'none'; closeMomentsPublish(); renderMoments(); 
         let delayHours = 10 + Math.random() * 14; let delayMs = delayHours * 60 * 60 * 1000; let postTime = Date.now() + delayMs; localStorage.setItem('pendingBotMomentV1', postTime);
-        if(wordCards.length > 0) botReplyToMomentComment(String(newMoment.id)); showCustomNotification("发布成功", "success");
+        if(wordCards.length > 0) botReplyToMomentComment(String(newMoment.id)); checkPendingMomentReacts(); showCustomNotification("发布成功", "success");
     }
 
     function triggerBotMoment(scheduledTs) {
