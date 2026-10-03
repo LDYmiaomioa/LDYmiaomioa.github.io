@@ -1662,11 +1662,11 @@
     (function setupChatScrollFeel() {
         const el = messageArea;
         if (!el) return;
-        const DRAG_GAIN  = 0.5;   // 手指拖动：手指移动 100 像素，列表只滚 50 像素（1 = 1:1 跟手）
-        const FLING_GAIN = 0.25;  // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
-        const FLING_MAX  = 0.8;   // 惯性初速度上限（像素/毫秒），防止用力一甩飞出去
+        const DRAG_GAIN  = 0.4;   // 手指拖动：手指移动 100 像素，列表只滚 40 像素（1 = 1:1 跟手）
+        const FLING_GAIN = 0.2;   // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
+        const FLING_MAX  = 0.64;  // 惯性初速度上限（像素/毫秒），防止用力一甩飞出去
         const FLING_TAU  = 260;   // 惯性衰减时间（毫秒）：越小停得越快
-        const WHEEL_GAIN = 0.175; // 鼠标滚轮每格滚动距离的缩放比例
+        const WHEEL_GAIN = 0.14; // 鼠标滚轮每格滚动距离的缩放比例
         let rafId = 0, vel = 0, lastT = 0, tracking = false, startY = 0, startTop = 0, samples = [];
         function stop() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } vel = 0; }
         function step(t) {
