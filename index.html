@@ -1658,14 +1658,15 @@
 
     // ================== 🎚️ 聊天区滚动手感（想调快慢就改下面 4 个数字）==================
     //  原来手指一甩，浏览器的惯性滚动会一口气滑过几十上百条消息，很难停在想要的位置。
-    //  现在手指拖动仍是 1:1 跟手，但松手后的惯性被限制得更短；鼠标滚轮每一格也缩小了。
+    //  手指拖动距离、松手后的惯性、鼠标滚轮都按比例缩小，想再慢/快只改下面的数字。
     (function setupChatScrollFeel() {
         const el = messageArea;
         if (!el) return;
-        const FLING_GAIN = 0.5;   // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
-        const FLING_MAX  = 1.6;   // 惯性初速度上限（像素/毫秒），防止用力一甩飞出去
+        const DRAG_GAIN  = 0.5;   // 手指拖动：手指移动 100 像素，列表只滚 50 像素（1 = 1:1 跟手）
+        const FLING_GAIN = 0.25;  // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
+        const FLING_MAX  = 0.8;   // 惯性初速度上限（像素/毫秒），防止用力一甩飞出去
         const FLING_TAU  = 260;   // 惯性衰减时间（毫秒）：越小停得越快
-        const WHEEL_GAIN = 0.35;  // 鼠标滚轮每格滚动距离的缩放比例
+        const WHEEL_GAIN = 0.175; // 鼠标滚轮每格滚动距离的缩放比例
         let rafId = 0, vel = 0, lastT = 0, tracking = false, startY = 0, startTop = 0, samples = [];
         function stop() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } vel = 0; }
         function step(t) {
@@ -1685,7 +1686,7 @@
         el.addEventListener('touchmove', e => {
             if (!tracking || e.touches.length !== 1) return;
             const y = e.touches[0].clientY;
-            el.scrollTop = startTop + (startY - y);
+            el.scrollTop = startTop + (startY - y) * DRAG_GAIN;
             samples.push({ t: e.timeStamp, y });
             while (samples.length > 2 && e.timeStamp - samples[0].t > 100) samples.shift();
         }, { passive: true });
