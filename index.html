@@ -324,20 +324,32 @@
         .moments-my-name { color: #FFF; font-weight: 600; font-size: 18px; text-shadow: 0 2px 8px rgba(0,0,0,0.5); padding-bottom: 8px;}
         .moments-my-avatar { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; background: #FFF; box-shadow: 0 4px 12px rgba(0,0,0,0.08);}
         
-        .moment-item { display: flex; gap: 10px; padding: 18px; border-bottom: 1px solid rgba(0,0,0,0.03); }
-        .moment-item-avatar { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #EEE; }
-        .moment-item-content { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-        .moment-name { font-weight: 600; color: #576b95; font-size: 15px; }
-        .moment-text { font-size: 14px; color: #111; line-height: 1.6; word-break: break-all; margin-bottom: 2px;}
-        .moment-text img { max-width: 60px; vertical-align: middle; border-radius: 4px; border: 1px solid rgba(0,0,0,0.03);}
-        .moment-time { font-size: 11px; color: #999; margin-top: 4px; }
-        
-        .moment-comments { background: var(--light-gray); border-radius: 6px; padding: 8px 10px; margin-top: 8px; font-size: 13px; line-height: 1.6; position: relative;}
-        .moment-comments::before { content: ''; position: absolute; top: -5px; left: 10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 5px solid var(--light-gray); }
-        .moment-comment-item { margin-bottom: 5px; color: #333; }
-        .moment-comment-item:last-child { margin-bottom: 0; }
-        .moment-comment-item img { max-width: 40px; vertical-align: middle; border-radius: 4px;}
-        .moment-comment-name { color: #576b95; font-weight: 600; }
+        /* ====== 朋友圈：卡片式布局 ====== */
+        #moments-feed { padding: 12px 16px 28px; display: flex; flex-direction: column; gap: 14px; }
+        .mm-card { border: 1px solid #E6E6E6; border-radius: 22px; padding: 16px; background: #FFF; content-visibility: auto; contain-intrinsic-size: auto 380px; }
+        .mm-head { display: flex; align-items: center; gap: 12px; }
+        .mm-avatar { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; flex-shrink: 0; background: #EEE; }
+        .mm-meta { flex: 1; min-width: 0; }
+        .mm-name { font-size: 16px; font-weight: 700; color: #111; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mm-time { font-size: 12px; color: #9A9A9A; margin-top: 3px; }
+        .mm-del { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: #9A9A9A; cursor: pointer; flex-shrink: 0; margin-right: -6px; -webkit-tap-highlight-color: transparent; }
+        .mm-del svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+        .mm-text { margin-top: 14px; font-size: 15.5px; line-height: 1.65; color: #111; word-break: break-word; }
+        .mm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+        .mm-grid.one { grid-template-columns: minmax(0, 66%); }
+        .mm-grid img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; display: block; background: #F5F5F5; }
+        .mm-actions { display: flex; align-items: center; gap: 22px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #EEE; }
+        .mm-act { display: flex; align-items: center; gap: 6px; font-size: 15px; color: #8A8A8A; cursor: pointer; padding: 4px 0; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+        .mm-act svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .mm-act.liked { color: #E5484D; }
+        .mm-act.faved { color: #F0A500; }
+        .mm-act.faved svg { fill: currentColor; }
+        .mm-likebar { margin-top: 12px; background: #F5F5F5; border-radius: 12px; padding: 11px 14px; font-size: 14.5px; color: #222; display: flex; align-items: center; gap: 8px; }
+        .mm-likebar svg { width: 17px; height: 17px; fill: none; stroke: #333; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+        .mm-comments { margin-top: 12px; background: #F3F3F3; border-radius: 14px; padding: 14px 16px; font-size: 15px; line-height: 1.7; display: flex; flex-direction: column; gap: 8px; }
+        .mm-cn { font-weight: 700; color: #222; }
+        .mm-ct { color: #555; word-break: break-word; }
+        .mm-c img { display: inline-block; width: 86px; height: 86px; object-fit: cover; border-radius: 12px; vertical-align: middle; margin: 4px 2px; background: #FFF; }
 
         /* 🌟 修复③：评论输入条原先使用 backdrop-filter:blur(15px)。
            在 iOS WebKit 下，backdrop-filter 会把该元素提升为一个对"背后内容"做采样的 GPU 合成层。
@@ -1688,8 +1700,8 @@
         const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
         const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 24;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
-        const FOLLOW_GLIDE = 38;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
+        const FOLLOW_DRAG  = 25;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
+        const FOLLOW_GLIDE = 40;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
         let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0, maxCache = 0, maxAt = -1e9;
         let dragging = false, startY = 0, startTop = 0, samples = [];
         // 最大可滚动距离：每 150ms 才重新量一次，避免每帧都触发布局计算（滚动中最容易造成掉帧）
@@ -4357,19 +4369,77 @@
         } else { page.style.display = 'none'; }
     }
 
+    // ---- 朋友圈卡片 ----
+    const MM_ICON = {
+        heart: '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+        comment: '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="12" y1="10" x2="12.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/></svg>',
+        smile: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+        star: '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+        trash: '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'
+    };
+    // 把动态内容拆成"文字"和"图片列表"（图片统一放进九宫格）
+    function splitMomentContent(html) {
+        const box = document.createElement('div'); box.innerHTML = html || '';
+        const imgs = [...box.querySelectorAll('img')].map(i => i.getAttribute('src')).filter(Boolean);
+        box.querySelectorAll('img').forEach(i => i.remove());
+        const plain = (box.textContent || '').replace(/\u00a0/g, ' ').trim();
+        let text = box.innerHTML.replace(/^(\s|&nbsp;|<br\s*\/?>)+/gi, '').replace(/(\s|&nbsp;|<br\s*\/?>)+$/gi, '');
+        return { text: plain ? text : '', imgs };
+    }
+    function momentCardHtml(m) {
+        const isSelf = m.isSelf;
+        const name = isSelf ? (config.myName || '我') : (config.otherName || '匿名者');
+        const avatar = isSelf ? (config.myAvatar || defaultAvatar) : (config.otherAvatar || defaultAvatar);
+        const { text, imgs } = splitMomentContent(m.text);
+        const likes = Array.isArray(m.likes) ? m.likes : [];
+        const liked = likes.includes('me');
+        const likeNames = likes.map(k => k === 'me' ? (config.myName || '我') : (config.otherName || '匿名者'));
+        const gridHtml = imgs.length ? `<div class="mm-grid${imgs.length === 1 ? ' one' : ''}">${imgs.map(s => `<img src="${String(s).replace(/"/g, '&quot;')}" decoding="async" loading="lazy">`).join('')}</div>` : '';
+        const likeBar = likeNames.length ? `<div class="mm-likebar">${MM_ICON.heart}<span><b style="font-weight:600;">${likeNames.map(escapeHtml).join('、')}</b> 觉得很赞</span></div>` : '';
+        const cList = (m.comments || []).map(c => `<div class="mm-c"><span class="mm-cn">${escapeHtml(c.author)}：</span><span class="mm-ct">${c.text}</span></div>`).join('');
+        const commentsHtml = cList ? `<div class="mm-comments">${cList}</div>` : '';
+        const id = String(m.id).replace(/[^0-9A-Za-z_-]/g, '');
+        return `<div class="mm-card" data-id="${id}">
+            <div class="mm-head"><img class="mm-avatar" src="${avatar}"><div class="mm-meta"><div class="mm-name">${escapeHtml(name)}</div><div class="mm-time">${formatMomentTime(m.timestamp || m.id)}</div></div><div class="mm-del" title="删除" onclick="deleteMoment('${id}')">${MM_ICON.trash}</div></div>
+            ${text ? `<div class="mm-text">${text}</div>` : ''}${gridHtml}
+            <div class="mm-actions">
+                <div class="mm-act${liked ? ' liked' : ''}" onclick="toggleMomentLike('${id}')">${MM_ICON.heart}<span>赞</span></div>
+                <div class="mm-act" onclick="openMomentComment('${id}')">${MM_ICON.comment}<span>评论</span></div>
+                <div class="mm-act" onclick="openMomentSticker('${id}')">${MM_ICON.smile}<span>贴纸</span></div>
+                <div class="mm-act${m.fav ? ' faved' : ''}" onclick="toggleMomentFav('${id}')">${MM_ICON.star}<span>收藏</span></div>
+            </div>
+            ${likeBar}${commentsHtml}
+        </div>`;
+    }
+    function refreshMomentCard(id) {
+        const m = moments.find(x => String(x.id) === String(id)); if (!m) return;
+        const old = document.querySelector('#moments-feed .mm-card[data-id="' + String(id) + '"]'); if (!old) return;
+        old.outerHTML = momentCardHtml(m);
+    }
+    function saveMoments() { try { localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); } catch (e) { console.warn('朋友圈保存失败', e); } }
+    function toggleMomentLike(id) {
+        const m = moments.find(x => String(x.id) === String(id)); if (!m) return;
+        m.likes = Array.isArray(m.likes) ? m.likes : [];
+        const i = m.likes.indexOf('me'); if (i >= 0) m.likes.splice(i, 1); else m.likes.push('me');
+        saveMoments(); refreshMomentCard(id);
+    }
+    function toggleMomentFav(id) {
+        const m = moments.find(x => String(x.id) === String(id)); if (!m) return;
+        m.fav = !m.fav; saveMoments(); refreshMomentCard(id);
+    }
+    function deleteMoment(id) {
+        if (!confirm('确定删除这条动态吗？')) return;
+        moments = moments.filter(x => String(x.id) !== String(id));
+        saveMoments(); renderMoments();
+    }
+    function openMomentSticker(id) {
+        openMomentComment(id);
+        setTimeout(() => { const p = document.getElementById('sticker-panel'); if (p && p.style.display !== 'block') toggleStickerPanel('moment'); }, 140);
+    }
     function renderMoments() {
-        const feed = document.getElementById('moments-feed'); feed.innerHTML = '';
+        const feed = document.getElementById('moments-feed');
         if (moments.length === 0) { feed.innerHTML = '<div style="text-align:center; padding:40px; color:#999; font-size:14px;">暂无朋友圈动态，点击右上角发布一条吧~</div>'; return; }
-        moments.forEach(m => {
-            const isSelf = m.isSelf; const name = isSelf ? (config.myName || "我") : (config.otherName || "匿名者"); const avatar = isSelf ? (config.myAvatar || defaultAvatar) : (config.otherAvatar || defaultAvatar);
-            let commentsHtml = '';
-            if (m.comments && m.comments.length > 0) {
-                const cList = m.comments.map(c => `<div class="moment-comment-item"><span class="moment-comment-name">${escapeHtml(c.author)}: </span>${c.text}</div>`).join('');
-                commentsHtml = `<div class="moment-comments">${cList}</div>`;
-            }
-            const html = `<div class="moment-item"><img class="moment-item-avatar" src="${avatar}"><div class="moment-item-content"><div class="moment-name">${escapeHtml(name)}</div>${m.text ? `<div class="moment-text">${m.text}</div>` : ''}<div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;"><div class="moment-time">${formatMomentTime(m.timestamp || m.id)}</div><div style="cursor:pointer; color:#576b95; background:#f0f2f5; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;" onclick="openMomentComment(${m.id})">💬 评论</div></div>${commentsHtml}</div></div>`;
-            feed.insertAdjacentHTML('beforeend', html);
-        });
+        feed.innerHTML = moments.map(momentCardHtml).join('');
     }
 
     // 🌟 修复③：打开评论后短暂屏蔽"滚动收起"。
