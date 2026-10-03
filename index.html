@@ -77,6 +77,7 @@
             flex: 1 1 auto; min-height: 0; padding: 20px 15px; overflow-y: auto; display: flex; 
             flex-direction: column; gap: 20px; scroll-behavior: auto; overflow-anchor: none;
             -webkit-overflow-scrolling: touch; contain: layout style;
+            touch-action: none; /* 触摸滚动由下方 setupChatScrollFeel 接管，惯性可控 */
         }
         
         /* ⚡ 性能：淡入动画只给"新来的那一条"，历史记录批量渲染时不再逐条跑动画 */
@@ -1492,9 +1493,16 @@
         }
         // 同时写 localStorage（大数据只保最近 300 条作兜底快照）
         try {
-            const json = JSON.stringify(data);
-            if (json.length < 4 * 1024 * 1024) {
-                localStorage.setItem('chatHistoryV1', json);
+            // ⚡ 先用廉价的字符数估算体积，避免为了"量大小"把几十 MB 的聊天记录整个 stringify 一遍（会卡住主线程）
+            let est = 0;
+            for (let i = 0; i < data.length; i++) {
+                const m = data[i];
+                est += 160 + (m.htmlContent ? m.htmlContent.length : 0) + (m.text ? m.text.length : 0);
+                if (m.quote) { try { est += JSON.stringify(m.quote).length; } catch (e) {} }
+                if (est >= 4 * 1024 * 1024) break;
+            }
+            if (est < 4 * 1024 * 1024) {
+                localStorage.setItem('chatHistoryV1', JSON.stringify(data));
                 localStorage.removeItem('chatHistoryV1_truncated');
             } else {
                 const snapshot = data.slice(-300);
@@ -1567,11 +1575,26 @@
         checkChatCapacity();
     }
 
+    // ⚡ 输入优先：正在打字时先不落盘（落盘要序列化整份聊天记录，聊天里带图片时会卡住主线程几百毫秒，
+    //    表现就是"字要等一下才蹦出来"）。停手约 1.2 秒后再写；最多顺延 12 秒；切后台/关页面仍会立刻落盘。
+    let _lastTypeTs = 0, _dirtySince = 0;
+    document.addEventListener('beforeinput', () => { _lastTypeTs = Date.now(); }, { passive: true, capture: true });
+    function _flushUnlessTyping() {
+        const now = Date.now();
+        if (_persistDirty && now - _lastTypeTs < 1200 && now - _dirtySince < 12000) {
+            if (_persistTimer) clearTimeout(_persistTimer);
+            _persistTimer = setTimeout(_flushUnlessTyping, 800);
+            return;
+        }
+        flushChatHistory();
+    }
+
     function saveChatHistory() {
+        if (!_persistDirty) _dirtySince = Date.now();
         _persistDirty = true;
         if (_persistTimer) clearTimeout(_persistTimer);
-        _persistTimer = setTimeout(() => { _idleRun(flushChatHistory, { timeout: 1500 }); }, 900);
-        if (!_persistMaxTimer) _persistMaxTimer = setTimeout(flushChatHistory, 5000);
+        _persistTimer = setTimeout(() => { _idleRun(_flushUnlessTyping, { timeout: 1500 }); }, 900);
+        if (!_persistMaxTimer) _persistMaxTimer = setTimeout(() => { _persistMaxTimer = null; _flushUnlessTyping(); }, 5000);
     }
 
     // 导入备份 / 即将刷新页面时调用：丢掉还没落盘的旧数据，
@@ -1632,6 +1655,59 @@
         closeChatCapacityOverlay();
         togglePanel('panel-data');
     }
+
+    // ================== 🎚️ 聊天区滚动手感（想调快慢就改下面 4 个数字）==================
+    //  原来手指一甩，浏览器的惯性滚动会一口气滑过几十上百条消息，很难停在想要的位置。
+    //  现在手指拖动仍是 1:1 跟手，但松手后的惯性被限制得更短；鼠标滚轮每一格也缩小了。
+    (function setupChatScrollFeel() {
+        const el = messageArea;
+        if (!el) return;
+        const FLING_GAIN = 0.5;   // 松手惯性强度：越小，松手后滑得越近（0 = 松手即停）
+        const FLING_MAX  = 1.6;   // 惯性初速度上限（像素/毫秒），防止用力一甩飞出去
+        const FLING_TAU  = 260;   // 惯性衰减时间（毫秒）：越小停得越快
+        const WHEEL_GAIN = 0.35;  // 鼠标滚轮每格滚动距离的缩放比例
+        let rafId = 0, vel = 0, lastT = 0, tracking = false, startY = 0, startTop = 0, samples = [];
+        function stop() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } vel = 0; }
+        function step(t) {
+            const dt = Math.max(0, Math.min(t - lastT, 32)); lastT = t;
+            el.scrollTop += vel * dt;
+            vel *= Math.exp(-dt / FLING_TAU);
+            const max = el.scrollHeight - el.clientHeight;
+            if (Math.abs(vel) < 0.03 || (vel < 0 && el.scrollTop <= 0) || (vel > 0 && el.scrollTop >= max - 1)) { rafId = 0; vel = 0; return; }
+            rafId = requestAnimationFrame(step);
+        }
+        el.addEventListener('touchstart', e => {
+            if (e.touches.length !== 1) { tracking = false; return; }
+            stop(); tracking = true;
+            startY = e.touches[0].clientY; startTop = el.scrollTop;
+            samples = [{ t: e.timeStamp, y: startY }];
+        }, { passive: true });
+        el.addEventListener('touchmove', e => {
+            if (!tracking || e.touches.length !== 1) return;
+            const y = e.touches[0].clientY;
+            el.scrollTop = startTop + (startY - y);
+            samples.push({ t: e.timeStamp, y });
+            while (samples.length > 2 && e.timeStamp - samples[0].t > 100) samples.shift();
+        }, { passive: true });
+        el.addEventListener('touchend', e => {
+            if (!tracking) return; tracking = false;
+            const n = samples.length; if (n < 2) return;
+            const a = samples[0], b = samples[n - 1], span = b.t - a.t;
+            if (span <= 0 || e.timeStamp - b.t > 80) return;       // 停住再松手 = 不惯性
+            let v = ((a.y - b.y) / span) * FLING_GAIN;
+            v = Math.max(-FLING_MAX, Math.min(FLING_MAX, v));
+            if (Math.abs(v) < 0.05) return;
+            vel = v; lastT = performance.now(); rafId = requestAnimationFrame(step);
+        }, { passive: true });
+        el.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        el.addEventListener('wheel', e => {
+            if (e.ctrlKey) return;
+            let dy = e.deltaY;
+            if (e.deltaMode === 1) dy *= 16; else if (e.deltaMode === 2) dy *= el.clientHeight;
+            if (e.deltaMode === 0 && Math.abs(dy) < 40) return;     // 触控板的细小连续滚动保持原样
+            e.preventDefault(); stop(); el.scrollTop += dy * WHEEL_GAIN;
+        }, { passive: false });
+    })();
 
     function generateMsgId() { return Date.now() + '-' + Math.floor(Math.random() * 100000); }
 
