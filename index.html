@@ -1481,6 +1481,7 @@
     const CHAT_KEY = 'chatHistoryV1';
     let chatDB = null;
     let chatStorageReady = false;
+    const LS_CHAT_LIMIT_WITH_IDB = 1.5 * 1024 * 1024;   // 🔧 IndexedDB 可用时，localStorage 里的聊天快照上限（把配额让给朋友圈/心情日记）
 
     function openChatDB() {
         return new Promise((resolve) => {
@@ -1539,7 +1540,8 @@
                 if (m.quote) { try { est += JSON.stringify(m.quote).length; } catch (e) {} }
                 if (est >= 4 * 1024 * 1024) break;
             }
-            if (est < 4 * 1024 * 1024) {
+            const LS_CHAT_LIMIT = idbOk ? LS_CHAT_LIMIT_WITH_IDB : 4 * 1024 * 1024;   // 🔧 IDB 可用时 localStorage 只做小快照
+            if (est < LS_CHAT_LIMIT) {
                 localStorage.setItem('chatHistoryV1', JSON.stringify(data));
                 localStorage.removeItem('chatHistoryV1_truncated');
             } else {
@@ -1577,7 +1579,7 @@
             if (localStorage.getItem('chatHistoryV1_truncated') === '1') {
                 try {
                     const json = JSON.stringify(idbData);
-                    if (json.length < 4 * 1024 * 1024) {
+                    if (json.length < LS_CHAT_LIMIT_WITH_IDB) {
                         localStorage.setItem('chatHistoryV1', json);
                         localStorage.removeItem('chatHistoryV1_truncated');
                     }
@@ -1647,6 +1649,159 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden) flushChatHistory(); });
     window.addEventListener('pagehide', flushChatHistory);
     window.addEventListener('beforeunload', flushChatHistory);
+
+    // ============ 🛡️ 朋友圈 / 心情日记 可靠存储（修复"出现后自己消失"） ============
+    // 根因：这两份数据原来只写 localStorage（约 5MB 配额），而聊天记录快照 + 朋友圈里的 base64 表情图
+    //      很容易把配额写满 → setItem 抛 QuotaExceededError → 数据只存在于内存，界面上看得到，
+    //      一刷新/重开就"消失"；并且好几处没有 try/catch，异常还会中断后续逻辑。
+    // 方案：IndexedDB 为主存储（大容量）+ localStorage 兜底；每次写入带时间戳，读取时取较新的一份；
+    //      localStorage 写满时自动腾出聊天快照占用的空间并重试；回到前台时若别的页面改过数据则自动同步。
+    const KV_DB_NAME = 'xingxingfanKVDB';
+    const KV_STORE = 'kvStore';
+    let kvDB = null;
+    let _kvReady = false;
+    const _kvTs = {};              // key -> 当前内存数据对应的时间戳
+    const _kvLocalEdited = {};     // key -> 初始化完成前本页是否已修改过
+    let _kvWarnTs = 0;
+
+    function openKVDB() {
+        return new Promise((resolve) => {
+            if (!('indexedDB' in window)) { resolve(null); return; }
+            try {
+                const req = indexedDB.open(KV_DB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(KV_STORE)) db.createObjectStore(KV_STORE);
+                };
+                req.onsuccess = (e) => { kvDB = e.target.result; resolve(kvDB); };
+                req.onerror = () => resolve(null);
+                req.onblocked = () => resolve(null);
+            } catch (err) { resolve(null); }
+        });
+    }
+    function kvIdbGet(key) {
+        return new Promise((resolve) => {
+            if (!kvDB) { resolve(null); return; }
+            try {
+                const req = kvDB.transaction(KV_STORE, 'readonly').objectStore(KV_STORE).get(key);
+                req.onsuccess = () => resolve(typeof req.result === 'undefined' ? null : req.result);
+                req.onerror = () => resolve(null);
+            } catch (err) { resolve(null); }
+        });
+    }
+    function kvIdbSet(key, val) {
+        return new Promise((resolve) => {
+            if (!kvDB) { resolve(false); return; }
+            try {
+                const tx = kvDB.transaction(KV_STORE, 'readwrite');
+                tx.objectStore(KV_STORE).put(val, key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+                tx.onabort = () => resolve(false);
+            } catch (err) { resolve(false); }
+        });
+    }
+
+    // localStorage 写满时：把聊天记录的 localStorage 兜底快照缩到最近 100 条（完整数据在 IndexedDB 里）
+    function freeLocalStorageSpace() {
+        if (!chatDB || !chatStorageReady) return false;     // IndexedDB 不可用时，localStorage 里可能是唯一副本，不能动
+        try {
+            if (_persistDirty) flushChatHistory();
+            const snap = chatHistory.slice(-100);
+            localStorage.setItem('chatHistoryV1', JSON.stringify(snap));
+            localStorage.setItem('chatHistoryV1_truncated', '1');
+            return true;
+        } catch (e) {
+            try { localStorage.removeItem('chatHistoryV1'); localStorage.setItem('chatHistoryV1_truncated', '1'); return true; } catch (e2) { return false; }
+        }
+    }
+
+    // 带保护的 localStorage 写入：失败 → 腾空间 → 重试；永不抛异常
+    function safeLSSet(key, val) {
+        try { localStorage.setItem(key, val); return true; } catch (e) {}
+        if (freeLocalStorageSpace()) {
+            try { localStorage.setItem(key, val); return true; } catch (e) {}
+        }
+        return false;
+    }
+
+    // 保存：IndexedDB 为主 + localStorage 兜底。返回 Promise<boolean>（是否至少有一处写入成功）
+    async function kvSave(key, value) {
+        const ts = Date.now();
+        _kvTs[key] = ts;
+        _kvLocalEdited[key] = true;
+        let json;
+        try { json = JSON.stringify(value); } catch (e) { console.warn('序列化失败', key, e); return false; }
+        const lsOk = safeLSSet(key, json);
+        if (lsOk) safeLSSet(key + '_ts', String(ts));
+        let idbOk = false;
+        try { idbOk = await kvIdbSet(key, { ts: ts, data: value }); } catch (e) { idbOk = false; }
+        if (!idbOk && !lsOk) {
+            if (Date.now() - _kvWarnTs > 60000) {
+                _kvWarnTs = Date.now();
+                try { showCustomNotification('存储空间不足，朋友圈/心情日记可能无法保存，请先导出备份并清理大图', 'error', 5000); } catch (e) {}
+            }
+            return false;
+        }
+        return true;
+    }
+
+    // 读取：IndexedDB 与 localStorage 取时间戳较新的一份；旧版只有 localStorage 的数据自动迁移到 IndexedDB
+    async function kvLoad(key) {
+        let ls = null, lsTs = 0;
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw !== null) ls = JSON.parse(raw);
+            lsTs = parseInt(localStorage.getItem(key + '_ts')) || 0;
+        } catch (e) { ls = null; }
+        const env = await kvIdbGet(key);
+        const hasEnv = env && typeof env === 'object' && 'data' in env;
+        if (hasEnv && (ls === null || (env.ts || 0) >= lsTs)) {
+            _kvTs[key] = env.ts || 0;
+            return env.data;
+        }
+        if (ls !== null) {
+            _kvTs[key] = lsTs || 1;
+            await kvIdbSet(key, { ts: lsTs || 1, data: ls });   // 迁移/补写到 IndexedDB
+            return ls;
+        }
+        return null;
+    }
+
+    async function initKVStorage() {
+        await openKVDB();
+        try {
+            const m = await kvLoad('chatMomentsV1');
+            if (Array.isArray(m) && !_kvLocalEdited['chatMomentsV1']) moments = m;
+            const d = await kvLoad('chatMoodDataV1');
+            if (d && typeof d === 'object' && !Array.isArray(d) && !_kvLocalEdited['chatMoodDataV1']) moodData = d;
+        } catch (e) { console.warn('朋友圈/心情日记载入失败', e); }
+        _kvReady = true;
+    }
+
+    // 回到前台/重新聚焦时：若别的标签页/PWA 窗口更新过数据，同步过来，避免用旧数据覆盖新数据
+    async function kvResync() {
+        if (!_kvReady) return;
+        try {
+            const em = await kvIdbGet('chatMomentsV1');
+            if (em && Array.isArray(em.data) && (em.ts || 0) > (_kvTs['chatMomentsV1'] || 0)) {
+                moments = em.data; _kvTs['chatMomentsV1'] = em.ts;
+                const pg = document.getElementById('moments-page');
+                if (pg && pg.style.display === 'flex') renderMoments();
+            }
+            const ed = await kvIdbGet('chatMoodDataV1');
+            if (ed && ed.data && typeof ed.data === 'object' && (ed.ts || 0) > (_kvTs['chatMoodDataV1'] || 0)) {
+                moodData = ed.data; _kvTs['chatMoodDataV1'] = ed.ts;
+                const mp = document.getElementById('panel-mood');
+                if (mp && mp.style.display === 'block') renderMoodPanel();
+            }
+        } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') kvResync(); });
+    window.addEventListener('focus', kvResync);
+
+    function saveMoments() { return kvSave('chatMomentsV1', moments); }
+    function saveMoodData() { return kvSave('chatMoodDataV1', moodData); }
 
     // ============ 📦 聊天容量监测与提醒 ============
     const CHAT_WARN_MSG_COUNT = 1500;          // 消息条数超过该值 → 弹窗提醒保存
@@ -1923,6 +2078,9 @@
         //    最多等 3 秒，超时或报错也继续往下走，保证引擎一定会启动
         try { await Promise.race([initChatStorage(), new Promise(res => setTimeout(res, 3000))]); }
         catch (e) { /* 忽略存储初始化错误，保证 App 其余功能正常 */ }
+        // 🔧 载入朋友圈 / 心情日记（IndexedDB 为主 + localStorage 兜底），最多等 3 秒，不阻塞后续初始化
+        try { await Promise.race([initKVStorage(), new Promise(res => setTimeout(res, 3000))]); }
+        catch (e) { /* 忽略 */ }
         loadChatHistory();
         checkChatCapacity();       // 🌟 启动时检查一次容量
         checkDailyCall(); startProactiveEngine(); bindDoubleTap(); checkAndGenerateBotMood(); 
@@ -3718,7 +3876,7 @@
         if (!moodData[todayStr]) moodData[todayStr] = {};
         if (!moodData[todayStr].bot) {
             const randomMood = defaultMoods[Math.floor(Math.random() * defaultMoods.length)];
-            moodData[todayStr].bot = randomMood.text; localStorage.setItem('chatMoodDataV1', JSON.stringify(moodData));
+            moodData[todayStr].bot = randomMood.text; saveMoodData();
         }
     }
 
@@ -3759,7 +3917,7 @@
 
     function selectMyMood(moodText) {
         const todayStr = getLocalDateStr(new Date()); if (!moodData[todayStr]) moodData[todayStr] = {};
-        moodData[todayStr].me = moodText; localStorage.setItem('chatMoodDataV1', JSON.stringify(moodData)); closeMoodSelector(); renderMoodPanel();
+        moodData[todayStr].me = moodText; saveMoodData(); closeMoodSelector(); renderMoodPanel();
     }
 
     function renderCalendar() {
@@ -3800,10 +3958,13 @@
             try {
                 const data = JSON.parse(e.target.result);
                 if (data.config && data.wordCards) {
+                    if (!kvDB) await openKVDB();
                     localStorage.setItem('chatConfigV6', JSON.stringify(data.config));
                     localStorage.setItem('wordCardsV2', JSON.stringify(data.wordCards));
-                    localStorage.setItem('chatMomentsV1', JSON.stringify(data.moments || []));
-                    localStorage.setItem('chatMoodDataV1', JSON.stringify(data.moodData || {}));
+                    moments = Array.isArray(data.moments) ? data.moments : [];
+                    moodData = (data.moodData && typeof data.moodData === 'object') ? data.moodData : {};
+                    await saveMoments();
+                    await saveMoodData();
                     localStorage.setItem('callHistoryV1', JSON.stringify(data.callHistory || []));
                     localStorage.setItem('checkinHistoryV1', JSON.stringify(data.checkinHistory || []));
                     localStorage.setItem('trackCardsV1', JSON.stringify(data.trackCards || []));
@@ -4321,7 +4482,7 @@
         const todayStr = getLocalDateStr(new Date());
         const lastDate = localStorage.getItem('lastMomentsBatchDateV1');
         if (lastDate !== todayStr) {
-            localStorage.setItem('lastMomentsBatchDateV1', todayStr);
+            safeLSSet('lastMomentsBatchDateV1', todayStr);
             const now = Date.now();
             let newTimes = [];
             if (Math.random() < 0.7) {  // 🌟 凭概率：今天 70% 概率发一篇
@@ -4332,7 +4493,7 @@
             // 合并到已有排期（保留尚未发布的时刻，避免覆盖掉之前还没到点的计划）
             let existing = [];
             try { existing = JSON.parse(localStorage.getItem('scheduledMomentsV1')) || []; } catch (e) { existing = []; }
-            localStorage.setItem('scheduledMomentsV1', JSON.stringify(existing.concat(newTimes)));
+            safeLSSet('scheduledMomentsV1', JSON.stringify(existing.concat(newTimes)));
         }
     }
 
@@ -4347,7 +4508,7 @@
         const now = Date.now();
         const due = times.filter(t => t <= now).sort((a, b) => a - b); // 升序，保证最新的最后插入→排在最前
         const remaining = times.filter(t => t > now);
-        localStorage.setItem('scheduledMomentsV1', JSON.stringify(remaining));
+        safeLSSet('scheduledMomentsV1', JSON.stringify(remaining));
         due.forEach((t, i) => { setTimeout(() => triggerBotMoment(t), i * 800); }); // 多条时稍微错开，时间戳仍用各自计划时刻
     }
 
@@ -4446,7 +4607,6 @@
         clearTimeout(_reactTimer);
         if (next < Infinity) _reactTimer = setTimeout(checkPendingMomentReacts, Math.min(600000, Math.max(500, next - Date.now() + 300)));
     }
-    function saveMoments() { try { localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); } catch (e) { console.warn('朋友圈保存失败', e); } }
     function toggleMomentLike(id) {
         const m = moments.find(x => String(x.id) === String(id)); if (!m) return;
         m.likes = Array.isArray(m.likes) ? m.likes : [];
@@ -4561,7 +4721,7 @@
         const otherN = config.otherName || '匿名者';
         const isSecondRound = !!momentReplyTo || (m.comments || []).some(c => c.author === otherN);   // 对方已经在这条下评论过 → 这次算二次回复
         m.comments.push(cmt);
-        localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
+        saveMoments();
 
         // 5. 清理输入框并关闭评论栏
         input.innerHTML = '';
@@ -4586,8 +4746,8 @@
                     if(Math.random() < 0.3) { cText = escapeHtml(getPureEmoji()); } else { cText = escapeHtml(wordCards[Math.floor(Math.random() * wordCards.length)].text); }
                     if (config.customStickers.length > 0 && Math.random() < 0.2) { const img = config.customStickers[Math.floor(Math.random() * config.customStickers.length)]; cText += ` <img src="${img}">`; }
                     m.comments.push({ author: config.otherName || "匿名者", text: "回复 " + (config.myName || "我") + ": " + cText });
-                    localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
-                    if(document.getElementById('moments-page').style.display !== 'none') renderMoments();
+                    saveMoments();
+                    if(document.getElementById('moments-page').style.display === 'flex') renderMoments();
                 }
                 sendSystemNotification(config.otherName || '匿名者', '回复了你的动态'); 
             }, delay);
@@ -4611,9 +4771,9 @@
             const wait = 20000 + Math.random() * 160000;
             newMoment.pendingReact = { at: Date.now() + wait, type: Math.random() < 0.5 ? 'like' : 'fav' };
         }
-        moments.unshift(newMoment); localStorage.setItem('chatMomentsV1', JSON.stringify(moments));
+        moments.unshift(newMoment); saveMoments();
         el.innerHTML = ''; document.getElementById('sticker-panel').style.display = 'none'; closeMomentsPublish(); renderMoments(); 
-        let delayHours = 10 + Math.random() * 14; let delayMs = delayHours * 60 * 60 * 1000; let postTime = Date.now() + delayMs; localStorage.setItem('pendingBotMomentV1', postTime);
+        let delayHours = 10 + Math.random() * 14; let delayMs = delayHours * 60 * 60 * 1000; let postTime = Date.now() + delayMs; safeLSSet('pendingBotMomentV1', String(postTime));
         if(wordCards.length > 0) botReplyToMomentComment(String(newMoment.id)); checkPendingMomentReacts(); showCustomNotification("发布成功", "success");
     }
 
@@ -4641,8 +4801,8 @@
         moments.unshift(newMoment);
         // 🌟 按时间戳降序排序，确保即便是回填的历史时刻也能落到时间线上的正确位置（最新在最前）
         moments.sort((a, b) => ((b.timestamp || b.id) - (a.timestamp || a.id)));
-        localStorage.setItem('chatMomentsV1', JSON.stringify(moments)); 
-        if (document.getElementById('moments-page').style.display !== 'none') renderMoments();
+        saveMoments();
+        if (document.getElementById('moments-page').style.display === 'flex') renderMoments();
         sendSystemNotification(config.otherName || '匿名者', '更新了朋友圈动态'); 
     }
 
