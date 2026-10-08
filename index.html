@@ -78,7 +78,7 @@
             flex: 1 1 auto; min-height: 0; padding: 20px 15px; overflow-y: auto; display: flex; 
             flex-direction: column; gap: 20px; scroll-behavior: auto; overflow-anchor: none;
             -webkit-overflow-scrolling: touch; contain: layout style;
-            touch-action: none; /* 触摸滚动由下方 setupChatScrollFeel 接管，惯性可控 */
+            touch-action: pan-y; /* 使用浏览器原生滚动（触摸/滚轮/惯性均由浏览器处理） */
         }
         
         /* ⚡ 性能：淡入动画只给"新来的那一条"，历史记录批量渲染时不再逐条跑动画 */
@@ -1849,93 +1849,7 @@
         togglePanel('panel-data');
     }
 
-    // ================== 🎚️ 聊天区滚动手感（想调快慢/软硬就改下面几个数字）==================
-    //  触摸和滚轮的滚动由这里接管：手指/滚轮只决定"目标位置"，列表用"临界阻尼"弹簧逐帧追随目标。
-    //  和普通聊天软件一样：起步慢慢加速、松手后顺着手指的速度缓缓滑行、再慢慢停下，速度全程连续，没有台阶和急刹。
-    (function setupChatScrollFeel() {
-        const el = messageArea;
-        if (!el) return;
-        const DRAG_GAIN    = 0.4;   // 手指拖动：手指移动 100 像素，列表滚 40 像素（1 = 1:1 跟手）
-        const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
-        const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
-        const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 5;     // 拖动时的追随时间（毫秒）：已调为 5ms（朋友圈为浏览器原生滚动，无可参照参数）
-        const FOLLOW_GLIDE = 5;     // 滑行/滚轮时的追随时间（毫秒）：已调为 5ms
-        let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0, maxCache = 0, maxAt = -1e9;
-        let dragging = false, startY = 0, startTop = 0, samples = [];
-        // 最大可滚动距离：每 150ms 才重新量一次，避免每帧都触发布局计算（滚动中最容易造成掉帧）
-        const maxTop = (force) => {
-            const n = performance.now();
-            if (force || n - maxAt > 150) { maxCache = Math.max(0, el.scrollHeight - el.clientHeight); maxAt = n; }
-            return maxCache;
-        };
-        const clamp = v => Math.max(0, Math.min(maxTop(), v));
-        function sync() { cur = target = el.scrollTop; lastSet = cur; fv = 0; maxTop(true); }
-        function stopAll() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } gv = 0; fv = 0; }
-        function kick() { if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(frame); } }
-        function frame(t) {
-            rafId = 0;
-            const dt = Math.max(1, Math.min(t - lastT, 40)); lastT = t;
-            // 别的代码（比如新消息自动滚到底）动了列表：放弃滑行，以当前位置为准
-            if (Math.abs(el.scrollTop - lastSet) > 1.5) { sync(); gv = 0; if (!dragging) return; }
-            const max = maxTop();
-            if (!dragging && gv !== 0) {                       // 松手后的滑行：目标匀减速前进
-                target += gv * dt; gv *= Math.exp(-dt / GLIDE_TAU);
-                if (Math.abs(gv) < 0.006) gv = 0;
-            }
-            if (target < 0) { target = 0; gv = 0; } else if (target > max) { target = max; gv = 0; }
-            // 临界阻尼追随（解析解，任意帧率都稳定、速度连续）
-            const w = 1 / (dragging ? FOLLOW_DRAG : FOLLOW_GLIDE), x = cur - target, e = Math.exp(-w * dt);
-            const tmp = (fv + w * x) * dt;
-            cur = target + (x + tmp) * e; fv = (fv - w * tmp) * e;
-            if (Math.abs(target - cur) < 0.2 && Math.abs(fv) < 0.01) { cur = target; fv = 0; }
-            el.scrollTop = cur; lastSet = cur;
-            if (dragging || gv !== 0 || cur !== target) rafId = requestAnimationFrame(frame);
-        }
-        // 用最近 ~100ms 的触点做最小二乘，估计手指速度（比首尾两点更稳）
-        function fingerVelocity() {
-            const n = samples.length; if (n < 2) return 0;
-            let st = 0, sy = 0; for (const s of samples) { st += s.t; sy += s.y; }
-            const mt = st / n, my = sy / n; let num = 0, den = 0;
-            for (const s of samples) { num += (s.t - mt) * (s.y - my); den += (s.t - mt) * (s.t - mt); }
-            return den > 0 ? num / den : 0;                   // 像素/毫秒（向下为正）
-        }
-        el.addEventListener('touchstart', e => {
-            if (e.touches.length !== 1) { dragging = false; return; }
-            stopAll(); sync(); dragging = true;
-            startY = e.touches[0].clientY; startTop = cur;
-            samples = [{ t: e.timeStamp, y: startY }];
-            kick();
-        }, { passive: true });
-        el.addEventListener('touchmove', e => {
-            if (!dragging || e.touches.length !== 1) return;
-            const y = e.touches[0].clientY;
-            target = clamp(startTop + (startY - y) * DRAG_GAIN);
-            samples.push({ t: e.timeStamp, y });
-            while (samples.length > 2 && e.timeStamp - samples[0].t > 100) samples.shift();
-            kick();
-        }, { passive: true });
-        function release(e, allowGlide) {
-            if (!dragging) return; dragging = false;
-            if (allowGlide && samples.length >= 2 && e.timeStamp - samples[samples.length - 1].t <= 80) {   // 停住再松手 = 不滑行
-                const v = -fingerVelocity() * DRAG_GAIN;      // 与拖动时列表的速度一致 → 速度连续、不急刹
-                gv = Math.abs(v) >= 0.03 ? Math.max(-GLIDE_MAX, Math.min(GLIDE_MAX, v)) : 0;
-            }
-            kick();
-        }
-        el.addEventListener('touchend', e => release(e, true), { passive: true });
-        el.addEventListener('touchcancel', e => release(e, false), { passive: true });
-        el.addEventListener('wheel', e => {
-            if (e.ctrlKey) return;
-            let dy = e.deltaY;
-            if (e.deltaMode === 1) dy *= 16; else if (e.deltaMode === 2) dy *= el.clientHeight;
-            if (e.deltaMode === 0 && Math.abs(dy) < 40) return;     // 触控板的细小连续滚动保持原样
-            e.preventDefault();
-            if (!rafId) sync();
-            gv = 0; target = clamp(target + dy * WHEEL_GAIN);
-            kick();
-        }, { passive: false });
-    })();
+    // ================== 聊天区滚动：已改为浏览器原生滚动（不再使用自定义弹簧滚动） ==================
 
     function generateMsgId() { return Date.now() + '-' + Math.floor(Math.random() * 100000); }
 
