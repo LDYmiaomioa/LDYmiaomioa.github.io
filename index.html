@@ -46,7 +46,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: var(--bg-full-h, 100%); z-index: 0;
             background-size: 100% 100%; background-position: center; background-repeat: no-repeat;
             transition: filter 0.2s;
-            contain: strict; transform: translateZ(0); will-change: transform; pointer-events: none;
+            contain: strict; pointer-events: none; /* 已去掉 translateZ(0)/will-change：不再让背景图独占一个整屏 GPU 层，聊天区滚动时少一层混合 */
         }
 
         .header, .message-area, .input-area, .panel, .quote-preview-bar { position: relative; z-index: 10; }
@@ -84,6 +84,10 @@
         /* ⚡ 性能：淡入动画只给"新来的那一条"，历史记录批量渲染时不再逐条跑动画 */
         .message-wrapper { display: flex; gap: 10px; width: 100%; align-items: flex-start; }
         .message-wrapper.msg-enter { animation: fadeIn 0.3s ease-out; }
+        /* ⚡ 屏幕外的气泡不参与布局/绘制；contain-intrinsic-size 的 auto 会记住渲染过的真实高度，往回滚不再跳动。
+           content-visibility 带有 paint 裁剪，所以上下各留 6px 内边距并用负外边距抵回，避免阴影被裁掉，间距保持原来的 20px。 */
+        .message-wrapper, .system-message-container { content-visibility: auto; contain-intrinsic-size: auto 72px; }
+        .message-wrapper { padding: 6px 0; margin: -6px 0; }
 
         /* ⚡ 性能：消息条数很多时（默认 >250 条）启用"屏幕外不渲染"，
            屏幕外的气泡不参与布局和绘制，打字时每次重排只算可见的十几条。 */
@@ -1907,6 +1911,40 @@
         messageArea.classList.toggle('vlist', on);
     }
 
+    // ⚡ 历史消息分页：首屏只渲染最近 HISTORY_PAGE 条，点击顶部按钮每次再往前加载 HISTORY_PAGE 条
+    const HISTORY_PAGE = 100;
+    let historyRenderedFrom = 0;   // chatHistory 里已渲染部分的起始下标
+    function buildHistoryHtml(from, to) {
+        const parts = [];
+        for (let i = from; i < to; i++) {
+            const msg = chatHistory[i];
+            if (!msg) continue;
+            if (msg.type === 'system') {
+                parts.push(buildSystemMessageHtml(msg.text, msg.id));
+            } else if (msg.type === 'message') {
+                const ts = msg.timestamp || (msg.id ? parseInt(msg.id.split('-')[0]) : Date.now());
+                parts.push(buildMessageHtml(msg.isSelf, msg.htmlContent, msg.quote, msg.id, ts, false));
+            }
+        }
+        return parts.join('');
+    }
+    function buildLoadMoreBarHtml() {
+        return `<div id="load-more-history" style="align-self:center; flex-shrink:0; padding:6px 16px; font-size:12px; color:#0084FF; background:rgba(255,255,255,0.9); border-radius:14px; cursor:pointer; user-select:none;" onclick="event.stopPropagation(); loadMoreHistory()">⬆ 加载更早的消息（还有 ${historyRenderedFrom} 条）</div>`;
+    }
+    function loadMoreHistory() {
+        if (historyRenderedFrom <= 0) return;
+        const bar = document.getElementById('load-more-history');
+        if (!bar) return;
+        const newFrom = Math.max(0, historyRenderedFrom - HISTORY_PAGE);
+        const prevH = messageArea.scrollHeight, prevTop = messageArea.scrollTop;
+        bar.insertAdjacentHTML('afterend', buildHistoryHtml(newFrom, historyRenderedFrom));
+        historyRenderedFrom = newFrom;
+        if (newFrom <= 0) bar.remove();
+        else bar.textContent = `⬆ 加载更早的消息（还有 ${newFrom} 条）`;
+        // 在顶部插入内容后，保持用户正在看的那一条不动
+        messageArea.scrollTop = prevTop + (messageArea.scrollHeight - prevH);
+    }
+
     function loadChatHistory() {
         // 移除加载动画
         const loadingEl = document.getElementById('history-loading-indicator');
@@ -1926,18 +1964,10 @@
         // ⚡ 性能：历史消息先全部拼成一个字符串，最后一次性插入。
         //    原来是一条一条 insertAdjacentHTML 并读 scrollHeight，
         //    1000 条就是 1000 次强制同步重排，开页要卡好几秒。
-        const parts = [];
-        for (let i = 0; i < chatHistory.length; i++) {
-            const msg = chatHistory[i];
-            if (!msg) continue;
-            if (msg.type === 'system') {
-                parts.push(buildSystemMessageHtml(msg.text, msg.id));
-            } else if (msg.type === 'message') {
-                const ts = msg.timestamp || (msg.id ? parseInt(msg.id.split('-')[0]) : Date.now());
-                parts.push(buildMessageHtml(msg.isSelf, msg.htmlContent, msg.quote, msg.id, ts, false));
-            }
-        }
-        messageArea.insertAdjacentHTML('beforeend', parts.join(''));
+        //    🌟 再优化：只渲染最近 HISTORY_PAGE 条，更早的放在顶部「加载更早的消息」按钮后面，DOM 里的气泡少，滚动更顺。
+        historyRenderedFrom = Math.max(0, chatHistory.length - HISTORY_PAGE);
+        if (historyRenderedFrom > 0) messageArea.insertAdjacentHTML('beforeend', buildLoadMoreBarHtml());
+        messageArea.insertAdjacentHTML('beforeend', buildHistoryHtml(historyRenderedFrom, chatHistory.length));
 
         // 在所有历史消息渲染完毕后，插入「以上是历史聊天记录」分割线
         const count = chatHistory.length;
@@ -1970,7 +2000,7 @@
 
     function clearChatHistory() {
         if(confirm('确定要清空所有聊天记录吗？此操作不可逆！')) {
-            chatHistory = []; saveChatHistory(); messageArea.innerHTML = '';
+            chatHistory = []; saveChatHistory(); messageArea.innerHTML = ''; historyRenderedFrom = 0;
             chatCapacityWarned = false; _saveCounter = 0; // 🌟 清空后重置容量提醒
             // 清空后重新显示欢迎提示
             const welcomeHtml = `<div class="history-divider">
