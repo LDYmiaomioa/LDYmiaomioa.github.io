@@ -640,7 +640,7 @@
         <!-- 🌟 新增：每日视频电话信息（每天 50% 概率） -->
         <div class="modern-card" style="background: #f0f9ff;">
             <div style="font-size: 13px; font-weight: 600; color: #0084FF; margin-bottom: 6px;">📞 每日视频电话</div>
-            <div style="font-size: 12px; color: #555; line-height: 1.6;">每天打开页面时自动掷骰，50% 概率对方会在今日剩余时间内的随机时刻给您打来视频电话。已掷骰过则当日不再重新掷骰。</div>
+            <div style="font-size: 12px; color: #555; line-height: 1.6;">每天打开页面时自动掷骰，50% 概率对方会在今日剩余时间内的随机时刻给您打来视频电话。已掷骰过则当日不再重新掷骰。<br>另外：开启“主动消息”后，对方每次主动联系您时，还有 50% 的几率直接打视频电话来代替发消息。</div>
         </div>
 
         <div class="modern-card" style="border-left: 3px solid #FF6900; background: #fff9f5;">
@@ -1859,8 +1859,8 @@
         const GLIDE_MAX    = 1.6;   // 松手后滑行的最大初速度（像素/毫秒）
         const GLIDE_TAU    = 560;   // 松手后滑行的衰减时间（毫秒）：越大摩擦越小、滑得越远越久（接近普通聊天软件的惯性）
         const WHEEL_GAIN   = 0.14;  // 鼠标滚轮每格滚动距离的缩放比例
-        const FOLLOW_DRAG  = 10;    // 拖动时的追随时间（毫秒）：越小越跟手、越不发沉，越大越柔
-        const FOLLOW_GLIDE = 20;    // 滑行/滚轮时的追随时间（毫秒）：越大越柔
+        const FOLLOW_DRAG  = 5;     // 拖动时的追随时间（毫秒）：已调为 5ms（朋友圈为浏览器原生滚动，无可参照参数）
+        const FOLLOW_GLIDE = 5;     // 滑行/滚轮时的追随时间（毫秒）：已调为 5ms
         let rafId = 0, cur = 0, fv = 0, target = 0, gv = 0, lastT = 0, lastSet = 0, maxCache = 0, maxAt = -1e9;
         let dragging = false, startY = 0, startTop = 0, samples = [];
         // 最大可滚动距离：每 150ms 才重新量一次，避免每帧都触发布局计算（滚动中最容易造成掉帧）
@@ -2213,6 +2213,14 @@
         return callHidden && momentsHidden;
     }
 
+    // 📞 对方主动联系时打电话的几率（0.5 = 50%）
+    const RANDOM_CALL_CHANCE = 0.5;
+    // 当前是否正在通话/来电/小窗中（避免重复来电）
+    function isCallBusy() {
+        const o = document.getElementById('video-call-overlay'), p = document.getElementById('floating-call-pip');
+        return (o && o.style.display === 'flex') || (p && p.style.display === 'flex');
+    }
+
     // 🌟 核心轮询：静默时长达到设定间隔就发一条主动消息，并把静默起点前移（持续静默会按频率不断发）
     function checkProactiveTick() {
         if (!canFireProactive()) return;
@@ -2221,7 +2229,12 @@
         if (isNaN(interval) || interval < 1000) interval = 1000;     // 最快 1 秒
         if (interval > 900000) interval = 900000;                    // 最慢 15 分钟
         if (Date.now() - lastUserActivityTs >= interval) {
-            triggerBotProactive();   // 发一条主动消息
+            // 📞 新增：对方每次主动联系你时，有 50% 的几率直接给你打视频电话（否则照常发消息）
+            if (Math.random() < RANDOM_CALL_CHANCE && !isCallBusy()) {
+                startIncomingCall();
+            } else {
+                triggerBotProactive();   // 发一条主动消息
+            }
             markUserActivity();      // 重置静默起点：到下个 interval 还没动作就再发
         }
     }
